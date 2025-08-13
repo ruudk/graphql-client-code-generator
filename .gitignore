@@ -1,4 +1,4 @@
 /examples/schema.docs.graphql
 /examples/.env.local
 /vendor/
-/.php_cs.cache
+/.php-cs-fixer.cache

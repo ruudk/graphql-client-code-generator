@@ -61,7 +61,7 @@ final class FragmentOrderer
         $inDegree = array_fill_keys(array_keys($fragments), 0);
         foreach ($deps as $set) {
             foreach (array_keys($set) as $to) {
-                $inDegree[$to]++;
+                ++$inDegree[$to];
             }
         }
 
@@ -79,7 +79,7 @@ final class FragmentOrderer
             $sortedNames[] = $n;
 
             foreach (array_keys($deps[$n] ?? []) as $m) {
-                $inDegree[$m]--;
+                --$inDegree[$m];
 
                 if ($inDegree[$m] === 0) {
                     $queue[] = $m;

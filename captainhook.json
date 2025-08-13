@@ -13,10 +13,7 @@
                 "action": "\\CaptainHook\\App\\Hook\\PHP\\Action\\Linting"
             },
             {
-                "action": "\\Ruudk\\ReadmeExamplesSyncHook\\SyncReadmeExamples"
-            },
-            {
-                "action": "vendor/bin/php-cs-fixer fix"
+                "action": "vendor/bin/php-cs-fixer check --diff"
             },
             {
                 "action": "vendor/bin/phpstan"
