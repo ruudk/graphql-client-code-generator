@@ -1,0 +1,3 @@
+# See phpstan.php
+includes:
+    - phpstan.php

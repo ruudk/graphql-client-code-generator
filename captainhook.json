@@ -1,0 +1,29 @@
+{
+    "commit-msg": {
+        "enabled": true,
+        "actions": []
+    },
+    "pre-commit": {
+        "enabled": true,
+        "actions": [
+            {
+                "action": "composer normalize --diff --dry-run"
+            },
+            {
+                "action": "\\CaptainHook\\App\\Hook\\PHP\\Action\\Linting"
+            },
+            {
+                "action": "\\Ruudk\\ReadmeExamplesSyncHook\\SyncReadmeExamples"
+            },
+            {
+                "action": "vendor/bin/php-cs-fixer fix"
+            },
+            {
+                "action": "vendor/bin/phpstan"
+            },
+            {
+                "action": "vendor/bin/phpunit"
+            }
+        ]
+    }
+}

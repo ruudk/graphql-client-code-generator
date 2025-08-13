@@ -1,0 +1,18 @@
+query Search {
+    search(query: "repo:twigstan/twigstan", type: ISSUE, first: 10) {
+        nodes {
+            __typename
+            ... on Issue {
+                number
+                title
+            }
+            ...PullRequestInfo
+        }
+    }
+}
+
+fragment PullRequestInfo on PullRequest {
+    number
+    title
+    merged
+}
