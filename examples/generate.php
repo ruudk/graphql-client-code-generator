@@ -17,4 +17,13 @@ new CodeGenerator(
     false,
     false,
     true,
+    true,
+    [],
+    [],
+    [],
+    [],
+    true,
+    true,
+    false,
+    false,
 )->generate();

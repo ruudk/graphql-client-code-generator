@@ -2,9 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Ruudk\GraphQLCodeGenerator\Examples\Generated\Query\Search\Data\Search\Node;
-
-use Symfony\Component\DependencyInjection\Attribute\Exclude;
+namespace Ruudk\GraphQLCodeGenerator\Examples\Generated\Query\Search\Data\SearchResultItemConnection\Node;
 
 // This file was automatically generated and should not be edited.
 
@@ -14,7 +12,6 @@ use Symfony\Component\DependencyInjection\Attribute\Exclude;
  *   title
  * }
  */
-#[Exclude]
 final class AsIssue
 {
     /**
@@ -23,11 +20,11 @@ final class AsIssue
     public const array POSSIBLE_TYPES = ['Issue'];
 
     public int $number {
-        get => $this->data['number'];
+        get => $this->number ??= $this->data['number'];
     }
 
     public string $title {
-        get => $this->data['title'];
+        get => $this->title ??= $this->data['title'];
     }
 
     /**

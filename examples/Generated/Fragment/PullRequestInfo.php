@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace Ruudk\GraphQLCodeGenerator\Examples\Generated\Fragment;
 
-use Symfony\Component\DependencyInjection\Attribute\Exclude;
-
 // This file was automatically generated and should not be edited.
 
 /**
@@ -15,7 +13,6 @@ use Symfony\Component\DependencyInjection\Attribute\Exclude;
  *   merged
  * }
  */
-#[Exclude]
 final class PullRequestInfo
 {
     /**
@@ -24,15 +21,15 @@ final class PullRequestInfo
     public const array POSSIBLE_TYPES = ['PullRequest'];
 
     public bool $merged {
-        get => $this->data['merged'];
+        get => $this->merged ??= $this->data['merged'];
     }
 
     public int $number {
-        get => $this->data['number'];
+        get => $this->number ??= $this->data['number'];
     }
 
     public string $title {
-        get => $this->data['title'];
+        get => $this->title ??= $this->data['title'];
     }
 
     /**

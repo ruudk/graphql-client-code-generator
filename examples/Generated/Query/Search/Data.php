@@ -4,8 +4,7 @@ declare(strict_types=1);
 
 namespace Ruudk\GraphQLCodeGenerator\Examples\Generated\Query\Search;
 
-use Ruudk\GraphQLCodeGenerator\Examples\Generated\Query\Search\Data\Search;
-use Symfony\Component\DependencyInjection\Attribute\Exclude;
+use Ruudk\GraphQLCodeGenerator\Examples\Generated\Query\Search\Data\SearchResultItemConnection;
 
 // This file was automatically generated and should not be edited.
 
@@ -24,11 +23,10 @@ use Symfony\Component\DependencyInjection\Attribute\Exclude;
  *   }
  * }
  */
-#[Exclude]
 final class Data
 {
-    public Search $search {
-        get => new Search($this->data['search']);
+    public SearchResultItemConnection $search {
+        get => $this->search ??= new SearchResultItemConnection($this->data['search']);
     }
 
     /**

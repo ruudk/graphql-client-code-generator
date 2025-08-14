@@ -4,8 +4,7 @@ declare(strict_types=1);
 
 namespace Ruudk\GraphQLCodeGenerator\Examples\Generated\Query\Search\Data;
 
-use Ruudk\GraphQLCodeGenerator\Examples\Generated\Query\Search\Data\Search\Node;
-use Symfony\Component\DependencyInjection\Attribute\Exclude;
+use Ruudk\GraphQLCodeGenerator\Examples\Generated\Query\Search\Data\SearchResultItemConnection\Node;
 
 // This file was automatically generated and should not be edited.
 
@@ -22,18 +21,17 @@ use Symfony\Component\DependencyInjection\Attribute\Exclude;
  *   }
  * }
  */
-#[Exclude]
-final class Search
+final class SearchResultItemConnection
 {
     public string $__typename {
-        get => $this->data['__typename'];
+        get => $this->__typename ??= $this->data['__typename'];
     }
 
     /**
      * @var list<Node>
      */
     public array $nodes {
-        get => array_map(fn($item) => new Node($item), $this->data['nodes']);
+        get => $this->nodes ??= array_map(fn($item) => new Node($item), $this->data['nodes']);
     }
 
     /**

@@ -13,20 +13,16 @@ use GraphQL\Language\AST\FragmentDefinitionNode;
 use GraphQL\Language\AST\FragmentSpreadNode;
 use GraphQL\Language\AST\InlineFragmentNode;
 use GraphQL\Language\AST\ListTypeNode;
-use GraphQL\Language\AST\ListValueNode;
 use GraphQL\Language\AST\NamedTypeNode;
 use GraphQL\Language\AST\NameNode;
 use GraphQL\Language\AST\NodeList;
 use GraphQL\Language\AST\NonNullTypeNode;
-use GraphQL\Language\AST\ObjectValueNode;
 use GraphQL\Language\AST\OperationDefinitionNode;
 use GraphQL\Language\AST\SelectionSetNode;
 use GraphQL\Language\AST\TypeNode;
-use GraphQL\Language\AST\VariableNode;
 use GraphQL\Language\Parser;
 use GraphQL\Language\Printer;
 use GraphQL\Type\Definition\EnumType;
-use GraphQL\Type\Definition\HasFieldsType;
 use GraphQL\Type\Definition\InputObjectType;
 use GraphQL\Type\Definition\InterfaceType;
 use GraphQL\Type\Definition\ListOfType;
@@ -97,10 +93,15 @@ final class CodeGenerator
         private readonly bool $dumpMethods,
         private readonly bool $dumpOrThrows,
         private readonly bool $dumpDefinition,
+        private readonly bool $useNodeNameForEdgeNodes,
         array $scalars = [],
         private array $types = [],
         private readonly array $ignoreTypes = [],
         array $typeInitializers = [],
+        private readonly bool $useConnectionNameForConnections = false,
+        private readonly bool $useEdgeNameForEdges = false,
+        private readonly bool $addNodesOnConnections = false,
+        private readonly bool $addSymfonyExcludeAttribute = false,
         private readonly Filesystem $filesystem = new Filesystem(),
     ) {
         $this->typeInitializer = new DelegatingTypeInitializer(
@@ -131,7 +132,6 @@ final class CodeGenerator
             ...$scalars,
         ];
     }
-    private array $usedTypes = [];
 
     public function generate() : void
     {
@@ -144,25 +144,26 @@ final class CodeGenerator
         $finder = new Finder();
         $finder->files()->in($this->queriesDir)->name('*.graphql')->sortByName();
 
-        // Reset tracking arrays
-        $this->usedTypes = [];
-
         $operations = [];
+        $usedTypesCollector = new UsedTypesCollector($this->schema);
 
         // First pass: parse all queries to find what types are actually used
         foreach ($finder as $file) {
             $document = Parser::parse($file->getContents());
-            $this->collectUsedTypes($document);
+
+            $usedTypesCollector->analyze($document);
 
             $operations[$file->getPathname()] = $document;
         }
+
+        $usedTypes = $usedTypesCollector->usedTypes;
 
         foreach ($this->schema->getTypeMap() as $typeName => $type) {
             if (str_starts_with($typeName, '__')) {
                 continue;
             }
 
-            if ( ! isset($this->usedTypes[$typeName])) {
+            if ( ! in_array($typeName, $usedTypes, true)) {
                 continue;
             }
 
@@ -185,7 +186,7 @@ final class CodeGenerator
             }
 
             if ($type instanceof EnumType) {
-                if ( ! isset($this->usedTypes[$typeName])) {
+                if ( ! in_array($typeName, $usedTypes, true)) {
                     continue;
                 }
 
@@ -195,7 +196,7 @@ final class CodeGenerator
             }
 
             if ($type instanceof InputObjectType) {
-                if ( ! isset($this->usedTypes[$typeName])) {
+                if ( ! in_array($typeName, $usedTypes, true)) {
                     continue;
                 }
 
@@ -215,11 +216,12 @@ final class CodeGenerator
             $type = $this->schema->getType($fragment->typeCondition->name->value);
 
             $fqcn = $this->fullyQualified('Fragment', $name);
-            [$fields, $payloadShape, , $possibleTypes] = $this->parseSelectionSet(
+            [$fields, $fields2, $payloadShape, , $possibleTypes] = $this->parseSelectionSet(
                 $this->outputDir . '/Fragment/' . $name,
                 $fragment->selectionSet,
                 $type,
                 $fqcn,
+                'fragment',
             );
 
             $this->fragmentPayloadShapes[$name] = $payloadShape;
@@ -233,6 +235,7 @@ final class CodeGenerator
                 false,
                 true,
                 $fragment,
+                null,
             );
         }
 
@@ -272,11 +275,12 @@ final class CodeGenerator
         $rootType = $operationType === 'Query' ? $this->schema->getQueryType() : $this->schema->getMutationType();
 
         $fqcn = $this->fullyQualified($operationType, $operationName, 'Data');
-        [$fields, $payloadShape, , $possibleTypes] = $this->parseSelectionSet(
+        [$fields, $fields2,  $payloadShape, , $possibleTypes] = $this->parseSelectionSet(
             $operationDir . '/Data',
             $operation->selectionSet,
             $rootType,
             $fqcn,
+            $operation->operation,
         );
         $this->generateDataClass(
             $fields,
@@ -287,6 +291,7 @@ final class CodeGenerator
             true,
             false,
             $operation,
+            null,
         );
 
         $this->generateErrorClass($operationDir, $operationType, $operationName);
@@ -541,6 +546,7 @@ final class CodeGenerator
         bool $isData,
         bool $isFragment,
         null | FragmentDefinitionNode | InlineFragmentNode | OperationDefinitionNode $definitionNode,
+        ?SymfonyType $nodesType,
     ) : void {
         if ($fields instanceof SymfonyType\NullableType) {
             $fields = $fields->getWrappedType();
@@ -555,7 +561,7 @@ final class CodeGenerator
         $namespace = implode('\\', $parts);
 
         $generator = new \Ruudk\CodeGenerator\CodeGenerator($namespace);
-        $class = $generator->dump(function () use ($fqcn, $definitionNode, $payloadShape, $isData, $fields, $possibleTypes, $generator, $className, $isFragment) {
+        $class = $generator->dump(function () use ($nodesType, $fqcn, $definitionNode, $payloadShape, $isData, $fields, $possibleTypes, $generator, $className, $isFragment) {
             yield '// This file was automatically generated and should not be edited.';
             yield '';
 
@@ -567,11 +573,14 @@ final class CodeGenerator
                 );
             }
 
-            yield $generator->dumpAttribute(Exclude::class);
+            if ($this->addSymfonyExcludeAttribute) {
+                yield $generator->dumpAttribute(Exclude::class);
+            }
+
             yield sprintf('final class %s', $generator->import($fqcn));
             yield '{';
             yield $generator->indent(
-                function () use ($isFragment, $possibleTypes, $className, $fields, $isData, $payloadShape, $generator) {
+                function () use ($nodesType, $isFragment, $possibleTypes, $className, $fields, $isData, $payloadShape, $generator) {
                     if ($isFragment) {
                         yield '/**';
                         yield ' * @var list<string>';
@@ -609,7 +618,8 @@ final class CodeGenerator
                             yield $generator->indent(function () use ($fieldType, $generator, $fieldName) {
                                 if ($this->getNonNullableType($fieldType) instanceof FragmentObjectType) {
                                     yield sprintf(
-                                        'get => in_array($this->__typename, %s::POSSIBLE_TYPES, true) ? new %s($this->data) : null;',
+                                        'get => $this->%s ??= in_array($this->__typename, %s::POSSIBLE_TYPES, true) ? new %s($this->data) : null;',
+                                        $fieldName,
                                         $generator->import($this->getNonNullableType($fieldType)->getClassName()),
                                         $generator->import($this->getNonNullableType($fieldType)->getClassName()),
                                     );
@@ -618,7 +628,8 @@ final class CodeGenerator
                                 }
 
                                 yield sprintf(
-                                    'get => %s;',
+                                    'get => $this->%s ??= %s;',
+                                    $fieldName,
                                     $this->typeInitializer->__invoke(
                                         $fieldType,
                                         $generator->import(...),
@@ -639,7 +650,8 @@ final class CodeGenerator
                                 );
                                 yield $generator->indent(function () use ($fieldType, $generator) {
                                     yield sprintf(
-                                        'get => in_array($this->__typename, %s::POSSIBLE_TYPES, true);',
+                                        'get => $this->is%s ??= in_array($this->__typename, %s::POSSIBLE_TYPES, true);',
+                                        $this->getNonNullableType($fieldType)->fragmentName,
                                         $generator->import($this->getNonNullableType($fieldType)->getClassName()),
                                     );
                                 });
@@ -681,6 +693,26 @@ final class CodeGenerator
                                 yield '}';
                             }
                         }
+                    }
+
+                    if ($nodesType !== null) {
+                        yield '';
+                        yield from $generator->maybeDump(
+                            '/**',
+                            $this->prefix(' * ', sprintf(
+                                '@var %s',
+                                $this->dumpPHPDocType($nodesType, $generator->import(...)),
+                            )),
+                            ' */',
+                        );
+                        yield sprintf(
+                            'public %s $nodes {',
+                            $this->dumpPHPType($nodesType, $generator->import(...)),
+                        );
+                        yield $generator->indent(sprintf(
+                            'get => array_map(fn($edge) => $edge->node, $this->edges);',
+                        ));
+                        yield '}';
                     }
 
                     if ($isData) {
@@ -811,6 +843,24 @@ final class CodeGenerator
                         });
                         yield '}';
                     }
+
+                    if ($nodesType !== null && $this->dumpMethods) {
+                        yield '';
+                        yield from $generator->maybeDump(
+                            '/**',
+                            $this->prefix(' * ', sprintf(
+                                '@return %s',
+                                $this->dumpPHPDocType($nodesType, $generator->import(...)),
+                            )),
+                            ' */',
+                        );
+                        yield 'public function getNodes() : array';
+                        yield '{';
+                        yield $generator->indent(function () {
+                            yield 'return $this->nodes;';
+                        });
+                        yield '}';
+                    }
                 },
             );
             yield '}';
@@ -933,7 +983,7 @@ final class CodeGenerator
                     yield '}';
 
                     yield '';
-                    yield sprintf('public function create%s() : self', u($value->value)->lower()->pascal()->toString());
+                    yield sprintf('public static function create%s() : self', u($value->value)->lower()->pascal()->toString());
                     yield '{';
                     yield $generator->indent(function () use ($value) {
                         yield sprintf('return self::%s;', u($value->value)->lower()->pascal()->toString());
@@ -1136,171 +1186,6 @@ final class CodeGenerator
         $this->filesystem->mkdir($dir);
     }
 
-    private function collectUsedTypes(DocumentNode $document) : void
-    {
-        foreach ($document->definitions as $definition) {
-            if ($definition instanceof OperationDefinitionNode) {
-                $parent = match ($definition->operation) {
-                    'query' => $this->schema->getQueryType(),
-                    'mutation' => $this->schema->getMutationType(),
-                };
-                $this->collectUsedTypesFromSelectionSet($definition->selectionSet, $parent);
-
-                // Collect types from variables
-                if ($definition->variableDefinitions) {
-                    foreach ($definition->variableDefinitions as $varDef) {
-                        $this->collectUsedTypesFromTypeNode($varDef->type);
-                    }
-                }
-
-                continue;
-            }
-
-            if ($definition instanceof FragmentDefinitionNode) {
-                $this->collectUsedTypesFromSelectionSet($definition->selectionSet, $this->schema->getType($definition->typeCondition->name->value));
-            }
-        }
-    }
-
-    private function collectUsedTypesFromTypeNode(TypeNode $typeNode) : void
-    {
-        if ($typeNode instanceof ListTypeNode || $typeNode instanceof NonNullTypeNode) {
-            $this->collectUsedTypesFromTypeNode($typeNode->type);
-
-            return;
-        }
-
-        if ($typeNode instanceof NamedTypeNode) {
-            $typeName = $typeNode->name->value;
-            $this->usedTypes[$typeName] = true;
-
-            // If it's an input type, collect its field types recursively
-            $type = $this->schema->getType($typeName);
-        }
-
-        if ($type instanceof HasFieldsType) {
-            foreach ($type->getFields() as $field) {
-                $this->collectUsedTypesFromGraphQLType($field->getType());
-            }
-        }
-    }
-
-    private function collectUsedTypesFromGraphQLType(Type $type) : void
-    {
-        if ($type instanceof WrappingType) {
-            $type = $type->getInnermostType();
-        }
-
-        if ($type instanceof NamedType) {
-            $this->usedTypes[$type->name] = true;
-
-            // If it's an input type, collect its field types recursively
-            if ($type instanceof HasFieldsType) {
-                foreach ($type->getFields() as $field) {
-                    $this->collectUsedTypesFromGraphQLType($field->getType());
-                }
-            }
-        }
-    }
-
-    private function collectUsedTypesFromSelectionSet(SelectionSetNode $selectionSet, Type $parent) : void
-    {
-        if ($parent instanceof WrappingType) {
-            $parent = $parent->getInnermostType();
-        }
-
-        foreach ($selectionSet->selections as $selection) {
-            if ($selection instanceof FieldNode) {
-                // Check field arguments for input types
-                if ($selection->arguments) {
-                    foreach ($selection->arguments as $argument) {
-                        $this->collectUsedTypesFromValue($argument->value);
-                    }
-                }
-
-                if ($selection->name->value === '__typename') {
-                    continue;
-                }
-
-                // Recurse into nested selections
-                if ($selection->selectionSet) {
-                    $fieldType = $parent->getField($selection->name->value)->getType();
-                    $this->collectUsedTypesFromSelectionSet($selection->selectionSet, $fieldType);
-                }
-
-                continue;
-            }
-
-            if ($selection instanceof InlineFragmentNode) {
-                if ($selection->typeCondition) {
-                    $typeName = $selection->typeCondition->name->value;
-                    $this->usedTypes[$typeName] = true;
-                }
-
-                $this->collectUsedTypesFromSelectionSet($selection->selectionSet, $this->schema->getType($typeName));
-
-                continue;
-            }
-
-            if ($selection instanceof FragmentSpreadNode) {
-                // Fragment spreads are handled when we process fragment definitions
-            }
-        }
-    }
-
-    private function collectUsedTypesFromValue($value) : void
-    {
-        if ($value instanceof VariableNode) {
-            // Variable types are collected from variable definitions
-            return;
-        }
-
-        if ($value instanceof ListValueNode) {
-            foreach ($value->values as $item) {
-                $this->collectUsedTypesFromValue($item);
-            }
-        } elseif ($value instanceof ObjectValueNode) {
-            foreach ($value->fields as $field) {
-                $this->collectUsedTypesFromValue($field->value);
-            }
-        }
-    }
-
-    private function getFieldTypeFromSchema(string $typeName, string $fieldName) : ?Type
-    {
-        $type = $this->schema->getType($typeName);
-
-        if ( ! $type instanceof ObjectType) {
-            return null;
-        }
-
-        try {
-            $field = $type->getField($fieldName);
-
-            return $field->getType();
-        } catch (Exception) {
-            return null;
-        }
-    }
-
-    /**
-     * @return list<FragmentDefinitionNode>
-     */
-    private function getFragments(DocumentNode $document) : array
-    {
-        $fragments = [];
-
-        foreach ($document->definitions as $definition) {
-            if ( ! $definition instanceof FragmentDefinitionNode) {
-                continue;
-            }
-
-            $fragments[] = $definition;
-        }
-
-        return $fragments;
-    }
-
     /**
      * @param callable(string): string $importer
      */
@@ -1387,26 +1272,29 @@ final class CodeGenerator
     }
 
     /**
-     * @return array{array<string, SymfonyType>, SymfonyType, SymfonyType, array}
+     * @return array{array<string, SymfonyType>, array, SymfonyType, SymfonyType, array}
      */
     private function parseSelectionSet(
         string $outputDirectory,
         SelectionSetNode $selectionSet,
         Type $parent,
         string $fqcn,
+        string $path,
         ?bool $nullable = null,
     ) : array {
         if ($parent instanceof ListOfType) {
-            [$fields, $payloadShape, $type, $possibleTypes] = $this->parseSelectionSet(
+            [$fields, $fields2, $payloadShape, $type, $possibleTypes] = $this->parseSelectionSet(
                 $outputDirectory,
                 $selectionSet,
                 $parent->getWrappedType(),
                 $fqcn,
+                $path . '.*',
                 true,
             );
 
             return [
                 SymfonyType::list($fields),
+                $fields2,
                 SymfonyType::list($payloadShape),
                 SymfonyType::list($type),
                 $possibleTypes,
@@ -1419,21 +1307,24 @@ final class CodeGenerator
                 $selectionSet,
                 $parent->getWrappedType(),
                 $fqcn,
+                $path,
                 false,
             );
         }
 
         if ($parent instanceof NullableType && $nullable === null) {
-            [$fields, $payloadShape, $type, $possibleTypes] = $this->parseSelectionSet(
+            [$fields, $fields2, $payloadShape, $type, $possibleTypes] = $this->parseSelectionSet(
                 $outputDirectory,
                 $selectionSet,
                 $parent,
                 $fqcn,
+                $path,
                 true,
             );
 
             return [
                 SymfonyType::nullable($fields),
+                $fields2,
                 SymfonyType::nullable($payloadShape),
                 SymfonyType::nullable($type),
                 $possibleTypes,
@@ -1441,6 +1332,7 @@ final class CodeGenerator
         }
 
         $fields = [];
+        $fields2 = [];
         $payloadShape = [];
         $possibleTypes = [];
         foreach ($selectionSet->selections as $selection) {
@@ -1449,6 +1341,7 @@ final class CodeGenerator
 
                 if ($fieldName === '__typename') {
                     $fields[$fieldName] = SymfonyType::string();
+                    $fields2[$fieldName] = SymfonyType::string();
                     $payloadShape[$fieldName] = SymfonyType::string();
 
                     continue;
@@ -1457,6 +1350,7 @@ final class CodeGenerator
                 $fieldType = $parent->getField($selection->name->value)->getType();
 
                 $fieldTypeInnerMost = $fieldType;
+
                 if ($fieldType instanceof WrappingType) {
                     $fieldTypeInnerMost = $fieldType->getInnermostType();
                 }
@@ -1464,11 +1358,20 @@ final class CodeGenerator
                 if ($selection->selectionSet !== null) {
                     $className = ucfirst($this->isList($fieldType) ? $this->inflector->singularize($fieldName) : $fieldName);
 
-                    [$subFields, $subPayloadShape, $subType, $subPossibleTypes] = $this->parseSelectionSet(
+                    if ($this->useNodeNameForEdgeNodes && $fieldName === 'node' && str_ends_with($parent->name(), 'Edge')) {
+                        $className = ucfirst($fieldTypeInnerMost->name());
+                    } elseif ($this->useConnectionNameForConnections && str_ends_with($fieldTypeInnerMost->name(), 'Connection')) {
+                        $className = ucfirst($fieldTypeInnerMost->name());
+                    } elseif ($this->useEdgeNameForEdges && str_ends_with($fieldTypeInnerMost->name(), 'Edge')) {
+                        $className = ucfirst($fieldTypeInnerMost->name());
+                    }
+
+                    [$subFields, $subFields2, $subPayloadShape, $subType, $subPossibleTypes] = $this->parseSelectionSet(
                         $outputDirectory . '/' . $className,
                         $selection->selectionSet,
                         $fieldType,
                         $fqcn . '\\' . $className,
+                        $path . '.' . $fieldName,
                     );
 
                     $this->generateDataClass(
@@ -1487,15 +1390,19 @@ final class CodeGenerator
                             ]),
                             'selectionSet' => $selection->selectionSet,
                         ]),
+                        $this->addNodesOnConnections && str_ends_with($fieldTypeInnerMost->name(), 'Connection') ? SymfonyType::list($subFields2[$path . '.' . $fieldName . '.edges.*.node']) : null,
                     );
 
                     $fields[$fieldName] = $subType;
+                    $fields2[$path . '.' . $fieldName] = $subType;
+                    $fields2 = [...$fields2, ...$subFields2];
                     $payloadShape[$fieldName] = $subPayloadShape;
 
                     continue;
                 }
 
                 $fields[$fieldName] = $this->mapGraphQLTypeToPHPType($fieldType);
+                $fields2[$path . '.' . $fieldName] = $this->mapGraphQLTypeToPHPType($fieldType);
                 $payloadShape[$fieldName] = $this->mapGraphQLTypeToPHPType($fieldType, builtInOnly: true);
 
                 continue;
@@ -1507,11 +1414,12 @@ final class CodeGenerator
                 $className = sprintf('As%s', $fieldType->name());
                 $fieldName = sprintf('as%s', $fieldType->name());
 
-                [$subFields, $subPayloadShape, $subType, $subPossibleTypes] = $this->parseSelectionSet(
+                [$subFields, $subFields2, $subPayloadShape, $subType, $subPossibleTypes] = $this->parseSelectionSet(
                     $outputDirectory . '/' . $className,
                     $selection->selectionSet,
                     $fieldType,
                     $fqcn . '\\' . $className,
+                    $path . '.' . $fieldName,
                 );
 
                 $this->generateDataClass(
@@ -1523,9 +1431,11 @@ final class CodeGenerator
                     false,
                     true,
                     $selection,
+                    null,
                 );
 
                 $fields[$fieldName] = SymfonyType::nullable(new FragmentObjectType($this->fullyQualified($fqcn, $className), $fieldType->name()));
+                $fields2[$path . '.' . $fieldName] = SymfonyType::nullable(new FragmentObjectType($this->fullyQualified($fqcn, $className), $fieldType->name()));
 
                 foreach ($this->getNonNullableType($subPayloadShape)->getShape() as $key => $value) {
                     $payloadShape[$key] = $value;
@@ -1537,6 +1447,7 @@ final class CodeGenerator
             if ($selection instanceof FragmentSpreadNode) {
                 $fieldName = lcfirst($selection->name->value);
                 $fields[$fieldName] = SymfonyType::nullable(new FragmentObjectType($this->fullyQualified('Fragment', $selection->name->value), $selection->name->value));
+                $fields2[$path . '.' . $fieldName] = SymfonyType::nullable(new FragmentObjectType($this->fullyQualified('Fragment', $selection->name->value), $selection->name->value));
 
                 foreach ($this->getNonNullableType($this->fragmentPayloadShapes[$selection->name->value])->getShape() as $key => $value) {
                     $payloadShape[$key] = $value;
@@ -1546,6 +1457,7 @@ final class CodeGenerator
 
         return [
             SymfonyType::arrayShape($fields),
+            $fields2,
             SymfonyType::arrayShape($payloadShape),
             SymfonyType::object($fqcn),
             $possibleTypes,
