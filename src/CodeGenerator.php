@@ -80,7 +80,9 @@ final class CodeGenerator
 
     /**
      * @param array<string, SymfonyType|array{SymfonyType, SymfonyType}> $scalars
-     * @param array<string, SymfonyType> $types
+     * @param array<string, SymfonyType> $inputObjectTypes
+     * @param array<string, array{SymfonyType, SymfonyType}> $objectTypes
+     * @param array<string, SymfonyType> $enumTypes
      * @param list<string> $ignoreTypes
      * @param list<TypeInitializer> $typeInitializers
      *
@@ -100,7 +102,9 @@ final class CodeGenerator
         private readonly bool $dumpDefinition,
         private readonly bool $useNodeNameForEdgeNodes,
         array $scalars = [],
-        private array $types = [],
+        private array $inputObjectTypes = [],
+        private array $objectTypes = [],
+        private array $enumTypes = [],
         private readonly array $ignoreTypes = [],
         array $typeInitializers = [],
         private readonly bool $useConnectionNameForConnections = false,
@@ -178,13 +182,13 @@ final class CodeGenerator
             }
 
             if ($type instanceof EnumType) {
-                $this->types[$typeName] ??= new BackedEnumType($this->fullyQualified('Enum', $typeName), SymfonyType::string());
+                $this->enumTypes[$typeName] ??= new BackedEnumType($this->fullyQualified('Enum', $typeName), SymfonyType::string());
 
                 continue;
             }
 
             if ($type instanceof InputObjectType) {
-                $this->types[$typeName] ??= SymfonyType::object($this->fullyQualified('Input', $typeName));
+                $this->inputObjectTypes[$typeName] ??= SymfonyType::object($this->fullyQualified('Input', $typeName));
 
                 continue;
             }
@@ -371,8 +375,16 @@ final class CodeGenerator
                 return $scalar[1];
             }
 
-            if (isset($this->types[$type->name->value])) {
-                return $this->types[$type->name->value];
+            if (isset($this->enumTypes[$type->name->value])) {
+                return $this->enumTypes[$type->name->value];
+            }
+
+            if (isset($this->inputObjectTypes[$type->name->value])) {
+                return $this->inputObjectTypes[$type->name->value];
+            }
+
+            if (isset($this->objectTypes[$type->name->value])) {
+                return $this->objectTypes[$type->name->value][1];
             }
         }
 
@@ -409,9 +421,17 @@ final class CodeGenerator
             return SymfonyType::string();
         }
 
-        if ($type instanceof NamedType) {
-            if ( ! $builtInOnly && isset($this->types[$type->name()])) {
-                return $this->types[$type->name()];
+        if ( ! $builtInOnly && $type instanceof NamedType) {
+            if (isset($this->enumTypes[$type->name()])) {
+                return $this->enumTypes[$type->name()];
+            }
+
+            if (isset($this->inputObjectTypes[$type->name()])) {
+                return $this->inputObjectTypes[$type->name()];
+            }
+
+            if (isset($this->objectTypes[$type->name()])) {
+                return $this->objectTypes[$type->name()][1];
             }
         }
 
@@ -1400,23 +1420,37 @@ final class CodeGenerator
 
                 $fieldType = $parent->getField($selection->name->value)->getType();
 
-                $fieldTypeInnerMost = $fieldType;
+                $nakedFieldType = $fieldType;
 
                 if ($fieldType instanceof WrappingType) {
-                    $fieldTypeInnerMost = $fieldType->getInnermostType();
+                    $nakedFieldType = $fieldType->getInnermostType();
+                }
+
+                if ($nakedFieldType instanceof ObjectType && isset($this->objectTypes[$nakedFieldType->name()])) {
+                    [$objectPayloadShape, $objectType] = $this->objectTypes[$nakedFieldType->name()];
+
+                    $fields[$fieldName] = $objectType;
+                    $payloadShape[$fieldName] = $objectPayloadShape;
+
+                    if ($fieldType instanceof NullableType) {
+                        $fields[$fieldName] = SymfonyType::nullable($fields[$fieldName]);
+                        $payloadShape[$fieldName] = SymfonyType::nullable($payloadShape[$fieldName]);
+                    }
+
+                    continue;
                 }
 
                 if ($selection->selectionSet !== null) {
                     $className = ucfirst($this->isList($fieldType) ? $this->inflector->singularize($fieldName) : $fieldName);
 
-                    Assert::isInstanceOf($fieldTypeInnerMost, NamedType::class, 'Field type must be a named type');
+                    Assert::isInstanceOf($nakedFieldType, NamedType::class, 'Field type must be a named type');
 
                     if ($this->useNodeNameForEdgeNodes && $fieldName === 'node' && str_ends_with($parent->name(), 'Edge')) {
-                        $className = ucfirst($fieldTypeInnerMost->name());
-                    } elseif ($this->useConnectionNameForConnections && str_ends_with($fieldTypeInnerMost->name(), 'Connection')) {
-                        $className = ucfirst($fieldTypeInnerMost->name());
-                    } elseif ($this->useEdgeNameForEdges && str_ends_with($fieldTypeInnerMost->name(), 'Edge')) {
-                        $className = ucfirst($fieldTypeInnerMost->name());
+                        $className = ucfirst($nakedFieldType->name());
+                    } elseif ($this->useConnectionNameForConnections && str_ends_with($nakedFieldType->name(), 'Connection')) {
+                        $className = ucfirst($nakedFieldType->name());
+                    } elseif ($this->useEdgeNameForEdges && str_ends_with($nakedFieldType->name(), 'Edge')) {
+                        $className = ucfirst($nakedFieldType->name());
                     }
 
                     [$subFields, $subFields2, $subPayloadShape, $subType, $subPossibleTypes] = $this->parseSelectionSet(
@@ -1438,12 +1472,12 @@ final class CodeGenerator
                         new InlineFragmentNode([
                             'typeCondition' => new NamedTypeNode([
                                 'name' => new NameNode([
-                                    'value' => $fieldTypeInnerMost->name(),
+                                    'value' => $nakedFieldType->name(),
                                 ]),
                             ]),
                             'selectionSet' => $selection->selectionSet,
                         ]),
-                        $this->addNodesOnConnections && str_ends_with($fieldTypeInnerMost->name(), 'Connection') ? SymfonyType::list($subFields2[$path . '.' . $fieldName . '.edges.*.node']) : null,
+                        $this->addNodesOnConnections && str_ends_with($nakedFieldType->name(), 'Connection') ? SymfonyType::list($subFields2[$path . '.' . $fieldName . '.edges.*.node']) : null,
                     );
 
                     $fields[$fieldName] = $subType;
