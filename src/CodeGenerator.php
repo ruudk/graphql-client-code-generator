@@ -541,7 +541,7 @@ final class CodeGenerator
         string $fqcn,
         bool $isData,
         bool $isFragment,
-        null | FragmentDefinitionNode | OperationDefinitionNode | SelectionSetNode $definitionNode,
+        null | FragmentDefinitionNode | InlineFragmentNode | OperationDefinitionNode $definitionNode,
     ) : void {
         if ($fields instanceof SymfonyType\NullableType) {
             $fields = $fields->getWrappedType();
@@ -1475,7 +1475,14 @@ final class CodeGenerator
                         $fqcn . '\\' . $className,
                         false,
                         false,
-                        $selection->selectionSet,
+                        new InlineFragmentNode([
+                            'typeCondition' => new NamedTypeNode([
+                                'name' => new NameNode([
+                                    'value' => $fieldTypeInnerMost->name(),
+                                ]),
+                            ]),
+                            'selectionSet' => $selection->selectionSet,
+                        ]),
                     );
 
                     $fields[$fieldName] = $subType;
@@ -1511,7 +1518,7 @@ final class CodeGenerator
                     $this->fullyQualified($fqcn, $className),
                     false,
                     true,
-                    $selection->selectionSet,
+                    $selection,
                 );
 
                 $fields[$fieldName] = SymfonyType::nullable(new FragmentObjectType($this->fullyQualified($fqcn, $className), $fieldType->name()));
