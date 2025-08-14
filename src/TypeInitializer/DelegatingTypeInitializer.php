@@ -27,6 +27,10 @@ final readonly class DelegatingTypeInitializer
      */
     public function __invoke(Type $type, callable $importer, string $variable) : string
     {
-        return $this->initializers[$type::class]($type, $importer, $variable, $this);
+        if (isset($this->initializers[$type::class])) {
+            return $this->initializers[$type::class]($type, $importer, $variable, $this);
+        }
+
+        return $variable;
     }
 }
