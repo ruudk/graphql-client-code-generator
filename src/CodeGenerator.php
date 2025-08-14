@@ -89,7 +89,7 @@ final class CodeGenerator
      * @throws ReflectionException
      */
     public function __construct(
-        string $schemaPath,
+        Schema | string $schema,
         private readonly string $queriesDir,
         private readonly string $outputDir,
         private readonly string $namespace,
@@ -111,14 +111,13 @@ final class CodeGenerator
             ...$typeInitializers,
         );
 
-        $schema = $filesystem->readFile($schemaPath);
-
-        if (str_ends_with($schemaPath, '.graphql')) {
-            $this->schema = BuildSchema::build($schema);
-        } elseif (str_ends_with($schemaPath, '.json')) {
-            $schema = json_decode($schema, true, flags: JSON_THROW_ON_ERROR);
-            $this->schema = BuildClientSchema::build($schema['data']);
+        if (is_string($schema) && str_ends_with($schema, '.graphql')) {
+            $schema = BuildSchema::build($filesystem->readFile($schema));
+        } elseif (is_string($schema) && str_ends_with($schema, '.json')) {
+            $schema = BuildClientSchema::build(json_decode($filesystem->readFile($schema), true, flags: JSON_THROW_ON_ERROR)['data']);
         }
+
+        $this->schema = $schema;
 
         $this->inflector = InflectorFactory::create()->build();
 
