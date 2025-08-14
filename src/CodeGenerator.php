@@ -1457,6 +1457,11 @@ final class CodeGenerator
 
                 $fieldType = $parent->getField($selection->name->value)->getType();
 
+                $fieldTypeInnerMost = $fieldType;
+                if ($fieldType instanceof WrappingType) {
+                    $fieldTypeInnerMost = $fieldType->getInnermostType();
+                }
+
                 if ($selection->selectionSet !== null) {
                     $className = ucfirst($this->isList($fieldType) ? $this->inflector->singularize($fieldName) : $fieldName);
 
