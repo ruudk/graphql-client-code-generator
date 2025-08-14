@@ -84,22 +84,22 @@ final class UsedTypesCollector
         if (isset($this->processedInputTypes[$type->name])) {
             return;
         }
-        
+
         $this->processedInputTypes[$type->name] = true;
-        
+
         // Add the type itself
-        if (!in_array($type->name, $this->usedTypes, true)) {
+        if ( ! in_array($type->name, $this->usedTypes, true)) {
             $this->usedTypes[] = $type->name;
         }
-        
+
         // Process each field
         foreach ($type->getFields() as $field) {
             $fieldType = Type::getNamedType($field->getType());
-            
+
             if ($fieldType instanceof InputObjectType) {
                 // Recursively process nested input types
                 $this->processInputObjectType($fieldType);
-            } elseif ($fieldType instanceof EnumType && !in_array($fieldType->name, $this->usedTypes, true)) {
+            } elseif ($fieldType instanceof EnumType && ! in_array($fieldType->name, $this->usedTypes, true)) {
                 $this->usedTypes[] = $fieldType->name;
             }
         }
@@ -112,6 +112,7 @@ final class UsedTypesCollector
                 // Field selections: check if the field returns an enum or input object type
                 if ($n instanceof FieldNode) {
                     $fieldType = $this->typeInfo->getType();
+
                     if ($fieldType !== null) {
                         $named = Type::getNamedType($fieldType);
 
@@ -122,7 +123,7 @@ final class UsedTypesCollector
 
                     return null;
                 }
-                
+
                 // Variable definitions: record declared input/enum type (handles lists/non-nulls)
                 if ($n instanceof VariableDefinitionNode) {
                     $decl = AST::typeFromAST($this->schema->getType(...), $n->type);
@@ -165,6 +166,7 @@ final class UsedTypesCollector
                 // List values -> check the expected input type for the list items
                 if ($n instanceof ListValueNode) {
                     $inputType = $this->typeInfo->getInputType();
+
                     if ($inputType !== null) {
                         $named = Type::getNamedType($inputType);
 

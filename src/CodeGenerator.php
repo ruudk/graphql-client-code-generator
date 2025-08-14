@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 namespace Ruudk\GraphQLCodeGenerator;
 
+use Closure;
 use Doctrine\Inflector\Inflector;
 use Doctrine\Inflector\InflectorFactory;
 use Exception;
+use Generator;
 use GraphQL\Language\AST\DocumentNode;
 use GraphQL\Language\AST\FieldNode;
 use GraphQL\Language\AST\FragmentDefinitionNode;
@@ -23,6 +25,7 @@ use GraphQL\Language\AST\TypeNode;
 use GraphQL\Language\Parser;
 use GraphQL\Language\Printer;
 use GraphQL\Type\Definition\EnumType;
+use GraphQL\Type\Definition\HasFieldsType;
 use GraphQL\Type\Definition\InputObjectType;
 use GraphQL\Type\Definition\InterfaceType;
 use GraphQL\Type\Definition\ListOfType;
@@ -41,22 +44,24 @@ use JsonException;
 use JsonSerializable;
 use Override;
 use ReflectionException;
+use Ruudk\CodeGenerator\Group;
 use Ruudk\GraphQLCodeGenerator\TypeInitializer\BackedEnumTypeInitializer;
 use Ruudk\GraphQLCodeGenerator\TypeInitializer\CollectionTypeInitializer;
 use Ruudk\GraphQLCodeGenerator\TypeInitializer\DelegatingTypeInitializer;
 use Ruudk\GraphQLCodeGenerator\TypeInitializer\NullableTypeInitializer;
 use Ruudk\GraphQLCodeGenerator\TypeInitializer\ObjectTypeInitializer;
 use Ruudk\GraphQLCodeGenerator\TypeInitializer\TypeInitializer;
-use Symfony\Component\DependencyInjection\Attribute\Exclude;
 use Symfony\Component\Filesystem\Exception\IOException;
 use Symfony\Component\Filesystem\Filesystem;
 use Symfony\Component\Finder\Finder;
 use function Symfony\Component\String\u;
 use Symfony\Component\TypeInfo\Type as SymfonyType;
 use Symfony\Component\TypeInfo\Type\BackedEnumType;
-use Symfony\Component\TypeInfo\TypeIdentifier;
 use Webmozart\Assert\Assert;
 
+/**
+ * @phpstan-import-type CodeLines from \Ruudk\CodeGenerator\CodeGenerator
+ */
 final class CodeGenerator
 {
     private readonly Schema $schema;
@@ -115,8 +120,13 @@ final class CodeGenerator
         if (is_string($schema) && str_ends_with($schema, '.graphql')) {
             $schema = BuildSchema::build($filesystem->readFile($schema));
         } elseif (is_string($schema) && str_ends_with($schema, '.json')) {
-            $schema = BuildClientSchema::build(json_decode($filesystem->readFile($schema), true, flags: JSON_THROW_ON_ERROR)['data']);
+            $introspection = json_decode($filesystem->readFile($schema), true, flags: JSON_THROW_ON_ERROR);
+            Assert::isArray($introspection, 'Expected introspection to be an array');
+            Assert::keyExists($introspection, 'data', 'Expected introspection to have a "data" key');
+            $schema = BuildClientSchema::build($introspection['data']);
         }
+
+        Assert::isInstanceOf($schema, Schema::class, 'Invalid schema given, expected .graphql or .json file or Schema instance');
 
         $this->schema = $schema;
 
@@ -215,6 +225,8 @@ final class CodeGenerator
 
             $type = $this->schema->getType($fragment->typeCondition->name->value);
 
+            Assert::notNull($type, 'Expected type to be defined');
+
             $fqcn = $this->fullyQualified('Fragment', $name);
             [$fields, $fields2, $payloadShape, , $possibleTypes] = $this->parseSelectionSet(
                 $this->outputDir . '/Fragment/' . $name,
@@ -253,6 +265,8 @@ final class CodeGenerator
             return;
         }
 
+        Assert::notNull($operation->name, 'Expected operation to have a name');
+
         $operationName = $operation->name->value;
         Assert::notNull($operationName);
 
@@ -272,7 +286,13 @@ final class CodeGenerator
 
         $this->generateOperationClass($operationName, $queryDir, $operationType, $queryClassName, $operationDefinition, $variables);
 
-        $rootType = $operationType === 'Query' ? $this->schema->getQueryType() : $this->schema->getMutationType();
+        $rootType = match ($operation->operation) {
+            'query' => $this->schema->getQueryType(),
+            'mutation' => $this->schema->getMutationType(),
+            default => throw new Exception('Only query and mutation operations are supported'),
+        };
+
+        Assert::notNull($rootType, 'Expected root type to be defined');
 
         $fqcn = $this->fullyQualified($operationType, $operationName, 'Data');
         [$fields, $fields2,  $payloadShape, , $possibleTypes] = $this->parseSelectionSet(
@@ -475,7 +495,12 @@ final class CodeGenerator
                     });
                     yield ');';
                     yield '';
-                    yield "return new Data(\$data['data'] ?? [], \$data['errors'] ?? []);";
+                    yield 'return new Data(';
+                    yield $generator->indent([
+                        "\$data['data'] ?? [], // @phpstan-ignore argument.type",
+                        "\$data['errors'] ?? [] // @phpstan-ignore argument.type",
+                    ]);
+                    yield ');';
                 });
                 yield '}';
 
@@ -537,6 +562,9 @@ final class CodeGenerator
         $this->filesystem->dumpFile($outputDirectory . '/' . $className . '.php', $class);
     }
 
+    /**
+     * @param list<string> $possibleTypes
+     */
     private function generateDataClass(
         SymfonyType $fields,
         SymfonyType $payloadShape,
@@ -574,7 +602,7 @@ final class CodeGenerator
             }
 
             if ($this->addSymfonyExcludeAttribute) {
-                yield $generator->dumpAttribute(Exclude::class);
+                yield $generator->dumpAttribute('Symfony\Component\DependencyInjection\Attribute\Exclude');
             }
 
             yield sprintf('final class %s', $generator->import($fqcn));
@@ -596,6 +624,10 @@ final class CodeGenerator
 
                     if ($fields instanceof SymfonyType\ArrayShapeType) {
                         foreach ($fields->getShape() as $fieldName => ['type' => $fieldType, 'optional' => $optional]) {
+                            Assert::string($fieldName);
+
+                            $nullableFieldType = $this->getNonNullableType($fieldType);
+
                             yield '';
 
                             yield from $generator->maybeDump(
@@ -615,13 +647,13 @@ final class CodeGenerator
                                 $this->dumpPHPType($fieldType, $generator->import(...)),
                                 $fieldName,
                             );
-                            yield $generator->indent(function () use ($fieldType, $generator, $fieldName) {
-                                if ($this->getNonNullableType($fieldType) instanceof FragmentObjectType) {
+                            yield $generator->indent(function () use ($nullableFieldType, $fieldType, $generator, $fieldName) {
+                                if ($nullableFieldType instanceof FragmentObjectType) {
                                     yield sprintf(
                                         'get => $this->%s ??= in_array($this->__typename, %s::POSSIBLE_TYPES, true) ? new %s($this->data) : null;',
                                         $fieldName,
-                                        $generator->import($this->getNonNullableType($fieldType)->getClassName()),
-                                        $generator->import($this->getNonNullableType($fieldType)->getClassName()),
+                                        $generator->import($nullableFieldType->getClassName()),
+                                        $generator->import($nullableFieldType->getClassName()),
                                     );
 
                                     return;
@@ -639,20 +671,20 @@ final class CodeGenerator
                             });
                             yield '}';
 
-                            if ($this->getNonNullableType($fieldType) instanceof FragmentObjectType) {
+                            if ($nullableFieldType instanceof FragmentObjectType) {
                                 yield '';
                                 yield '/**';
                                 yield sprintf(' * @phpstan-assert-if-true !null $this->%s', $fieldName);
                                 yield ' */';
                                 yield sprintf(
                                     'public bool $is%s {',
-                                    $this->getNonNullableType($fieldType)->fragmentName,
+                                    $nullableFieldType->fragmentName,
                                 );
-                                yield $generator->indent(function () use ($fieldType, $generator) {
+                                yield $generator->indent(function () use ($nullableFieldType, $generator) {
                                     yield sprintf(
                                         'get => $this->is%s ??= in_array($this->__typename, %s::POSSIBLE_TYPES, true);',
-                                        $this->getNonNullableType($fieldType)->fragmentName,
-                                        $generator->import($this->getNonNullableType($fieldType)->getClassName()),
+                                        $nullableFieldType->fragmentName,
+                                        $generator->import($nullableFieldType->getClassName()),
                                     );
                                 });
                                 yield '}';
@@ -773,6 +805,8 @@ final class CodeGenerator
 
                     if ($this->dumpMethods && $fields instanceof SymfonyType\ArrayShapeType) {
                         foreach ($fields->getShape() as $fieldName => ['type' => $fieldType]) {
+                            Assert::string($fieldName);
+
                             if ($fieldName === '__typename') {
                                 continue;
                             }
@@ -876,7 +910,11 @@ final class CodeGenerator
             yield '// This file was automatically generated and should not be edited.';
 
             yield '';
-            yield $generator->dumpAttribute(Exclude::class);
+
+            if ($this->addSymfonyExcludeAttribute) {
+                yield $generator->dumpAttribute('Symfony\Component\DependencyInjection\Attribute\Exclude');
+            }
+
             yield 'final readonly class Error';
             yield '{';
             yield $generator->indent(function () use ($generator) {
@@ -948,17 +986,23 @@ final class CodeGenerator
         }
 
         $generator = new \Ruudk\CodeGenerator\CodeGenerator($this->fullyQualified('Enum'));
-        $enumClass = $generator->dump([
-            '// This file was automatically generated and should not be edited.',
-            '',
-            '/**',
-            ' * @api',
-            ' */',
-            $generator->dumpAttribute(Exclude::class),
-            sprintf('enum %s: string', $name),
-            '{',
-            $generator->indent(function () use ($generator, $type) {
+        $enumClass = $generator->dump(function () use ($type, $name, $generator) {
+            yield '// This file was automatically generated and should not be edited.';
+            yield '';
+            yield '/**';
+            yield ' * @api';
+            yield ' */';
+
+            if ($this->addSymfonyExcludeAttribute) {
+                yield $generator->dumpAttribute('Symfony\Component\DependencyInjection\Attribute\Exclude');
+            }
+
+            yield sprintf('enum %s: string', $name);
+            yield '{';
+            yield $generator->indent(function () use ($generator, $type) {
                 foreach ($type->getValues() as $value) {
+                    Assert::string($value->value, 'Enum value must be a string');
+
                     if ($value->description !== null) {
                         // TODO 2025-08-01 extract to separate method
                         foreach (explode(PHP_EOL, $value->description) as $description) {
@@ -974,6 +1018,8 @@ final class CodeGenerator
                 }
 
                 foreach ($type->getValues() as $value) {
+                    Assert::string($value->value, 'Enum value must be a string');
+
                     yield '';
                     yield sprintf('public function is%s() : bool', u($value->value)->lower()->pascal()->toString());
                     yield '{';
@@ -983,16 +1029,19 @@ final class CodeGenerator
                     yield '}';
 
                     yield '';
-                    yield sprintf('public static function create%s() : self', u($value->value)->lower()->pascal()->toString());
+                    yield sprintf(
+                        'public static function create%s() : self',
+                        u($value->value)->lower()->pascal()->toString(),
+                    );
                     yield '{';
                     yield $generator->indent(function () use ($value) {
                         yield sprintf('return self::%s;', u($value->value)->lower()->pascal()->toString());
                     });
                     yield '}';
                 }
-            }),
-            '}',
-        ]);
+            });
+            yield '}';
+        });
 
         $this->filesystem->dumpFile($this->outputDir . '/Enum/' . $name . '.php', $enumClass);
     }
@@ -1016,7 +1065,11 @@ final class CodeGenerator
             }
 
             yield '';
-            yield $generator->dumpAttribute(Exclude::class);
+
+            if ($this->addSymfonyExcludeAttribute) {
+                yield $generator->dumpAttribute('Symfony\Component\DependencyInjection\Attribute\Exclude');
+            }
+
             yield sprintf('final readonly class %s implements %s', $type, $generator->import(JsonSerializable::class));
             yield '{';
             yield $generator->indent(function () use ($type, $generator) {
@@ -1068,7 +1121,7 @@ final class CodeGenerator
 
                 yield '';
                 yield '/**';
-                yield $this->prefix(' * ', sprintf('@return %s', $this->dumpPHPDocType(SymfonyType::arrayShape($fields), $generator->import(...))));
+                yield from $this->prefix(' * ', sprintf('@return %s', $this->dumpPHPDocType(SymfonyType::arrayShape($fields), $generator->import(...))));
                 yield ' */';
                 yield $generator->dumpAttribute(Override::class);
                 yield 'public function jsonSerialize() : array';
@@ -1222,20 +1275,14 @@ final class CodeGenerator
         if ($type instanceof SymfonyType\ArrayShapeType) {
             $items = [];
 
-            foreach ($type->getShape() as $key => $value) {
-                $itemKey = \is_int($key) ? (string) $key : sprintf("'%s'", $key);
+            foreach ($type->getShape() as $key => ['type' => $type, 'optional' => $optional]) {
+                $itemKey = sprintf("'%s'", $key);
 
-                if ($value['optional'] ?? false) {
+                if ($optional) {
                     $itemKey = sprintf('%s?', $itemKey);
                 }
 
-                $items[] = sprintf('%s: %s', $itemKey, $this->dumpPHPDocType($value['type'], $importer, $indentation + 1));
-            }
-
-            if ( ! $type->isSealed()) {
-                $items[] = $type->getExtraKeyType()->isIdentifiedBy(TypeIdentifier::INT) && $type->getExtraKeyType()->isIdentifiedBy(TypeIdentifier::STRING) && $type->getExtraValueType()->isIdentifiedBy(TypeIdentifier::MIXED)
-                    ? '...'
-                    : sprintf('...<%s, %s>', $this->dumpPHPDocType($type->getExtraKeyType(), $importer, $indentation + 1), $this->dumpPHPDocType($type->getExtraValueType(), $importer, $indentation + 1));
+                $items[] = sprintf('%s: %s', $itemKey, $this->dumpPHPDocType($type, $importer, $indentation + 1));
             }
 
             if ($items === []) {
@@ -1272,7 +1319,7 @@ final class CodeGenerator
     }
 
     /**
-     * @return array{array<string, SymfonyType>, array, SymfonyType, SymfonyType, array}
+     * @return array{SymfonyType, array<string, SymfonyType>, SymfonyType, SymfonyType, list<string>}
      */
     private function parseSelectionSet(
         string $outputDirectory,
@@ -1331,13 +1378,15 @@ final class CodeGenerator
             ];
         }
 
+        Assert::isInstanceOf($parent, NamedType::class, 'Parent type must be a named type');
+
         $fields = [];
         $fields2 = [];
         $payloadShape = [];
         $possibleTypes = [];
         foreach ($selectionSet->selections as $selection) {
             if ($selection instanceof FieldNode) {
-                $fieldName = $selection->alias?->value ?? $selection->name->value;
+                $fieldName = $selection->alias->value ?? $selection->name->value;
 
                 if ($fieldName === '__typename') {
                     $fields[$fieldName] = SymfonyType::string();
@@ -1346,6 +1395,8 @@ final class CodeGenerator
 
                     continue;
                 }
+
+                Assert::isInstanceOf($parent, HasFieldsType::class, 'Parent type must have fields when parsing selection set');
 
                 $fieldType = $parent->getField($selection->name->value)->getType();
 
@@ -1357,6 +1408,8 @@ final class CodeGenerator
 
                 if ($selection->selectionSet !== null) {
                     $className = ucfirst($this->isList($fieldType) ? $this->inflector->singularize($fieldName) : $fieldName);
+
+                    Assert::isInstanceOf($fieldTypeInnerMost, NamedType::class, 'Field type must be a named type');
 
                     if ($this->useNodeNameForEdgeNodes && $fieldName === 'node' && str_ends_with($parent->name(), 'Edge')) {
                         $className = ucfirst($fieldTypeInnerMost->name());
@@ -1408,50 +1461,60 @@ final class CodeGenerator
                 continue;
             }
 
-            if ($selection instanceof InlineFragmentNode) {
-                $fieldType = $this->schema->getType($selection->typeCondition->name->value);
-
-                $className = sprintf('As%s', $fieldType->name());
-                $fieldName = sprintf('as%s', $fieldType->name());
-
-                [$subFields, $subFields2, $subPayloadShape, $subType, $subPossibleTypes] = $this->parseSelectionSet(
-                    $outputDirectory . '/' . $className,
-                    $selection->selectionSet,
-                    $fieldType,
-                    $fqcn . '\\' . $className,
-                    $path . '.' . $fieldName,
-                );
-
-                $this->generateDataClass(
-                    $subFields instanceof SymfonyType\CollectionType && $subFields->isList() ? $subFields->getCollectionValueType() : $subFields,
-                    $subPayloadShape instanceof SymfonyType\CollectionType && $subPayloadShape->isList() ? $subPayloadShape->getCollectionValueType() : $subPayloadShape,
-                    [$fieldType->name()],
-                    $outputDirectory,
-                    $this->fullyQualified($fqcn, $className),
-                    false,
-                    true,
-                    $selection,
-                    null,
-                );
-
-                $fields[$fieldName] = SymfonyType::nullable(new FragmentObjectType($this->fullyQualified($fqcn, $className), $fieldType->name()));
-                $fields2[$path . '.' . $fieldName] = SymfonyType::nullable(new FragmentObjectType($this->fullyQualified($fqcn, $className), $fieldType->name()));
-
-                foreach ($this->getNonNullableType($subPayloadShape)->getShape() as $key => $value) {
-                    $payloadShape[$key] = $value;
-                }
-
-                continue;
-            }
-
             if ($selection instanceof FragmentSpreadNode) {
                 $fieldName = lcfirst($selection->name->value);
                 $fields[$fieldName] = SymfonyType::nullable(new FragmentObjectType($this->fullyQualified('Fragment', $selection->name->value), $selection->name->value));
                 $fields2[$path . '.' . $fieldName] = SymfonyType::nullable(new FragmentObjectType($this->fullyQualified('Fragment', $selection->name->value), $selection->name->value));
 
+                Assert::isInstanceOf($this->getNonNullableType($this->fragmentPayloadShapes[$selection->name->value]), SymfonyType\ArrayShapeType::class, 'Fragment shape must be an array shape');
                 foreach ($this->getNonNullableType($this->fragmentPayloadShapes[$selection->name->value])->getShape() as $key => $value) {
                     $payloadShape[$key] = $value;
                 }
+            }
+        }
+
+        foreach ($selectionSet->selections as $selection) {
+            if ( ! $selection instanceof InlineFragmentNode) {
+                continue;
+            }
+
+            // TODO
+            Assert::notNull($selection->typeCondition, 'Inline fragment must have a type condition for now');
+
+            $fieldType = $this->schema->getType($selection->typeCondition->name->value);
+
+            Assert::isInstanceOf($fieldType, NamedType::class, 'Type condition must be a named type');
+
+            $className = sprintf('As%s', $fieldType->name());
+            $fieldName = sprintf('as%s', $fieldType->name());
+
+            [$subFields, $subFields2, $subPayloadShape, $subType, $subPossibleTypes] = $this->parseSelectionSet(
+                $outputDirectory . '/' . $className,
+                $selection->selectionSet,
+                $fieldType,
+                $fqcn . '\\' . $className,
+                $path . '.' . $fieldName,
+            );
+
+            $this->generateDataClass(
+                $subFields instanceof SymfonyType\CollectionType && $subFields->isList() ? $subFields->getCollectionValueType() : $subFields,
+                $subPayloadShape instanceof SymfonyType\CollectionType && $subPayloadShape->isList() ? $subPayloadShape->getCollectionValueType() : $subPayloadShape,
+                [$fieldType->name()],
+                $outputDirectory,
+                $this->fullyQualified($fqcn, $className),
+                false,
+                true,
+                $selection,
+                null,
+            );
+
+            $fields[$fieldName] = SymfonyType::nullable(new FragmentObjectType($this->fullyQualified($fqcn, $className), $fieldType->name()));
+            $fields2[$path . '.' . $fieldName] = SymfonyType::nullable(new FragmentObjectType($this->fullyQualified($fqcn, $className), $fieldType->name()));
+            $fields2 = [...$fields2, ...$subFields2];
+
+            Assert::isInstanceOf($this->getNonNullableType($subPayloadShape), SymfonyType\ArrayShapeType::class, 'Payload shape must be an array shape');
+            foreach ($this->getNonNullableType($subPayloadShape)->getShape() as $key => $value) {
+                $payloadShape[$key] = $value;
             }
         }
 
@@ -1467,12 +1530,18 @@ final class CodeGenerator
     // TODO MOVE TO Code Generator
     /**
      * Adds a prefix to every line of the iterable
-     * @param (callable(): string)|iterable<string>|string $data
-     * @return iterable<string>
+     * @param CodeLines $data
+     * @return Generator<string|Group>
      */
-    public function prefix(string $prefix, callable | iterable | string $data) : iterable
+    public function prefix(string $prefix, array | Closure | Generator | string $data) : Generator
     {
         foreach (\Ruudk\CodeGenerator\CodeGenerator::resolveIterable($data) as $line) {
+            if ($line instanceof Group) {
+                yield Group::indent($this->prefix($prefix, $line->lines), $line->indention);
+
+                continue;
+            }
+
             foreach (explode(PHP_EOL, $line) as $singleLine) {
                 yield $prefix . $singleLine;
             }
@@ -1486,19 +1555,6 @@ final class CodeGenerator
         }
 
         return $fieldType instanceof ListOfType;
-    }
-
-    private function isObject(Type $fieldType, string $name) : bool
-    {
-        if ($fieldType instanceof NonNull) {
-            return $this->isObject($fieldType->getWrappedType(), $name);
-        }
-
-        if ($fieldType instanceof NamedType) {
-            return $fieldType->name() === $name;
-        }
-
-        return false;
     }
 
     private function fullyQualified(string $part, string ...$moreParts) : string
@@ -1519,11 +1575,6 @@ final class CodeGenerator
         return sprintf('get%s', ucfirst($name));
     }
 
-    private function getClassName(string $fqcn) : string
-    {
-        return array_last(explode('\\', $fqcn));
-    }
-
     public function getNonNullableType(SymfonyType $type) : SymfonyType
     {
         if ($type instanceof SymfonyType\NullableType) {
@@ -1533,6 +1584,9 @@ final class CodeGenerator
         return $type;
     }
 
+    /**
+     * @return list<string>
+     */
     private function getPossibleTypes(Type $type) : array
     {
         if ($type instanceof NonNull) {

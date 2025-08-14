@@ -19,7 +19,9 @@ final readonly class GitHubClient
     ) {}
 
     /**
+     * @param array<string, mixed> $variables
      * @throws ClientExceptionInterface
+     * @return array<mixed>
      */
     public function graphql(string $query, array $variables = [], ?string $operationName = null) : array
     {
@@ -41,6 +43,10 @@ final readonly class GitHubClient
 
         Assert::same(200, $response->getStatusCode(), 'GraphQL server responded with a %2$s status code.');
 
-        return json_decode((string) $response->getBody(), true, JSON_THROW_ON_ERROR);
+        $data = json_decode((string) $response->getBody(), true, JSON_THROW_ON_ERROR);
+
+        Assert::isArray($data, 'GraphQL server did not return an array.');
+
+        return $data;
     }
 }

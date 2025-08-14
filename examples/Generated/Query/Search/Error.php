@@ -4,11 +4,8 @@ declare(strict_types=1);
 
 namespace Ruudk\GraphQLCodeGenerator\Examples\Generated\Query\Search;
 
-use Symfony\Component\DependencyInjection\Attribute\Exclude;
-
 // This file was automatically generated and should not be edited.
 
-#[Exclude]
 final readonly class Error
 {
     public string $message;

@@ -31,6 +31,9 @@ final readonly class ViewerQuery {
             'Viewer',
         );
 
-        return new Data($data['data'] ?? [], $data['errors'] ?? []);
+        return new Data(
+            $data['data'] ?? [], // @phpstan-ignore argument.type
+            $data['errors'] ?? [] // @phpstan-ignore argument.type
+        );
     }
 }

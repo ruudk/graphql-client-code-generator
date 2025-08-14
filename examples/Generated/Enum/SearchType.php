@@ -4,14 +4,11 @@ declare(strict_types=1);
 
 namespace Ruudk\GraphQLCodeGenerator\Examples\Generated\Enum;
 
-use Symfony\Component\DependencyInjection\Attribute\Exclude;
-
 // This file was automatically generated and should not be edited.
 
 /**
  * @api
  */
-#[Exclude]
 enum SearchType: string
 {
     // Returns matching discussions in repositories.
@@ -34,7 +31,7 @@ enum SearchType: string
         return $this === self::Discussion;
     }
 
-    public function createDiscussion() : self
+    public static function createDiscussion() : self
     {
         return self::Discussion;
     }
@@ -44,7 +41,7 @@ enum SearchType: string
         return $this === self::Issue;
     }
 
-    public function createIssue() : self
+    public static function createIssue() : self
     {
         return self::Issue;
     }
@@ -54,7 +51,7 @@ enum SearchType: string
         return $this === self::IssueAdvanced;
     }
 
-    public function createIssueAdvanced() : self
+    public static function createIssueAdvanced() : self
     {
         return self::IssueAdvanced;
     }
@@ -64,7 +61,7 @@ enum SearchType: string
         return $this === self::Repository;
     }
 
-    public function createRepository() : self
+    public static function createRepository() : self
     {
         return self::Repository;
     }
@@ -74,7 +71,7 @@ enum SearchType: string
         return $this === self::User;
     }
 
-    public function createUser() : self
+    public static function createUser() : self
     {
         return self::User;
     }

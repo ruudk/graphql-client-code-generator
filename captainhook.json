@@ -17,9 +17,6 @@
             },
             {
                 "action": "vendor/bin/phpstan"
-            },
-            {
-                "action": "vendor/bin/phpunit"
             }
         ]
     }

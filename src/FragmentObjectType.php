@@ -6,6 +6,9 @@ namespace Ruudk\GraphQLCodeGenerator;
 
 use Symfony\Component\TypeInfo\Type\ObjectType;
 
+/**
+ * @extends ObjectType<object>
+ */
 final class FragmentObjectType extends ObjectType
 {
     public function __construct(
