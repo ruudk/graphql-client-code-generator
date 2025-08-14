@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Ruudk\GraphQLCodeGenerator;
 
-use DateTimeImmutable;
 use Doctrine\Inflector\Inflector;
 use Doctrine\Inflector\InflectorFactory;
 use Exception;
@@ -44,8 +43,16 @@ use GraphQL\Type\Definition\WrappingType;
 use GraphQL\Type\Schema;
 use GraphQL\Utils\BuildClientSchema;
 use GraphQL\Utils\BuildSchema;
+use JsonException;
 use JsonSerializable;
 use Override;
+use ReflectionException;
+use Ruudk\GraphQLCodeGenerator\TypeInitializer\BackedEnumTypeInitializer;
+use Ruudk\GraphQLCodeGenerator\TypeInitializer\CollectionTypeInitializer;
+use Ruudk\GraphQLCodeGenerator\TypeInitializer\DelegatingTypeInitializer;
+use Ruudk\GraphQLCodeGenerator\TypeInitializer\NullableTypeInitializer;
+use Ruudk\GraphQLCodeGenerator\TypeInitializer\ObjectTypeInitializer;
+use Ruudk\GraphQLCodeGenerator\TypeInitializer\TypeInitializer;
 use Symfony\Component\DependencyInjection\Attribute\Exclude;
 use Symfony\Component\Filesystem\Exception\IOException;
 use Symfony\Component\Filesystem\Filesystem;
@@ -59,21 +66,6 @@ use Webmozart\Assert\Assert;
 final class CodeGenerator
 {
     private readonly Schema $schema;
-
-    /**
-     * @var array<string, SymfonyType|array{SymfonyType, SymfonyType}>
-     */
-    private array $scalars;
-
-    /**
-     * @var array<string, SymfonyType>
-     */
-    private array $types;
-
-    /**
-     * @var list<string>
-     */
-    private readonly array $ignoreTypes;
     private readonly Inflector $inflector;
 
     /**
@@ -81,6 +73,23 @@ final class CodeGenerator
      */
     private array $fragmentPayloadShapes = [];
 
+    /**
+     * @var array<string, SymfonyType|array{SymfonyType, SymfonyType}>
+     */
+    private array $scalars;
+    private DelegatingTypeInitializer $typeInitializer;
+
+    /**
+     * @param array<string, SymfonyType|array{SymfonyType, SymfonyType}> $scalars
+     * @param array<string, SymfonyType> $types
+     * @param list<string> $ignoreTypes
+     * @param list<TypeInitializer> $typeInitializers
+     *
+     * @throws \GraphQL\Error\Error
+     * @throws \GraphQL\Error\SyntaxError
+     * @throws JsonException
+     * @throws ReflectionException
+     */
     public function __construct(
         string $schemaPath,
         private readonly string $queriesDir,
@@ -90,8 +99,20 @@ final class CodeGenerator
         private readonly bool $dumpMethods,
         private readonly bool $dumpOrThrows,
         private readonly bool $dumpDefinition,
+        array $scalars = [],
+        private array $types = [],
+        private readonly array $ignoreTypes = [],
+        array $typeInitializers = [],
         private readonly Filesystem $filesystem = new Filesystem(),
     ) {
+        $this->typeInitializer = new DelegatingTypeInitializer(
+            new NullableTypeInitializer(),
+            new CollectionTypeInitializer(),
+            new BackedEnumTypeInitializer(),
+            new ObjectTypeInitializer(),
+            ...$typeInitializers,
+        );
+
         $schema = $filesystem->readFile($schemaPath);
 
         if (str_ends_with($schemaPath, '.graphql')) {
@@ -109,11 +130,9 @@ final class CodeGenerator
             'Int' => SymfonyType::int(),
             'Float' => SymfonyType::float(),
             'Boolean' => SymfonyType::bool(),
+
+            ...$scalars,
         ];
-
-        $this->types = [];
-
-        $this->ignoreTypes = [];
     }
     private array $usedTypes = [];
 
@@ -516,34 +535,6 @@ final class CodeGenerator
         $this->filesystem->dumpFile($outputDirectory . '/' . $className . '.php', $class);
     }
 
-    /**
-     * @param callable(string): string $importer
-     */
-    private function dumpInitializer(SymfonyType $type, callable $importer, string $variable) : string
-    {
-        if ($type instanceof SymfonyType\NullableType) {
-            return sprintf('%s !== null ? %s : null', $variable, $this->dumpInitializer($type->getWrappedType(), $importer, $variable));
-        }
-
-        if ($type instanceof SymfonyType\ArrayShapeType) {
-            return sprintf('array_map(fn($item) => %s, %s)', $this->dumpInitializer(SymfonyType::object(DateTimeImmutable::class), $importer, '$item'), $variable);
-        }
-
-        if ($type instanceof SymfonyType\CollectionType) {
-            return sprintf('array_map(fn($item) => %s, %s)', $this->dumpInitializer($type->getCollectionValueType(), $importer, '$item'), $variable);
-        }
-
-        if ($type instanceof BackedEnumType) {
-            return sprintf('%s::from(%s)', $importer($type->getClassName()), $variable);
-        }
-
-        if ($type instanceof SymfonyType\ObjectType) {
-            return sprintf('new %s(%s)', $importer($type->getClassName()), $variable);
-        }
-
-        return $variable;
-    }
-
     private function generateDataClass(
         SymfonyType $fields,
         SymfonyType $payloadShape,
@@ -631,7 +622,7 @@ final class CodeGenerator
 
                                 yield sprintf(
                                     'get => %s;',
-                                    $this->dumpInitializer(
+                                    $this->typeInitializer->__invoke(
                                         $fieldType,
                                         $generator->import(...),
                                         sprintf('$this->data[%s]', var_export($fieldName, true)),
