@@ -9,6 +9,19 @@ use Symfony\Component\DependencyInjection\Attribute\Exclude;
 
 // This file was automatically generated and should not be edited.
 
+/**
+ * {
+ *   __typename
+ *   nodes {
+ *     __typename
+ *     ... on Issue {
+ *       number
+ *       title
+ *     }
+ *     ...PullRequestInfo
+ *   }
+ * }
+ */
 #[Exclude]
 final class Search
 {

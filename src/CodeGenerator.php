@@ -8,7 +8,6 @@ use Doctrine\Inflector\Inflector;
 use Doctrine\Inflector\InflectorFactory;
 use Exception;
 use GraphQL\Language\AST\DocumentNode;
-use GraphQL\Language\AST\ExecutableDefinitionNode;
 use GraphQL\Language\AST\FieldNode;
 use GraphQL\Language\AST\FragmentDefinitionNode;
 use GraphQL\Language\AST\FragmentSpreadNode;
@@ -17,7 +16,6 @@ use GraphQL\Language\AST\ListTypeNode;
 use GraphQL\Language\AST\ListValueNode;
 use GraphQL\Language\AST\NamedTypeNode;
 use GraphQL\Language\AST\NameNode;
-use GraphQL\Language\AST\Node;
 use GraphQL\Language\AST\NodeList;
 use GraphQL\Language\AST\NonNullTypeNode;
 use GraphQL\Language\AST\ObjectValueNode;
@@ -543,7 +541,7 @@ final class CodeGenerator
         string $fqcn,
         bool $isData,
         bool $isFragment,
-        null | (ExecutableDefinitionNode & Node) $definitionNode,
+        null | FragmentDefinitionNode | OperationDefinitionNode | SelectionSetNode $definitionNode,
     ) : void {
         if ($fields instanceof SymfonyType\NullableType) {
             $fields = $fields->getWrappedType();
@@ -1477,7 +1475,7 @@ final class CodeGenerator
                         $fqcn . '\\' . $className,
                         false,
                         false,
-                        null,
+                        $selection->selectionSet,
                     );
 
                     $fields[$fieldName] = $subType;
@@ -1513,7 +1511,7 @@ final class CodeGenerator
                     $this->fullyQualified($fqcn, $className),
                     false,
                     true,
-                    null,
+                    $selection->selectionSet,
                 );
 
                 $fields[$fieldName] = SymfonyType::nullable(new FragmentObjectType($this->fullyQualified($fqcn, $className), $fieldType->name()));

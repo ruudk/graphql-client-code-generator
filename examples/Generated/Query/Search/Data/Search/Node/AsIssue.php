@@ -8,6 +8,12 @@ use Symfony\Component\DependencyInjection\Attribute\Exclude;
 
 // This file was automatically generated and should not be edited.
 
+/**
+ * {
+ *   number
+ *   title
+ * }
+ */
 #[Exclude]
 final class AsIssue
 {
