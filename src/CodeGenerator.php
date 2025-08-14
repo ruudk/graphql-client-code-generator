@@ -1260,7 +1260,7 @@ final class CodeGenerator
             return sprintf(
                 'array<%s, %s>',
                 $this->dumpPHPDocType($type->getCollectionKeyType(), $importer, $indentation),
-                $this->dumpPHPDocType($type->getCollectionKeyType(), $importer, $indentation),
+                $this->dumpPHPDocType($type->getCollectionValueType(), $importer, $indentation),
             );
         }
 
