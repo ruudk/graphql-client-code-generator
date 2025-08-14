@@ -558,7 +558,7 @@ final class CodeGenerator
         $namespace = implode('\\', $parts);
 
         $generator = new \Ruudk\CodeGenerator\CodeGenerator($namespace);
-        $class = $generator->dump(function () use ($definitionNode, $payloadShape, $isData, $fields, $possibleTypes, $generator, $className, $isFragment) {
+        $class = $generator->dump(function () use ($fqcn, $definitionNode, $payloadShape, $isData, $fields, $possibleTypes, $generator, $className, $isFragment) {
             yield '// This file was automatically generated and should not be edited.';
             yield '';
 
@@ -571,7 +571,7 @@ final class CodeGenerator
             }
 
             yield $generator->dumpAttribute(Exclude::class);
-            yield sprintf('final class %s', $className);
+            yield sprintf('final class %s', $generator->import($fqcn));
             yield '{';
             yield $generator->indent(
                 function () use ($isFragment, $possibleTypes, $className, $fields, $isData, $payloadShape, $generator) {
