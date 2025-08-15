@@ -62,7 +62,7 @@ use Webmozart\Assert\Assert;
 /**
  * @phpstan-import-type CodeLines from \Ruudk\CodeGenerator\CodeGenerator
  */
-final class CodeGenerator
+final class GraphQLCodeGenerator
 {
     private readonly Schema $schema;
     private readonly Inflector $inflector;
@@ -1325,7 +1325,7 @@ final class CodeGenerator
             }
 
             return sprintf(
-                'array<%s, %s>',
+                'array<%s,%s>',
                 $this->dumpPHPDocType($type->getCollectionKeyType(), $importer, $indentation),
                 $this->dumpPHPDocType($type->getCollectionValueType(), $importer, $indentation),
             );

@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-use Ruudk\GraphQLCodeGenerator\CodeGenerator;
 use Ruudk\GraphQLCodeGenerator\Examples\GitHubClient;
+use Ruudk\GraphQLCodeGenerator\GraphQLCodeGenerator;
 
 require_once __DIR__ . '/../vendor/autoload.php';
 
-new CodeGenerator(
+new GraphQLCodeGenerator(
     // https://docs.github.com/public/fpt/schema.docs.graphql
     __DIR__ . '/schema.docs.graphql',
     __DIR__,
