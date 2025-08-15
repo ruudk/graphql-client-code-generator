@@ -9,6 +9,7 @@ use Doctrine\Inflector\Inflector;
 use Doctrine\Inflector\InflectorFactory;
 use Exception;
 use Generator;
+use GraphQL\Language\AST\DirectiveNode;
 use GraphQL\Language\AST\DocumentNode;
 use GraphQL\Language\AST\FieldNode;
 use GraphQL\Language\AST\FragmentDefinitionNode;
@@ -1480,6 +1481,11 @@ final class GraphQLCodeGenerator
                         $this->addNodesOnConnections && str_ends_with($nakedFieldType->name(), 'Connection') ? SymfonyType::list($subFields2[$path . '.' . $fieldName . '.edges.*.node']) : null,
                     );
 
+                    if ($this->hasIncludeDirective($selection->directives)) {
+                        $subType = SymfonyType::nullable($subType);
+                        $subPayloadShape = SymfonyType::nullable($subPayloadShape);
+                    }
+
                     $fields[$fieldName] = $subType;
                     $fields2[$path . '.' . $fieldName] = $subType;
                     $fields2 = [...$fields2, ...$subFields2];
@@ -1529,6 +1535,9 @@ final class GraphQLCodeGenerator
                 $fqcn . '\\' . $className,
                 $path . '.' . $fieldName,
             );
+
+            $subFields = $this->mergeArrayShape(SymfonyType::arrayShape($fields), $subFields);
+            $subPayloadShape = $this->mergeArrayShape(SymfonyType::arrayShape($payloadShape), $subPayloadShape);
 
             $this->generateDataClass(
                 $subFields instanceof SymfonyType\CollectionType && $subFields->isList() ? $subFields->getCollectionValueType() : $subFields,
@@ -1650,5 +1659,42 @@ final class GraphQLCodeGenerator
         }
 
         return [];
+    }
+
+    private function mergeArrayShape(SymfonyType $left, SymfonyType $right) : SymfonyType
+    {
+        if ($right instanceof SymfonyType\NullableType) {
+            $right = $right->getWrappedType();
+        }
+
+        Assert::isInstanceOf($left, SymfonyType\ArrayShapeType::class, 'Left type must be an array shape');
+        Assert::isInstanceOf($right, SymfonyType\ArrayShapeType::class, 'Right type must be an array shape');
+
+        $leftShape = $left->getShape();
+        $rightShape = $right->getShape();
+        $mergedShape = [];
+        foreach ($leftShape as $key => $value) {
+            $mergedShape[$key] = $value;
+        }
+
+        foreach ($rightShape as $key => $value) {
+            $mergedShape[$key] = $value;
+        }
+
+        return SymfonyType::arrayShape($mergedShape);
+    }
+
+    /**
+     * @param NodeList<DirectiveNode> $directives
+     */
+    private function hasIncludeDirective(NodeList $directives) : bool
+    {
+        foreach ($directives as $directive) {
+            if ($directive->name->value === 'include') {
+                return true;
+            }
+        }
+
+        return false;
     }
 }
