@@ -11,7 +11,6 @@ use Ruudk\GraphQLCodeGenerator\Examples\Generated\Query\Viewer\Data\Viewer;
 /**
  * query Viewer {
  *   viewer {
- *     __typename
  *     login
  *   }
  * }
@@ -30,7 +29,6 @@ final class Data
     /**
      * @param array{
      *     'viewer': array{
-     *         '__typename': string,
      *         'login': string,
      *     },
      * } $data

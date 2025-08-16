@@ -45,6 +45,7 @@ use JsonException;
 use JsonSerializable;
 use Override;
 use ReflectionException;
+use Ruudk\CodeGenerator\CodeGenerator;
 use Ruudk\CodeGenerator\Group;
 use Ruudk\GraphQLCodeGenerator\TypeInitializer\BackedEnumTypeInitializer;
 use Ruudk\GraphQLCodeGenerator\TypeInitializer\CollectionTypeInitializer;
@@ -56,12 +57,13 @@ use Symfony\Component\Filesystem\Exception\IOException;
 use Symfony\Component\Filesystem\Filesystem;
 use Symfony\Component\Finder\Finder;
 use function Symfony\Component\String\u;
+use Symfony\Component\TypeInfo\Type\ArrayShapeType;
 use Symfony\Component\TypeInfo\Type as SymfonyType;
 use Symfony\Component\TypeInfo\Type\BackedEnumType;
 use Webmozart\Assert\Assert;
 
 /**
- * @phpstan-import-type CodeLines from \Ruudk\CodeGenerator\CodeGenerator
+ * @phpstan-import-type CodeLines from CodeGenerator
  */
 final class GraphQLCodeGenerator
 {
@@ -222,10 +224,11 @@ final class GraphQLCodeGenerator
         }
 
         $this->generateNodeNotFoundException();
-        // $this->generateWrongTypeForFragmentException();
 
         $ordered = FragmentOrderer::orderFragments($operations);
         foreach (array_reverse($ordered) as $fragment) {
+            TypeNameVisitor::visit($fragment);
+
             $name = $fragment->name->value;
 
             $type = $this->schema->getType($fragment->typeCondition->name->value);
@@ -263,6 +266,8 @@ final class GraphQLCodeGenerator
 
     private function processOperation(DocumentNode $document) : void
     {
+        TypeNameVisitor::visit($document);
+
         // TODO Why not handle multiple operations?
         $operation = $this->getFirstOperation($document);
 
@@ -276,8 +281,6 @@ final class GraphQLCodeGenerator
         Assert::notNull($operationName);
 
         $operationType = ucfirst($operation->operation);
-
-        $this->addTypenameToSelectionSetsRecursive($operation->selectionSet);
 
         $operationDefinition = Printer::doPrint($document);
 
@@ -450,7 +453,7 @@ final class GraphQLCodeGenerator
         $className = $queryClassName . $operationType;
         $failedException = $this->fullyQualified($operationType, $queryClassName, $queryClassName . $operationType . 'FailedException');
 
-        $generator = new \Ruudk\CodeGenerator\CodeGenerator($namespace);
+        $generator = new CodeGenerator($namespace);
         $class = $generator->dump([
             '// This file was automatically generated and should not be edited.',
             '',
@@ -609,7 +612,7 @@ final class GraphQLCodeGenerator
         $className = array_pop($parts);
         $namespace = implode('\\', $parts);
 
-        $generator = new \Ruudk\CodeGenerator\CodeGenerator($namespace);
+        $generator = new CodeGenerator($namespace);
         $class = $generator->dump(function () use ($nodesType, $fqcn, $definitionNode, $payloadShape, $isData, $fields, $possibleTypes, $generator, $className, $isFragment) {
             yield '// This file was automatically generated and should not be edited.';
             yield '';
@@ -643,7 +646,7 @@ final class GraphQLCodeGenerator
                         );
                     }
 
-                    if ($fields instanceof SymfonyType\ArrayShapeType) {
+                    if ($fields instanceof ArrayShapeType) {
                         foreach ($fields->getShape() as $fieldName => ['type' => $fieldType, 'optional' => $optional]) {
                             Assert::string($fieldName);
 
@@ -654,7 +657,7 @@ final class GraphQLCodeGenerator
                             yield from $generator->maybeDump(
                                 '/**',
                                 $this->prefix(' * ', function () use ($fieldType, $generator) {
-                                    if ($fieldType instanceof SymfonyType\CollectionType) {
+                                    if ($this->getNonNullableType($fieldType) instanceof SymfonyType\CollectionType) {
                                         yield sprintf(
                                             '@var %s',
                                             $this->dumpPHPDocType($fieldType, $generator->import(...)),
@@ -718,7 +721,7 @@ final class GraphQLCodeGenerator
                                 yield from $generator->maybeDump(
                                     '/**',
                                     $this->prefix(' * ', function () use ($fieldType, $generator) {
-                                        if ($fieldType instanceof SymfonyType\CollectionType) {
+                                        if ($this->getNonNullableType($fieldType) instanceof SymfonyType\CollectionType) {
                                             yield sprintf(
                                                 '@var %s',
                                                 $this->dumpPHPDocType($fieldType, $generator->import(...)),
@@ -824,7 +827,7 @@ final class GraphQLCodeGenerator
                         yield ') {}';
                     }
 
-                    if ($this->dumpMethods && $fields instanceof SymfonyType\ArrayShapeType) {
+                    if ($this->dumpMethods && $fields instanceof ArrayShapeType) {
                         foreach ($fields->getShape() as $fieldName => ['type' => $fieldType]) {
                             Assert::string($fieldName);
 
@@ -834,7 +837,7 @@ final class GraphQLCodeGenerator
 
                             yield '';
 
-                            if ($fieldType instanceof SymfonyType\CollectionType) {
+                            if ($this->getNonNullableType($fieldType) instanceof SymfonyType\CollectionType) {
                                 yield '/**';
                                 yield sprintf(
                                     ' * @return %s',
@@ -861,7 +864,7 @@ final class GraphQLCodeGenerator
                                 yield from $generator->maybeDump(
                                     '/**',
                                     $this->prefix(' * ', function () use ($fieldType, $generator) {
-                                        if ($fieldType instanceof SymfonyType\CollectionType) {
+                                        if ($this->getNonNullableType($fieldType) instanceof SymfonyType\CollectionType) {
                                             yield sprintf(
                                                 '@return %s',
                                                 $this->dumpPHPDocType($fieldType, $generator->import(...)),
@@ -926,7 +929,7 @@ final class GraphQLCodeGenerator
 
     private function generateErrorClass(string $operationDir, string $operationType, string $operationName) : void
     {
-        $generator = new \Ruudk\CodeGenerator\CodeGenerator($this->fullyQualified($operationType, $operationName));
+        $generator = new CodeGenerator($this->fullyQualified($operationType, $operationName));
         $class = $generator->dump(function () use ($generator) {
             yield '// This file was automatically generated and should not be edited.';
 
@@ -973,7 +976,7 @@ final class GraphQLCodeGenerator
 
     private function generateExceptionClass(string $outputDir, string $operationType, string $operationName, string $className) : void
     {
-        $generator = new \Ruudk\CodeGenerator\CodeGenerator($this->fullyQualified($operationType, $operationName));
+        $generator = new CodeGenerator($this->fullyQualified($operationType, $operationName));
         $class = $generator->dump(function () use ($className, $generator) {
             yield '// This file was automatically generated and should not be edited.';
 
@@ -1006,7 +1009,7 @@ final class GraphQLCodeGenerator
             return;
         }
 
-        $generator = new \Ruudk\CodeGenerator\CodeGenerator($this->fullyQualified('Enum'));
+        $generator = new CodeGenerator($this->fullyQualified('Enum'));
         $enumClass = $generator->dump(function () use ($type, $name, $generator) {
             yield '// This file was automatically generated and should not be edited.';
             yield '';
@@ -1038,27 +1041,37 @@ final class GraphQLCodeGenerator
                     }
                 }
 
-                foreach ($type->getValues() as $value) {
-                    Assert::string($value->value, 'Enum value must be a string');
+                if ($this->dumpMethods) {
+                    $numberOfValues = count($type->getValues());
+                    foreach ($type->getValues() as $value) {
+                        Assert::string($value->value, 'Enum value must be a string');
 
-                    yield '';
-                    yield sprintf('public function is%s() : bool', u($value->value)->lower()->pascal()->toString());
-                    yield '{';
-                    yield $generator->indent(function () use ($value) {
-                        yield sprintf('return $this === self::%s;', u($value->value)->lower()->pascal()->toString());
-                    });
-                    yield '}';
+                        yield '';
+                        yield sprintf('public function is%s() : bool', u($value->value)->lower()->pascal()->toString());
+                        yield '{';
+                        yield $generator->indent(function () use ($numberOfValues, $value) {
+                            if ($numberOfValues === 1) {
+                                yield '// @phpstan-ignore identical.alwaysTrue';
+                            }
 
-                    yield '';
-                    yield sprintf(
-                        'public static function create%s() : self',
-                        u($value->value)->lower()->pascal()->toString(),
-                    );
-                    yield '{';
-                    yield $generator->indent(function () use ($value) {
-                        yield sprintf('return self::%s;', u($value->value)->lower()->pascal()->toString());
-                    });
-                    yield '}';
+                            yield sprintf(
+                                'return $this === self::%s;',
+                                u($value->value)->lower()->pascal()->toString(),
+                            );
+                        });
+                        yield '}';
+
+                        yield '';
+                        yield sprintf(
+                            'public static function create%s() : self',
+                            u($value->value)->lower()->pascal()->toString(),
+                        );
+                        yield '{';
+                        yield $generator->indent(function () use ($value) {
+                            yield sprintf('return self::%s;', u($value->value)->lower()->pascal()->toString());
+                        });
+                        yield '}';
+                    }
                 }
             });
             yield '}';
@@ -1073,7 +1086,7 @@ final class GraphQLCodeGenerator
             return;
         }
 
-        $generator = new \Ruudk\CodeGenerator\CodeGenerator($this->fullyQualified('Input'));
+        $generator = new CodeGenerator($this->fullyQualified('Input'));
         $inputClass = $generator->dump(function () use ($generator, $type) {
             yield '// This file was automatically generated and should not be edited.';
 
@@ -1170,7 +1183,7 @@ final class GraphQLCodeGenerator
 
     private function generateNodeNotFoundException() : void
     {
-        $generator = new \Ruudk\CodeGenerator\CodeGenerator($this->namespace);
+        $generator = new CodeGenerator($this->namespace);
         $class = $generator->dump(function () use ($generator) {
             yield '// This file was automatically generated and should not be edited.';
 
@@ -1200,59 +1213,6 @@ final class GraphQLCodeGenerator
         }
 
         return null;
-    }
-
-    private function addTypenameToSelectionSetsRecursive(?SelectionSetNode $selectionSet, bool $addToCurrentLevel = false) : void
-    {
-        if ($selectionSet === null) {
-            return;
-        }
-
-        // Add __typename to current level if requested (for fragments)
-        if ($addToCurrentLevel) {
-            $this->addTypenameToSelectionSet($selectionSet);
-        }
-
-        // Recursively add to nested selection sets
-        foreach ($selectionSet->selections as $selection) {
-            if ($selection instanceof FieldNode && $selection->selectionSet) {
-                $this->addTypenameToSelectionSet($selection->selectionSet);
-                $this->addTypenameToSelectionSetsRecursive($selection->selectionSet);
-            } elseif ($selection instanceof InlineFragmentNode && $selection->selectionSet) {
-                // Don't add __typename to inline fragments themselves, only to their nested fields
-                $this->addTypenameToSelectionSetsRecursive($selection->selectionSet);
-            }
-        }
-    }
-
-    private function addTypenameToSelectionSet(SelectionSetNode $selectionSet) : void
-    {
-        // Check if __typename already exists
-        $hasTypename = false;
-        foreach ($selectionSet->selections as $selection) {
-            if ($selection instanceof FieldNode && $selection->name->value === '__typename') {
-                $hasTypename = true;
-
-                break;
-            }
-        }
-
-        // Add __typename if it doesn't exist
-        if ( ! $hasTypename) {
-            $typenameField = new FieldNode([
-                'name' => new NameNode([
-                    'value' => '__typename',
-                ]),
-                'alias' => null,
-                'arguments' => new NodeList([]),
-                'directives' => new NodeList([]),
-                'selectionSet' => null,
-            ]);
-
-            // Add __typename as the first selection
-            $selections = array_merge([$typenameField], iterator_to_array($selectionSet->selections));
-            $selectionSet->selections = new NodeList($selections);
-        }
     }
 
     private function ensureDirectoryExists(string $dir) : void
@@ -1293,7 +1253,7 @@ final class GraphQLCodeGenerator
             return sprintf('null|%s', $this->dumpPHPDocType($type->getWrappedType(), $importer, $indentation));
         }
 
-        if ($type instanceof SymfonyType\ArrayShapeType) {
+        if ($type instanceof ArrayShapeType) {
             $items = [];
 
             foreach ($type->getShape() as $key => ['type' => $type, 'optional' => $optional]) {
@@ -1506,7 +1466,7 @@ final class GraphQLCodeGenerator
                 $fields[$fieldName] = SymfonyType::nullable(new FragmentObjectType($this->fullyQualified('Fragment', $selection->name->value), $selection->name->value));
                 $fields2[$path . '.' . $fieldName] = SymfonyType::nullable(new FragmentObjectType($this->fullyQualified('Fragment', $selection->name->value), $selection->name->value));
 
-                Assert::isInstanceOf($this->getNonNullableType($this->fragmentPayloadShapes[$selection->name->value]), SymfonyType\ArrayShapeType::class, 'Fragment shape must be an array shape');
+                Assert::isInstanceOf($this->getNonNullableType($this->fragmentPayloadShapes[$selection->name->value]), ArrayShapeType::class, 'Fragment shape must be an array shape');
                 foreach ($this->getNonNullableType($this->fragmentPayloadShapes[$selection->name->value])->getShape() as $key => $value) {
                     $payloadShape[$key] = $value;
                 }
@@ -1555,7 +1515,7 @@ final class GraphQLCodeGenerator
             $fields2[$path . '.' . $fieldName] = SymfonyType::nullable(new FragmentObjectType($this->fullyQualified($fqcn, $className), $fieldType->name()));
             $fields2 = [...$fields2, ...$subFields2];
 
-            Assert::isInstanceOf($this->getNonNullableType($subPayloadShape), SymfonyType\ArrayShapeType::class, 'Payload shape must be an array shape');
+            Assert::isInstanceOf($this->getNonNullableType($subPayloadShape), ArrayShapeType::class, 'Payload shape must be an array shape');
             foreach ($this->getNonNullableType($subPayloadShape)->getShape() as $key => $value) {
                 $payloadShape[$key] = $value;
             }
@@ -1578,7 +1538,7 @@ final class GraphQLCodeGenerator
      */
     public function prefix(string $prefix, array | Closure | Generator | string $data) : Generator
     {
-        foreach (\Ruudk\CodeGenerator\CodeGenerator::resolveIterable($data) as $line) {
+        foreach (CodeGenerator::resolveIterable($data) as $line) {
             if ($line instanceof Group) {
                 yield Group::indent($this->prefix($prefix, $line->lines), $line->indention);
 
@@ -1667,8 +1627,8 @@ final class GraphQLCodeGenerator
             $right = $right->getWrappedType();
         }
 
-        Assert::isInstanceOf($left, SymfonyType\ArrayShapeType::class, 'Left type must be an array shape');
-        Assert::isInstanceOf($right, SymfonyType\ArrayShapeType::class, 'Right type must be an array shape');
+        Assert::isInstanceOf($left, ArrayShapeType::class, 'Left type must be an array shape, %s given');
+        Assert::isInstanceOf($right, ArrayShapeType::class, 'Right type must be an array shape, %s given');
 
         $leftShape = $left->getShape();
         $rightShape = $right->getShape();

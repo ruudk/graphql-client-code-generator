@@ -11,7 +11,6 @@ use Ruudk\GraphQLCodeGenerator\Examples\Generated\Query\Search\Data\SearchResult
 /**
  * query Search {
  *   search(query: "repo:twigstan/twigstan", type: ISSUE, first: 10) {
- *     __typename
  *     nodes {
  *       __typename
  *       ... on Issue {
@@ -37,7 +36,6 @@ final class Data
     /**
      * @param array{
      *     'search': array{
-     *         '__typename': string,
      *         'nodes': list<array{
      *             '__typename': string,
      *             'merged': bool,

@@ -10,7 +10,6 @@ use Ruudk\GraphQLCodeGenerator\Examples\Generated\Query\Search\Data\SearchResult
 
 /**
  * ... on SearchResultItemConnection {
- *   __typename
  *   nodes {
  *     __typename
  *     ... on Issue {
@@ -23,10 +22,6 @@ use Ruudk\GraphQLCodeGenerator\Examples\Generated\Query\Search\Data\SearchResult
  */
 final class SearchResultItemConnection
 {
-    public string $__typename {
-        get => $this->__typename ??= $this->data['__typename'];
-    }
-
     /**
      * @var list<Node>
      */
@@ -36,7 +31,6 @@ final class SearchResultItemConnection
 
     /**
      * @param array{
-     *     '__typename': string,
      *     'nodes': list<array{
      *         '__typename': string,
      *         'merged': bool,

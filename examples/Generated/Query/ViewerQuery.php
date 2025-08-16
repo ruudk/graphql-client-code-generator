@@ -20,7 +20,6 @@ final readonly class ViewerQuery {
             <<<'GRAPHQL'
                 query Viewer {
                   viewer {
-                    __typename
                     login
                   }
                 }
