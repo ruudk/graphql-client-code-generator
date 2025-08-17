@@ -1,0 +1,22 @@
+query Test {
+    viewer {
+        ...ViewerDetails
+        projects {
+            ...ProjectView
+        }
+    }
+}
+
+fragment ViewerDetails on Viewer {
+    login
+}
+
+fragment ProjectView on Project {
+    name
+    description
+    ...ProjectStateView
+}
+
+fragment ProjectStateView on Project {
+    state
+}

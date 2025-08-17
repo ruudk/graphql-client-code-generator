@@ -1,0 +1,21 @@
+type Query {
+    viewer: Viewer!
+}
+
+type Viewer {
+    login: String!
+    projects: [Project!]!
+}
+
+type Project {
+    id: ID!
+    name: String!
+    description: String
+    state: ProjectState
+}
+
+enum ProjectState {
+    ACTIVE
+    ON_HOLD
+    ARCHIVED
+}

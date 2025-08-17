@@ -20,15 +20,15 @@
         "friendsofphp/php-cs-fixer": "^3.85",
         "php-http/discovery": "^1.20",
         "php-http/guzzle7-adapter": "^1.1",
+        "php-http/mock-client": "^1.6",
         "phpstan/extension-installer": "^1.4",
         "phpstan/phpstan": "^2.1",
+        "phpunit/phpunit": "^12.3",
+        "staabm/phpstan-todo-by": "^0.3.0",
         "symfony/dotenv": "^7.3",
         "symfony/var-dumper": "^7.3",
         "ticketswap/php-cs-fixer-config": "^1.0",
-        "ticketswap/phpstan-error-formatter": "^1.1",
-        "phpunit/phpunit": "^12.3",
-        "php-http/mock-client": "^1.6",
-        "staabm/phpstan-todo-by": "^0.3.0"
+        "ticketswap/phpstan-error-formatter": "^1.1"
     },
     "autoload": {
         "psr-4": {
@@ -37,8 +37,8 @@
     },
     "autoload-dev": {
         "psr-4": {
-            "Ruudk\\GraphQLCodeGenerator\\Examples\\": "examples/",
-            "Ruudk\\GraphQLCodeGenerator\\": "tests/"
+            "Ruudk\\GraphQLCodeGenerator\\": "tests/",
+            "Ruudk\\GraphQLCodeGenerator\\Examples\\": "examples/"
         }
     },
     "config": {
