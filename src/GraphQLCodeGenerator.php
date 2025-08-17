@@ -323,7 +323,7 @@ final class GraphQLCodeGenerator
         $this->generateDataClass(
             $fields,
             $payloadShape,
-            [],
+            $possibleTypes,
             $operationDir,
             $fqcn,
             true,
@@ -1491,143 +1491,71 @@ final class GraphQLCodeGenerator
 
                 continue;
             }
-        }
 
-        $shapes = [SymfonyType::arrayShape($payloadShape)];
-        foreach ($selectionSet->selections as $selection) {
             if ($selection instanceof FragmentSpreadNode) {
                 $fieldName = lcfirst($selection->name->value);
                 $fields[$fieldName] = SymfonyType::nullable(new FragmentObjectType($this->fullyQualified('Fragment', $selection->name->value), $selection->name->value));
                 $fields2[$path . '.' . $fieldName] = SymfonyType::nullable(new FragmentObjectType($this->fullyQualified('Fragment', $selection->name->value), $selection->name->value));
 
-                dump($selection->name->value, (string) $this->fragmentPayloadShapes[$selection->name->value]);
-                $nakedFragmentPayloadShape = $this->getNonNullableType($this->fragmentPayloadShapes[$selection->name->value]);
-                Assert::isInstanceOf(
-                    $nakedFragmentPayloadShape,
-                    ArrayShapeType::class,
-                    'Payload shape must be an array shape, %s given',
-                );
-
-                $fragment = $this->fragments[$selection->name->value];
-
-                $type = $this->schema->getType($fragment->typeCondition->name->value);
-
-                Assert::notNull($type, 'Expected type to be defined');
-
-                $possibleTypes = $this->getPossibleTypes($type);
-
-                foreach ($possibleTypes as $possibleType) {
-                    $shape = $nakedFragmentPayloadShape->getShape();
-                    $shape['__typename'] = [
-                        'type' => new PseudoType(var_export($possibleType, true)),
-                        'optional' => false,
-                    ];
-                    $shapes[] = SymfonyType::arrayShape($shape);
+                Assert::isInstanceOf($this->getNonNullableType($this->fragmentPayloadShapes[$selection->name->value]), ArrayShapeType::class, 'Fragment shape must be an array shape');
+                foreach ($this->getNonNullableType($this->fragmentPayloadShapes[$selection->name->value])->getShape() as $key => $value) {
+                    $payloadShape[$key] = $value;
                 }
-
-                // Assert::isInstanceOf($this->getNonNullableType($this->fragmentPayloadShapes[$selection->name->value]), ArrayShapeType::class, 'Fragment shape must be an array shape');
-                // foreach ($this->getNonNullableType($this->fragmentPayloadShapes[$selection->name->value])->getShape() as $key => ['type' => $type]) {
-                //    if (isset($payloadShape[$key]) && $this->getNonNullableType($payloadShape[$key]) instanceof ArrayShapeType) {
-                //        $merged = $this->mergeArrayShape(
-                //            $this->getNonNullableType($payloadShape[$key]),
-                //            $this->getNonNullableType($type),
-                //        );
-                //
-                //        if ($payloadShape[$key] instanceof NullableType) {
-                //            $merged = SymfonyType::nullable($merged);
-                //        }
-                //
-                //        $payloadShape[$key] = $merged;
-                //
-                //        continue;
-                //    }
-                //
-                //    $payloadShape[$key] = $type;
-                // }
-            }
-
-            if ($selection instanceof InlineFragmentNode) {
-                // TODO
-                Assert::notNull($selection->typeCondition, 'Inline fragment must have a type condition for now');
-
-                $fieldType = $this->schema->getType($selection->typeCondition->name->value);
-
-                Assert::isInstanceOf($fieldType, NamedType::class, 'Type condition must be a named type');
-
-                $className = sprintf('As%s', $fieldType->name());
-                $fieldName = sprintf('as%s', $fieldType->name());
-
-                [$subFields, $subFields2, $subPayloadShape, $subType] = $this->parseSelectionSet(
-                    $outputDirectory . '/' . $className,
-                    $selection->selectionSet,
-                    $fieldType,
-                    $fqcn . '\\' . $className,
-                    $path . '.' . $fieldName,
-                );
-
-                $mergedSubFields = $this->mergeArrayShape(SymfonyType::arrayShape($fields), $subFields);
-                $mergedSubPayloadShape = $this->mergeArrayShape(
-                    SymfonyType::arrayShape($payloadShape),
-                    $subPayloadShape,
-                );
-
-                $possibleTypes = $this->getPossibleTypes($fieldType);
-                $this->generateDataClass(
-                    $mergedSubFields instanceof SymfonyType\CollectionType && $mergedSubFields->isList(
-                    ) ? $mergedSubFields->getCollectionValueType() : $mergedSubFields,
-                    $mergedSubPayloadShape instanceof SymfonyType\CollectionType && $mergedSubPayloadShape->isList(
-                    ) ? $mergedSubPayloadShape->getCollectionValueType() : $mergedSubPayloadShape,
-                    $possibleTypes,
-                    $outputDirectory,
-                    $this->fullyQualified($fqcn, $className),
-                    false,
-                    true,
-                    $selection,
-                    null,
-                );
-
-                $fields[$fieldName] = SymfonyType::nullable(
-                    new FragmentObjectType($this->fullyQualified($fqcn, $className), $fieldType->name()),
-                );
-                $fields2[$path . '.' . $fieldName] = SymfonyType::nullable(
-                    new FragmentObjectType($this->fullyQualified($fqcn, $className), $fieldType->name()),
-                );
-                $fields2 = [...$fields2, ...$subFields2];
-
-                // This is not good. It should fetch the possible types for the fragment, and then duplicate
-                // the shape, with __typename hardcoded, and then add it to the shape.
-                // https://phpstan.org/r/333381ea-6d54-4f5c-8bef-30dd17d581a7
-
-                // $nakedSubPayloadShape = $this->getNonNullableType($subPayloadShape);
-                // Assert::isInstanceOf(
-                //    $nakedSubPayloadShape,
-                //    ArrayShapeType::class,
-                //    'Payload shape must be an array shape',
-                // );
-                //
-                // foreach ($possibleTypes as $possibleType) {
-                //    $shape = $nakedSubPayloadShape->getShape();
-                //    $shape['__typename'] = [
-                //        'type' => new PseudoType(var_export($possibleType, true)),
-                //        'optional' => false,
-                //    ];
-                //    $shapes[] = SymfonyType::arrayShape($shape);
-                // }
-
-                continue;
             }
         }
 
-        if (count($shapes) > 1) {
-            $payloadShape = SymfonyType::union(...$shapes);
-        } else {
-            $payloadShape = $shapes[0];
+        foreach ($selectionSet->selections as $selection) {
+            if ( ! $selection instanceof InlineFragmentNode) {
+                continue;
+            }
+
+            // TODO
+            Assert::notNull($selection->typeCondition, 'Inline fragment must have a type condition for now');
+
+            $fieldType = $this->schema->getType($selection->typeCondition->name->value);
+
+            Assert::isInstanceOf($fieldType, NamedType::class, 'Type condition must be a named type');
+
+            $className = sprintf('As%s', $fieldType->name());
+            $fieldName = sprintf('as%s', $fieldType->name());
+
+            [$subFields, $subFields2, $subPayloadShape, $subType, $subPossibleTypes] = $this->parseSelectionSet(
+                $outputDirectory . '/' . $className,
+                $selection->selectionSet,
+                $fieldType,
+                $fqcn . '\\' . $className,
+                $path . '.' . $fieldName,
+            );
+
+            $subFields = $this->mergeArrayShape(SymfonyType::arrayShape($fields), $subFields);
+            $subPayloadShape = $this->mergeArrayShape(SymfonyType::arrayShape($payloadShape), $subPayloadShape);
+
+            $this->generateDataClass(
+                $subFields instanceof SymfonyType\CollectionType && $subFields->isList() ? $subFields->getCollectionValueType() : $subFields,
+                $subPayloadShape instanceof SymfonyType\CollectionType && $subPayloadShape->isList() ? $subPayloadShape->getCollectionValueType() : $subPayloadShape,
+                [$fieldType->name()],
+                $outputDirectory,
+                $this->fullyQualified($fqcn, $className),
+                false,
+                true,
+                $selection,
+                null,
+            );
+
+            $fields[$fieldName] = SymfonyType::nullable(new FragmentObjectType($this->fullyQualified($fqcn, $className), $fieldType->name()));
+            $fields2[$path . '.' . $fieldName] = SymfonyType::nullable(new FragmentObjectType($this->fullyQualified($fqcn, $className), $fieldType->name()));
+            $fields2 = [...$fields2, ...$subFields2];
+
+            Assert::isInstanceOf($this->getNonNullableType($subPayloadShape), ArrayShapeType::class, 'Payload shape must be an array shape');
+            foreach ($this->getNonNullableType($subPayloadShape)->getShape() as $key => $value) {
+                $payloadShape[$key] = $value;
+            }
         }
 
         return [
             SymfonyType::arrayShape($fields),
             $fields2,
-            $payloadShape,
+            SymfonyType::arrayShape($payloadShape),
             SymfonyType::object($fqcn),
         ];
     }
