@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Ruudk\GraphQLCodeGenerator\Simple\Expected\Query\Test\Data\Viewer;
+namespace Ruudk\GraphQLCodeGenerator\InlineFragments\Expected\Query\Test\Data;
 
 // This file was automatically generated and should not be edited.
 
@@ -10,6 +10,7 @@ namespace Ruudk\GraphQLCodeGenerator\Simple\Expected\Query\Test\Data\Viewer;
  * ... on Project {
  *   name
  *   description
+ *   state
  * }
  */
 final class Project
@@ -22,10 +23,15 @@ final class Project
         get => $this->name ??= $this->data['name'];
     }
 
+    public ?string $state {
+        get => $this->state ??= $this->data['state'] !== null ? $this->data['state'] : null;
+    }
+
     /**
      * @param array{
      *     'description': null|string,
      *     'name': string,
+     *     'state': null|string,
      * } $data
      */
     public function __construct(

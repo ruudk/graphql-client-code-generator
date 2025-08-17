@@ -2,20 +2,24 @@
 
 declare(strict_types=1);
 
-namespace Ruudk\GraphQLCodeGenerator\Simple\Expected\Query\Test\Data\Viewer;
+namespace Ruudk\GraphQLCodeGenerator\InlineFragments\Expected\Query\Test\Data\Viewer;
 
 // This file was automatically generated and should not be edited.
 
 /**
- * ... on Project {
+ * ... on Viewer {
  *   name
- *   description
  * }
  */
-final class Project
+final class AsViewer
 {
-    public ?string $description {
-        get => $this->description ??= $this->data['description'] !== null ? $this->data['description'] : null;
+    /**
+     * @var list<string>
+     */
+    public const array POSSIBLE_TYPES = ['Viewer'];
+
+    public string $__typename {
+        get => $this->__typename ??= $this->data['__typename'];
     }
 
     public string $name {
@@ -24,7 +28,7 @@ final class Project
 
     /**
      * @param array{
-     *     'description': null|string,
+     *     '__typename': string,
      *     'name': string,
      * } $data
      */

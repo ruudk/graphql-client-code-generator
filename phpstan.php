@@ -19,11 +19,6 @@ return [
         'tips' => [
             'treatPhpDocTypesAsCertain' => false,
         ],
-        'ignoreErrors' => [
-            // TODO: webonyx/graphql-php#1752
-            // https://github.com/webonyx/graphql-php/pull/1752
-            '#^Parameter \#2 \$visitor of static method GraphQL\\\\Language\\\\Visitor\:\:visitWithTypeInfo\(\) expects array\<string, array\<string, callable\(GraphQL\\\\Language\\\\AST\\\\Node\)\: \(GraphQL\\\\Language\\\\VisitorOperation\|void\|false\|null\)\>\|\(callable\(GraphQL\\\\Language\\\\AST\\\\Node\)\: \(GraphQL\\\\Language\\\\VisitorOperation\|void\|false\|null\)\)\>, array\{SelectionSet\: Closure\(GraphQL\\\\Language\\\\AST\\\\Node\)\: \(GraphQL\\\\Language\\\\AST\\\\SelectionSetNode\|null\)\} given\.$#'
-        ],
         'todo_by' => [
             'ticket' => [
                 'enabled' => true,

@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace Ruudk\GraphQLCodeGenerator\Fragments\Expected\Fragment;
 
-use Ruudk\GraphQLCodeGenerator\Fragments\Expected\Enum\ProjectState;
-
 // This file was automatically generated and should not be edited.
 
 /**
@@ -15,8 +13,8 @@ use Ruudk\GraphQLCodeGenerator\Fragments\Expected\Enum\ProjectState;
  */
 final class ProjectStateView
 {
-    public ?ProjectState $state {
-        get => $this->state ??= $this->data['state'] !== null ? ProjectState::from($this->data['state']) : null;
+    public ?string $state {
+        get => $this->state ??= $this->data['state'] !== null ? $this->data['state'] : null;
     }
 
     /**

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Ruudk\GraphQLCodeGenerator;
+namespace Ruudk\GraphQLCodeGenerator\Visitor;
 
 use GraphQL\Language\AST\FieldNode;
 use GraphQL\Language\AST\FragmentSpreadNode;
@@ -25,7 +25,12 @@ final readonly class TypeNameVisitor
         private TypeInfo $typeInfo,
     ) {}
 
-    public function visit(Node $node) : void
+    /**
+     * @template T of Node
+     * @param T $node
+     * @return T
+     */
+    public function visit(Node $node) : Node
     {
         $wrapped = Visitor::visitWithTypeInfo($this->typeInfo, [
             NodeKind::SELECTION_SET => function (Node $node) : ?Node {
@@ -69,6 +74,11 @@ final readonly class TypeNameVisitor
             },
         ]);
 
-        Visitor::visit($node, $wrapped);
+        $new = Visitor::visit($node, $wrapped);
+
+        Assert::isInstanceOf($new, Node::class);
+        Assert::isAOf($new, $node::class);
+
+        return $new;
     }
 }

@@ -1,0 +1,13 @@
+type Query {
+    accountStatus: State
+    role: Role
+}
+
+enum State {
+    ACTIVE
+}
+
+enum Role {
+    USER
+    ADMIN
+}

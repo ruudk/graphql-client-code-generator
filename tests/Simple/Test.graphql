@@ -4,7 +4,6 @@ query Test {
         projects {
             name
             description
-            state
         }
     }
 }

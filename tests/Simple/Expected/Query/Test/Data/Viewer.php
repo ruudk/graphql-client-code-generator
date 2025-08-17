@@ -14,7 +14,6 @@ use Ruudk\GraphQLCodeGenerator\Simple\Expected\Query\Test\Data\Viewer\Project;
  *   projects {
  *     name
  *     description
- *     state
  *   }
  * }
  */
@@ -37,7 +36,6 @@ final class Viewer
      *     'projects': list<array{
      *         'description': null|string,
      *         'name': string,
-     *         'state': null|string,
      *     }>,
      * } $data
      */

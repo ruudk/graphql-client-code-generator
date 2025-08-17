@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Ruudk\GraphQLCodeGenerator\Simple\Expected\Query;
+namespace Ruudk\GraphQLCodeGenerator\InlineFragments\Expected\Query;
 
-use Ruudk\GraphQLCodeGenerator\Simple\Expected\Query\Test\Data;
+use Ruudk\GraphQLCodeGenerator\InlineFragments\Expected\Query\Test\Data;
 use Ruudk\GraphQLCodeGenerator\TestClient;
 
 // This file was automatically generated and should not be edited.
@@ -20,11 +20,21 @@ final readonly class TestQuery {
             <<<'GRAPHQL'
                 query Test {
                   viewer {
-                    login
-                    projects {
+                    __typename
+                    ... on Viewer {
                       name
-                      description
                     }
+                    ... on User {
+                      login
+                    }
+                    ... on Application {
+                      url
+                    }
+                  }
+                  projects {
+                    name
+                    description
+                    state
                   }
                 }
                 

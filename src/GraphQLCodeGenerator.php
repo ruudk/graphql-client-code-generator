@@ -54,6 +54,8 @@ use Ruudk\GraphQLCodeGenerator\TypeInitializer\DelegatingTypeInitializer;
 use Ruudk\GraphQLCodeGenerator\TypeInitializer\NullableTypeInitializer;
 use Ruudk\GraphQLCodeGenerator\TypeInitializer\ObjectTypeInitializer;
 use Ruudk\GraphQLCodeGenerator\TypeInitializer\TypeInitializer;
+use Ruudk\GraphQLCodeGenerator\Visitor\InlineFragmentOptimizer;
+use Ruudk\GraphQLCodeGenerator\Visitor\TypeNameVisitor;
 use Symfony\Component\Filesystem\Exception\IOException;
 use Symfony\Component\Filesystem\Filesystem;
 use Symfony\Component\Finder\Finder;
@@ -86,6 +88,7 @@ final class GraphQLCodeGenerator
      */
     private array $scalars;
     private DelegatingTypeInitializer $typeInitializer;
+    private ?string $schemaPath = null;
 
     /**
      * @param array<string, SymfonyType|array{SymfonyType, SymfonyType}> $scalars
@@ -131,8 +134,10 @@ final class GraphQLCodeGenerator
         );
 
         if (is_string($schema) && str_ends_with($schema, '.graphql')) {
+            $this->schemaPath = $schema;
             $schema = BuildSchema::build($filesystem->readFile($schema));
         } elseif (is_string($schema) && str_ends_with($schema, '.json')) {
+            $this->schemaPath = $schema;
             $introspection = json_decode($filesystem->readFile($schema), true, flags: JSON_THROW_ON_ERROR);
             Assert::isArray($introspection, 'Expected introspection to be an array');
             Assert::keyExists($introspection, 'data', 'Expected introspection to have a "data" key');
@@ -163,7 +168,14 @@ final class GraphQLCodeGenerator
         $this->ensureDirectoryExists($this->outputDir);
 
         $finder = new Finder();
-        $finder->files()->in($this->queriesDir)->name('*.graphql')->sortByName();
+        $finder->files()
+            ->in($this->queriesDir)
+            ->name('*.graphql')
+            ->sortByName();
+
+        if ($this->schemaPath !== null) {
+            $finder->notPath(rtrim(new Filesystem()->makePathRelative($this->schemaPath, $this->queriesDir), '/'));
+        }
 
         $operations = [];
         $usedTypesCollector = new UsedTypesCollector($this->schema);
@@ -231,7 +243,7 @@ final class GraphQLCodeGenerator
 
         $ordered = FragmentOrderer::orderFragments($operations);
         foreach (array_reverse($ordered) as $fragment) {
-            new TypeNameVisitor(new TypeInfo($this->schema))->visit($fragment);
+            $fragment = new TypeNameVisitor(new TypeInfo($this->schema))->visit($fragment);
 
             $name = $fragment->name->value;
 
@@ -273,7 +285,8 @@ final class GraphQLCodeGenerator
 
     private function processOperation(DocumentNode $document) : void
     {
-        new TypeNameVisitor(new TypeInfo($this->schema))->visit($document);
+        $document = new TypeNameVisitor(new TypeInfo($this->schema))->visit($document);
+        $document = new InlineFragmentOptimizer(new TypeInfo($this->schema))->visit($document);
 
         // TODO Why not handle multiple operations?
         $operation = $this->getFirstOperation($document);

@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Ruudk\GraphQLCodeGenerator\Simple;
 
 use Ruudk\GraphQLCodeGenerator\GraphQLTestCase;
-use Ruudk\GraphQLCodeGenerator\Simple\Expected\Enum\ProjectState;
 use Ruudk\GraphQLCodeGenerator\Simple\Expected\Query\TestQuery;
 
 final class SimpleTest extends GraphQLTestCase
@@ -20,7 +19,6 @@ final class SimpleTest extends GraphQLTestCase
                         [
                             'name' => 'GraphQL Code Generator',
                             'description' => null,
-                            'state' => 'ACTIVE',
                         ],
                     ],
                 ],
@@ -32,7 +30,6 @@ final class SimpleTest extends GraphQLTestCase
 
         [$project] = $result->viewer->projects;
         self::assertSame('GraphQL Code Generator', $project->name);
-        self::assertSame(ProjectState::Active, $project->state);
         self::assertNull($project->description);
     }
 }

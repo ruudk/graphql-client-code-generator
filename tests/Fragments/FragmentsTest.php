@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Ruudk\GraphQLCodeGenerator\Fragments;
 
-use Ruudk\GraphQLCodeGenerator\Fragments\Expected\Enum\ProjectState;
 use Ruudk\GraphQLCodeGenerator\Fragments\Expected\Query\TestQuery;
 use Ruudk\GraphQLCodeGenerator\GraphQLTestCase;
 
@@ -43,7 +42,7 @@ final class FragmentsTest extends GraphQLTestCase
 
         [$project] = $result->projects;
         self::assertSame('GraphQL Code Generator', $project->projectView->name);
-        self::assertSame(ProjectState::Active, $project->projectView->projectStateView->state);
+        self::assertSame('ACTIVE', $project->projectView->projectStateView->state);
         self::assertNull($project->projectView->description);
     }
 

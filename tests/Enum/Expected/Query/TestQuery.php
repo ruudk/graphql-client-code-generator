@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Ruudk\GraphQLCodeGenerator\Simple\Expected\Query;
+namespace Ruudk\GraphQLCodeGenerator\Enum\Expected\Query;
 
-use Ruudk\GraphQLCodeGenerator\Simple\Expected\Query\Test\Data;
+use Ruudk\GraphQLCodeGenerator\Enum\Expected\Query\Test\Data;
 use Ruudk\GraphQLCodeGenerator\TestClient;
 
 // This file was automatically generated and should not be edited.
@@ -19,13 +19,8 @@ final readonly class TestQuery {
         $data = $this->client->graphql(
             <<<'GRAPHQL'
                 query Test {
-                  viewer {
-                    login
-                    projects {
-                      name
-                      description
-                    }
-                  }
+                  accountStatus
+                  role
                 }
                 
                 GRAPHQL,
