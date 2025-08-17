@@ -47,6 +47,7 @@ use Override;
 use ReflectionException;
 use Ruudk\CodeGenerator\CodeGenerator;
 use Ruudk\CodeGenerator\Group;
+use Ruudk\GraphQLCodeGenerator\Type\PseudoType;
 use Ruudk\GraphQLCodeGenerator\TypeInitializer\BackedEnumTypeInitializer;
 use Ruudk\GraphQLCodeGenerator\TypeInitializer\CollectionTypeInitializer;
 use Ruudk\GraphQLCodeGenerator\TypeInitializer\DelegatingTypeInitializer;
@@ -74,6 +75,11 @@ final class GraphQLCodeGenerator
      * @var array<string, SymfonyType>
      */
     private array $fragmentPayloadShapes = [];
+
+    /**
+     * @var array<string, FragmentDefinitionNode>
+     */
+    private array $fragments = [];
 
     /**
      * @var array<string, SymfonyType|array{SymfonyType, SymfonyType}>
@@ -155,8 +161,6 @@ final class GraphQLCodeGenerator
         $this->filesystem->remove($this->outputDir);
 
         $this->ensureDirectoryExists($this->outputDir);
-        $this->ensureDirectoryExists($this->outputDir . '/Query');
-        $this->ensureDirectoryExists($this->outputDir . '/Mutation');
 
         $finder = new Finder();
         $finder->files()->in($this->queriesDir)->name('*.graphql')->sortByName();
@@ -231,12 +235,18 @@ final class GraphQLCodeGenerator
 
             $name = $fragment->name->value;
 
+            $this->fragments[$name] = $fragment;
+
             $type = $this->schema->getType($fragment->typeCondition->name->value);
+
+            Assert::notNull($type, 'Expected fragment type to be defined');
+
+            $type = Type::nonNull($type);
 
             Assert::notNull($type, 'Expected type to be defined');
 
             $fqcn = $this->fullyQualified('Fragment', $name);
-            [$fields, $fields2, $payloadShape, , $possibleTypes] = $this->parseSelectionSet(
+            [$fields, $fields2, $payloadShape] = $this->parseSelectionSet(
                 $this->outputDir . '/Fragment/' . $name,
                 $fragment->selectionSet,
                 $type,
@@ -303,7 +313,7 @@ final class GraphQLCodeGenerator
         Assert::notNull($rootType, 'Expected root type to be defined');
 
         $fqcn = $this->fullyQualified($operationType, $operationName, 'Data');
-        [$fields, $fields2,  $payloadShape, , $possibleTypes] = $this->parseSelectionSet(
+        [$fields, $fields2,  $payloadShape] = $this->parseSelectionSet(
             $operationDir . '/Data',
             $operation->selectionSet,
             $rootType,
@@ -674,7 +684,7 @@ final class GraphQLCodeGenerator
                             yield $generator->indent(function () use ($nullableFieldType, $fieldType, $generator, $fieldName) {
                                 if ($nullableFieldType instanceof FragmentObjectType) {
                                     yield sprintf(
-                                        'get => $this->%s ??= in_array($this->__typename, %s::POSSIBLE_TYPES, true) ? new %s($this->data) : null;',
+                                        'get => $this->%s ??= in_array($this->data[\'__typename\'], %s::POSSIBLE_TYPES, true) ? new %s($this->data) : null;',
                                         $fieldName,
                                         $generator->import($nullableFieldType->getClassName()),
                                         $generator->import($nullableFieldType->getClassName()),
@@ -706,7 +716,7 @@ final class GraphQLCodeGenerator
                                 );
                                 yield $generator->indent(function () use ($nullableFieldType, $generator) {
                                     yield sprintf(
-                                        'get => $this->is%s ??= in_array($this->__typename, %s::POSSIBLE_TYPES, true);',
+                                        'get => $this->is%s ??= in_array($this->data[\'__typename\'], %s::POSSIBLE_TYPES, true);',
                                         $nullableFieldType->fragmentName,
                                         $generator->import($nullableFieldType->getClassName()),
                                     );
@@ -1241,6 +1251,18 @@ final class GraphQLCodeGenerator
             return $importer($type->getClassName());
         }
 
+        if ($type instanceof SymfonyType\UnionType) {
+            return implode(
+                '|',
+                array_unique(
+                    array_map(
+                        fn(SymfonyType $type) => $this->dumpPHPType($type, $importer),
+                        $type->getTypes(),
+                    ),
+                ),
+            );
+        }
+
         return (string) $type;
     }
 
@@ -1292,6 +1314,18 @@ final class GraphQLCodeGenerator
             );
         }
 
+        if ($type instanceof SymfonyType\UnionType) {
+            return implode(
+                '|',
+                array_unique(
+                    array_map(
+                        fn(SymfonyType $type) => $this->dumpPHPDocType($type, $importer, $indentation),
+                        $type->getTypes(),
+                    ),
+                ),
+            );
+        }
+
         if ($type instanceof SymfonyType\ObjectType) {
             return $importer($type->getClassName());
         }
@@ -1300,7 +1334,7 @@ final class GraphQLCodeGenerator
     }
 
     /**
-     * @return array{SymfonyType, array<string, SymfonyType>, SymfonyType, SymfonyType, list<string>}
+     * @return array{SymfonyType, array<string, SymfonyType>, SymfonyType, SymfonyType}
      */
     private function parseSelectionSet(
         string $outputDirectory,
@@ -1311,7 +1345,7 @@ final class GraphQLCodeGenerator
         ?bool $nullable = null,
     ) : array {
         if ($parent instanceof ListOfType) {
-            [$fields, $fields2, $payloadShape, $type, $possibleTypes] = $this->parseSelectionSet(
+            [$fields, $fields2, $payloadShape, $type] = $this->parseSelectionSet(
                 $outputDirectory,
                 $selectionSet,
                 $parent->getWrappedType(),
@@ -1325,7 +1359,6 @@ final class GraphQLCodeGenerator
                 $fields2,
                 SymfonyType::list($payloadShape),
                 SymfonyType::list($type),
-                $possibleTypes,
             ];
         }
 
@@ -1341,7 +1374,7 @@ final class GraphQLCodeGenerator
         }
 
         if ($parent instanceof NullableType && $nullable === null) {
-            [$fields, $fields2, $payloadShape, $type, $possibleTypes] = $this->parseSelectionSet(
+            [$fields, $fields2, $payloadShape, $type] = $this->parseSelectionSet(
                 $outputDirectory,
                 $selectionSet,
                 $parent,
@@ -1355,7 +1388,6 @@ final class GraphQLCodeGenerator
                 $fields2,
                 SymfonyType::nullable($payloadShape),
                 SymfonyType::nullable($type),
-                $possibleTypes,
             ];
         }
 
@@ -1364,7 +1396,6 @@ final class GraphQLCodeGenerator
         $fields = [];
         $fields2 = [];
         $payloadShape = [];
-        $possibleTypes = [];
         foreach ($selectionSet->selections as $selection) {
             if ($selection instanceof FieldNode) {
                 $fieldName = $selection->alias->value ?? $selection->name->value;
@@ -1414,7 +1445,7 @@ final class GraphQLCodeGenerator
                         $className = ucfirst($nakedFieldType->name());
                     }
 
-                    [$subFields, $subFields2, $subPayloadShape, $subType, $subPossibleTypes] = $this->parseSelectionSet(
+                    [$subFields, $subFields2, $subPayloadShape, $subType] = $this->parseSelectionSet(
                         $outputDirectory . '/' . $className,
                         $selection->selectionSet,
                         $fieldType,
@@ -1526,7 +1557,6 @@ final class GraphQLCodeGenerator
             $fields2,
             SymfonyType::arrayShape($payloadShape),
             SymfonyType::object($fqcn),
-            $possibleTypes,
         ];
     }
 
@@ -1625,6 +1655,10 @@ final class GraphQLCodeGenerator
     {
         if ($right instanceof SymfonyType\NullableType) {
             $right = $right->getWrappedType();
+        }
+
+        if ($right instanceof SymfonyType\UnionType) {
+            return SymfonyType::union($left, ...$right->getTypes());
         }
 
         Assert::isInstanceOf($left, ArrayShapeType::class, 'Left type must be an array shape, %s given');
