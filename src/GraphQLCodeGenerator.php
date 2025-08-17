@@ -47,7 +47,6 @@ use Override;
 use ReflectionException;
 use Ruudk\CodeGenerator\CodeGenerator;
 use Ruudk\CodeGenerator\Group;
-use Ruudk\GraphQLCodeGenerator\Type\PseudoType;
 use Ruudk\GraphQLCodeGenerator\TypeInitializer\BackedEnumTypeInitializer;
 use Ruudk\GraphQLCodeGenerator\TypeInitializer\CollectionTypeInitializer;
 use Ruudk\GraphQLCodeGenerator\TypeInitializer\DelegatingTypeInitializer;
@@ -75,11 +74,6 @@ final class GraphQLCodeGenerator
      * @var array<string, SymfonyType>
      */
     private array $fragmentPayloadShapes = [];
-
-    /**
-     * @var array<string, FragmentDefinitionNode>
-     */
-    private array $fragments = [];
 
     /**
      * @var array<string, SymfonyType|array{SymfonyType, SymfonyType}>
@@ -235,15 +229,13 @@ final class GraphQLCodeGenerator
 
             $name = $fragment->name->value;
 
-            $this->fragments[$name] = $fragment;
-
             $type = $this->schema->getType($fragment->typeCondition->name->value);
 
             Assert::notNull($type, 'Expected fragment type to be defined');
 
-            $type = Type::nonNull($type);
-
-            Assert::notNull($type, 'Expected type to be defined');
+            if ($type instanceof NullableType) {
+                $type = Type::nonNull($type);
+            }
 
             $fqcn = $this->fullyQualified('Fragment', $name);
             [$fields, $fields2, $payloadShape] = $this->parseSelectionSet(
@@ -323,7 +315,7 @@ final class GraphQLCodeGenerator
         $this->generateDataClass(
             $fields,
             $payloadShape,
-            $possibleTypes,
+            [],
             $operationDir,
             $fqcn,
             true,
@@ -1038,7 +1030,6 @@ final class GraphQLCodeGenerator
                     Assert::string($value->value, 'Enum value must be a string');
 
                     if ($value->description !== null) {
-                        // TODO 2025-08-01 extract to separate method
                         foreach (explode(PHP_EOL, $value->description) as $description) {
                             yield sprintf('// %s', $description);
                         }
@@ -1102,7 +1093,6 @@ final class GraphQLCodeGenerator
 
             if ($type->description() !== null) {
                 yield '';
-                // TODO 2025-08-01 extract to separate method
                 foreach (explode(PHP_EOL, $type->description()) as $line) {
                     yield sprintf('// %s', $line);
                 }
@@ -1519,7 +1509,7 @@ final class GraphQLCodeGenerator
             $className = sprintf('As%s', $fieldType->name());
             $fieldName = sprintf('as%s', $fieldType->name());
 
-            [$subFields, $subFields2, $subPayloadShape, $subType, $subPossibleTypes] = $this->parseSelectionSet(
+            [$subFields, $subFields2, $subPayloadShape] = $this->parseSelectionSet(
                 $outputDirectory . '/' . $className,
                 $selection->selectionSet,
                 $fieldType,
