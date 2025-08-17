@@ -21,20 +21,28 @@ final readonly class TestQuery {
                 query Test {
                   viewer {
                     __typename
-                    ...ViewerDetails
-                    projects {
-                      __typename
-                      ...ProjectView
-                    }
+                    ...ViewerName
+                    ...UserDetails
+                    ...ApplicationDetails
+                  }
+                  projects {
+                    ...ProjectView
                   }
                 }
                 
-                fragment ViewerDetails on Viewer {
+                fragment ViewerName on Viewer {
+                  name
+                }
+                
+                fragment ApplicationDetails on Application {
+                  url
+                }
+                
+                fragment UserDetails on User {
                   login
                 }
                 
                 fragment ProjectView on Project {
-                  __typename
                   name
                   description
                   ...ProjectStateView

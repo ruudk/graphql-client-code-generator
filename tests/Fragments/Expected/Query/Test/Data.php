@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Ruudk\GraphQLCodeGenerator\Fragments\Expected\Query\Test;
 
+use Ruudk\GraphQLCodeGenerator\Fragments\Expected\Query\Test\Data\Project;
 use Ruudk\GraphQLCodeGenerator\Fragments\Expected\Query\Test\Data\Viewer;
 
 // This file was automatically generated and should not be edited.
@@ -12,16 +13,24 @@ use Ruudk\GraphQLCodeGenerator\Fragments\Expected\Query\Test\Data\Viewer;
  * query Test {
  *   viewer {
  *     __typename
- *     ...ViewerDetails
- *     projects {
- *       __typename
- *       ...ProjectView
- *     }
+ *     ...ViewerName
+ *     ...UserDetails
+ *     ...ApplicationDetails
+ *   }
+ *   projects {
+ *     ...ProjectView
  *   }
  * }
  */
 final class Data
 {
+    /**
+     * @var list<Project>
+     */
+    public array $projects {
+        get => $this->projects ??= array_map(fn($item) => new Project($item), $this->data['projects']);
+    }
+
     public Viewer $viewer {
         get => $this->viewer ??= new Viewer($this->data['viewer']);
     }
@@ -33,15 +42,16 @@ final class Data
 
     /**
      * @param array{
+     *     'projects': list<array{
+     *         'description': null|string,
+     *         'name': string,
+     *         'state': null|string,
+     *     }>,
      *     'viewer': array{
      *         '__typename': string,
      *         'login': string,
-     *         'projects': list<array{
-     *             '__typename': string,
-     *             'description': null|string,
-     *             'name': string,
-     *             'state': null|string,
-     *         }>,
+     *         'name': string,
+     *         'url': string,
      *     },
      * } $data
      * @param list<array{

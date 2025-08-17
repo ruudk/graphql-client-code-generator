@@ -41,6 +41,7 @@ use GraphQL\Type\Definition\WrappingType;
 use GraphQL\Type\Schema;
 use GraphQL\Utils\BuildClientSchema;
 use GraphQL\Utils\BuildSchema;
+use GraphQL\Utils\TypeInfo;
 use JsonException;
 use JsonSerializable;
 use Override;
@@ -74,6 +75,11 @@ final class GraphQLCodeGenerator
      * @var array<string, SymfonyType>
      */
     private array $fragmentPayloadShapes = [];
+
+    /**
+     * @var array<string, Type&NamedType>
+     */
+    private array $fragmentTypes = [];
 
     /**
      * @var array<string, SymfonyType|array{SymfonyType, SymfonyType}>
@@ -225,17 +231,15 @@ final class GraphQLCodeGenerator
 
         $ordered = FragmentOrderer::orderFragments($operations);
         foreach (array_reverse($ordered) as $fragment) {
-            TypeNameVisitor::visit($fragment);
+            new TypeNameVisitor(new TypeInfo($this->schema))->visit($fragment);
 
             $name = $fragment->name->value;
 
-            $type = $this->schema->getType($fragment->typeCondition->name->value);
+            $type = Type::getNamedType($this->schema->getType($fragment->typeCondition->name->value));
 
-            Assert::notNull($type, 'Expected fragment type to be defined');
+            Assert::notNull($type, 'Fragment type is expected');
 
-            if ($type instanceof NullableType) {
-                $type = Type::nonNull($type);
-            }
+            $this->fragmentTypes[$name] = $type;
 
             $fqcn = $this->fullyQualified('Fragment', $name);
             [$fields, $fields2, $payloadShape] = $this->parseSelectionSet(
@@ -249,6 +253,7 @@ final class GraphQLCodeGenerator
             $this->fragmentPayloadShapes[$name] = $payloadShape;
 
             $this->generateDataClass(
+                $type,
                 $fields,
                 $payloadShape,
                 $this->getPossibleTypes($type),
@@ -268,7 +273,7 @@ final class GraphQLCodeGenerator
 
     private function processOperation(DocumentNode $document) : void
     {
-        TypeNameVisitor::visit($document);
+        new TypeNameVisitor(new TypeInfo($this->schema))->visit($document);
 
         // TODO Why not handle multiple operations?
         $operation = $this->getFirstOperation($document);
@@ -313,6 +318,7 @@ final class GraphQLCodeGenerator
             $operation->operation,
         );
         $this->generateDataClass(
+            $rootType,
             $fields,
             $payloadShape,
             [],
@@ -592,6 +598,7 @@ final class GraphQLCodeGenerator
      * @param list<string> $possibleTypes
      */
     private function generateDataClass(
+        NamedType & Type $parentType,
         SymfonyType $fields,
         SymfonyType $payloadShape,
         array $possibleTypes,
@@ -615,7 +622,7 @@ final class GraphQLCodeGenerator
         $namespace = implode('\\', $parts);
 
         $generator = new CodeGenerator($namespace);
-        $class = $generator->dump(function () use ($nodesType, $fqcn, $definitionNode, $payloadShape, $isData, $fields, $possibleTypes, $generator, $className, $isFragment) {
+        $class = $generator->dump(function () use ($parentType, $nodesType, $fqcn, $definitionNode, $payloadShape, $isData, $fields, $possibleTypes, $generator, $className) {
             yield '// This file was automatically generated and should not be edited.';
             yield '';
 
@@ -634,8 +641,8 @@ final class GraphQLCodeGenerator
             yield sprintf('final class %s', $generator->import($fqcn));
             yield '{';
             yield $generator->indent(
-                function () use ($nodesType, $isFragment, $possibleTypes, $className, $fields, $isData, $payloadShape, $generator) {
-                    if ($isFragment) {
+                function () use ($parentType, $nodesType, $possibleTypes, $className, $fields, $isData, $payloadShape, $generator) {
+                    if ($possibleTypes !== []) {
                         yield '/**';
                         yield ' * @var list<string>';
                         yield ' */';
@@ -673,12 +680,33 @@ final class GraphQLCodeGenerator
                                 $this->dumpPHPType($fieldType, $generator->import(...)),
                                 $fieldName,
                             );
-                            yield $generator->indent(function () use ($nullableFieldType, $fieldType, $generator, $fieldName) {
-                                if ($nullableFieldType instanceof FragmentObjectType) {
+                            yield $generator->indent(function () use ($parentType, $nullableFieldType, $fieldType, $generator, $fieldName) {
+                                if ($nullableFieldType instanceof FragmentObjectType && ($nullableFieldType->fragmentType instanceof InterfaceType || $nullableFieldType->fragmentType instanceof UnionType)) {
                                     yield sprintf(
                                         'get => $this->%s ??= in_array($this->data[\'__typename\'], %s::POSSIBLE_TYPES, true) ? new %s($this->data) : null;',
                                         $fieldName,
                                         $generator->import($nullableFieldType->getClassName()),
+                                        $generator->import($nullableFieldType->getClassName()),
+                                    );
+
+                                    return;
+                                }
+
+                                if ($nullableFieldType instanceof FragmentObjectType && ! $parentType instanceof ObjectType) {
+                                    yield sprintf(
+                                        'get => $this->%s ??= $this->data[\'__typename\'] === %s ? new %s($this->data) : null;',
+                                        $fieldName,
+                                        var_export($nullableFieldType->fragmentType->name(), true),
+                                        $generator->import($nullableFieldType->getClassName()),
+                                    );
+
+                                    return;
+                                }
+
+                                if ($nullableFieldType instanceof FragmentObjectType) {
+                                    yield sprintf(
+                                        'get => $this->%s ??= new %s($this->data);',
+                                        $fieldName,
                                         $generator->import($nullableFieldType->getClassName()),
                                     );
 
@@ -697,7 +725,7 @@ final class GraphQLCodeGenerator
                             });
                             yield '}';
 
-                            if ($nullableFieldType instanceof FragmentObjectType) {
+                            if ($nullableFieldType instanceof FragmentObjectType && $fieldType instanceof SymfonyType\NullableType) {
                                 yield '';
                                 yield '/**';
                                 yield sprintf(' * @phpstan-assert-if-true !null $this->%s', $fieldName);
@@ -707,6 +735,16 @@ final class GraphQLCodeGenerator
                                     $nullableFieldType->fragmentName,
                                 );
                                 yield $generator->indent(function () use ($nullableFieldType, $generator) {
+                                    if ($nullableFieldType->fragmentType instanceof ObjectType) {
+                                        yield sprintf(
+                                            'get => $this->is%s ??= $this->data[\'__typename\'] === %s;',
+                                            $nullableFieldType->fragmentName,
+                                            var_export($nullableFieldType->fragmentType->name(), true),
+                                        );
+
+                                        return;
+                                    }
+
                                     yield sprintf(
                                         'get => $this->is%s ??= in_array($this->data[\'__typename\'], %s::POSSIBLE_TYPES, true);',
                                         $nullableFieldType->fragmentName,
@@ -1444,6 +1482,7 @@ final class GraphQLCodeGenerator
                     );
 
                     $this->generateDataClass(
+                        $nakedFieldType,
                         $subFields instanceof SymfonyType\CollectionType && $subFields->isList() ? $subFields->getCollectionValueType() : $subFields,
                         $subPayloadShape instanceof SymfonyType\CollectionType && $subPayloadShape->isList() ? $subPayloadShape->getCollectionValueType() : $subPayloadShape,
                         $this->getPossibleTypes($fieldType),
@@ -1483,9 +1522,20 @@ final class GraphQLCodeGenerator
             }
 
             if ($selection instanceof FragmentSpreadNode) {
+                $fragmentType = $this->fragmentTypes[$selection->name->value];
+
                 $fieldName = lcfirst($selection->name->value);
-                $fields[$fieldName] = SymfonyType::nullable(new FragmentObjectType($this->fullyQualified('Fragment', $selection->name->value), $selection->name->value));
-                $fields2[$path . '.' . $fieldName] = SymfonyType::nullable(new FragmentObjectType($this->fullyQualified('Fragment', $selection->name->value), $selection->name->value));
+                $fields[$fieldName] = new FragmentObjectType(
+                    $this->fullyQualified('Fragment', $selection->name->value),
+                    $selection->name->value,
+                    $fragmentType,
+                );
+                $fields2[$path . '.' . $fieldName] = $fields[$fieldName];
+
+                if ($parent instanceof InterfaceType || $parent instanceof UnionType) {
+                    $fields[$fieldName] = SymfonyType::nullable($fields[$fieldName]);
+                    $fields2[$path . '.' . $fieldName] = SymfonyType::nullable($fields2[$path . '.' . $fieldName]);
+                }
 
                 Assert::isInstanceOf($this->getNonNullableType($this->fragmentPayloadShapes[$selection->name->value]), ArrayShapeType::class, 'Fragment shape must be an array shape');
                 foreach ($this->getNonNullableType($this->fragmentPayloadShapes[$selection->name->value])->getShape() as $key => $value) {
@@ -1502,7 +1552,7 @@ final class GraphQLCodeGenerator
             // TODO
             Assert::notNull($selection->typeCondition, 'Inline fragment must have a type condition for now');
 
-            $fieldType = $this->schema->getType($selection->typeCondition->name->value);
+            $fieldType = Type::getNamedType($this->schema->getType($selection->typeCondition->name->value));
 
             Assert::isInstanceOf($fieldType, NamedType::class, 'Type condition must be a named type');
 
@@ -1521,6 +1571,7 @@ final class GraphQLCodeGenerator
             $subPayloadShape = $this->mergeArrayShape(SymfonyType::arrayShape($payloadShape), $subPayloadShape);
 
             $this->generateDataClass(
+                $fieldType,
                 $subFields instanceof SymfonyType\CollectionType && $subFields->isList() ? $subFields->getCollectionValueType() : $subFields,
                 $subPayloadShape instanceof SymfonyType\CollectionType && $subPayloadShape->isList() ? $subPayloadShape->getCollectionValueType() : $subPayloadShape,
                 [$fieldType->name()],
@@ -1532,9 +1583,18 @@ final class GraphQLCodeGenerator
                 null,
             );
 
-            $fields[$fieldName] = SymfonyType::nullable(new FragmentObjectType($this->fullyQualified($fqcn, $className), $fieldType->name()));
-            $fields2[$path . '.' . $fieldName] = SymfonyType::nullable(new FragmentObjectType($this->fullyQualified($fqcn, $className), $fieldType->name()));
+            $fields[$fieldName] = new FragmentObjectType(
+                $this->fullyQualified($fqcn, $className),
+                $fieldType->name(),
+                $fieldType,
+            );
+            $fields2[$path . '.' . $fieldName] = $fields[$fieldName];
             $fields2 = [...$fields2, ...$subFields2];
+
+            if ( ! $fieldType instanceof ObjectType) {
+                $fields[$fieldName] = SymfonyType::nullable($fields[$fieldName]);
+                $fields2[$path . '.' . $fieldName] = SymfonyType::nullable($fields2[$path . '.' . $fieldName]);
+            }
 
             Assert::isInstanceOf($this->getNonNullableType($subPayloadShape), ArrayShapeType::class, 'Payload shape must be an array shape');
             foreach ($this->getNonNullableType($subPayloadShape)->getShape() as $key => $value) {
@@ -1634,9 +1694,9 @@ final class GraphQLCodeGenerator
             return $possible;
         }
 
-        if ($type instanceof ObjectType) {
-            return [$type->name];
-        }
+        // if ($type instanceof ObjectType) {
+        //    return [$type->name];
+        // }
 
         return [];
     }

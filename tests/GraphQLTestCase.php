@@ -103,4 +103,10 @@ abstract class GraphQLTestCase extends TestCase
 
         return new TestClient($client);
     }
+
+    public function testGenerate() : void
+    {
+        $this->generate();
+        $this->assertActualMatchesExpected();
+    }
 }

@@ -15,11 +15,6 @@ use Ruudk\GraphQLCodeGenerator\Fragments\Expected\Enum\ProjectState;
  */
 final class ProjectStateView
 {
-    /**
-     * @var list<string>
-     */
-    public const array POSSIBLE_TYPES = ['Project'];
-
     public ?ProjectState $state {
         get => $this->state ??= $this->data['state'] !== null ? ProjectState::from($this->data['state']) : null;
     }

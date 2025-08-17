@@ -1,10 +1,20 @@
 type Query {
     viewer: Viewer!
+    projects: [Project!]!
 }
 
-type Viewer {
+interface Viewer {
+    name: String!
+}
+
+type User implements Viewer {
+    name: String!
     login: String!
-    projects: [Project!]!
+}
+
+type Application implements Viewer {
+    name: String!
+    url: String!
 }
 
 type Project {

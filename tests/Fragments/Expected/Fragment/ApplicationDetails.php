@@ -7,24 +7,19 @@ namespace Ruudk\GraphQLCodeGenerator\Fragments\Expected\Fragment;
 // This file was automatically generated and should not be edited.
 
 /**
- * fragment ViewerDetails on Viewer {
- *   login
+ * fragment ApplicationDetails on Application {
+ *   url
  * }
  */
-final class ViewerDetails
+final class ApplicationDetails
 {
-    /**
-     * @var list<string>
-     */
-    public const array POSSIBLE_TYPES = ['Viewer'];
-
-    public string $login {
-        get => $this->login ??= $this->data['login'];
+    public string $url {
+        get => $this->url ??= $this->data['url'];
     }
 
     /**
      * @param array{
-     *     'login': string,
+     *     'url': string,
      * } $data
      */
     public function __construct(

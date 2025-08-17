@@ -10,11 +10,8 @@ use Ruudk\GraphQLCodeGenerator\Simple\Expected\Query\TestQuery;
 
 final class SimpleTest extends GraphQLTestCase
 {
-    public function test() : void
+    public function testQuery() : void
     {
-        $this->generate();
-        $this->assertActualMatchesExpected();
-
         $result = new TestQuery($this->getClient([
             'data' => [
                 'viewer' => [
@@ -29,6 +26,7 @@ final class SimpleTest extends GraphQLTestCase
                 ],
             ],
         ]))->execute();
+
         self::assertSame('ruudk', $result->viewer->login);
         self::assertCount(1, $result->viewer->projects);
 

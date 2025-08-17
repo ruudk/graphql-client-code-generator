@@ -6,7 +6,7 @@ return [
         'checkMissingCallableSignature' => true,
         'checkBenevolentUnionTypes' => true,
         'checkMissingOverrideMethodAttribute' => true,
-        'reportUnmatchedIgnoredErrors' => false,
+        'reportUnmatchedIgnoredErrors' => true,
         'reportPossiblyNonexistentConstantArrayOffset' => true,
 
         // Analysis settings
@@ -22,7 +22,7 @@ return [
         'ignoreErrors' => [
             // TODO: webonyx/graphql-php#1752
             // https://github.com/webonyx/graphql-php/pull/1752
-            '#^Parameter \#2 \$visitor of static method GraphQL\\\\Language\\\\Visitor\:\:visit\(\) expects array\<string, array\<string, callable\(GraphQL\\\\Language\\\\AST\\\\Node\)\: \(GraphQL\\\\Language\\\\VisitorOperation\|void\|false\|null\)\>\|\(callable\(GraphQL\\\\Language\\\\AST\\\\Node\)\: \(GraphQL\\\\Language\\\\VisitorOperation\|void\|false\|null\)\)\>, array\{SelectionSet\: Closure\(GraphQL\\\\Language\\\\AST\\\\Node\)\: \(GraphQL\\\\Language\\\\AST\\\\SelectionSetNode\|null\)\} given\.$#',
+            '#^Parameter \#2 \$visitor of static method GraphQL\\\\Language\\\\Visitor\:\:visitWithTypeInfo\(\) expects array\<string, array\<string, callable\(GraphQL\\\\Language\\\\AST\\\\Node\)\: \(GraphQL\\\\Language\\\\VisitorOperation\|void\|false\|null\)\>\|\(callable\(GraphQL\\\\Language\\\\AST\\\\Node\)\: \(GraphQL\\\\Language\\\\VisitorOperation\|void\|false\|null\)\)\>, array\{SelectionSet\: Closure\(GraphQL\\\\Language\\\\AST\\\\Node\)\: \(GraphQL\\\\Language\\\\AST\\\\SelectionSetNode\|null\)\} given\.$#'
         ],
         'todo_by' => [
             'ticket' => [

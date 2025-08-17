@@ -4,55 +4,70 @@ declare(strict_types=1);
 
 namespace Ruudk\GraphQLCodeGenerator\Fragments\Expected\Query\Test\Data;
 
-use Ruudk\GraphQLCodeGenerator\Fragments\Expected\Fragment\ViewerDetails;
-use Ruudk\GraphQLCodeGenerator\Fragments\Expected\Query\Test\Data\Viewer\Project;
+use Ruudk\GraphQLCodeGenerator\Fragments\Expected\Fragment\ApplicationDetails;
+use Ruudk\GraphQLCodeGenerator\Fragments\Expected\Fragment\UserDetails;
+use Ruudk\GraphQLCodeGenerator\Fragments\Expected\Fragment\ViewerName;
 
 // This file was automatically generated and should not be edited.
 
 /**
  * ... on Viewer {
  *   __typename
- *   ...ViewerDetails
- *   projects {
- *     __typename
- *     ...ProjectView
- *   }
+ *   ...ViewerName
+ *   ...UserDetails
+ *   ...ApplicationDetails
  * }
  */
 final class Viewer
 {
+    /**
+     * @var list<string>
+     */
+    public const array POSSIBLE_TYPES = ['User', 'Application'];
+
     public string $__typename {
         get => $this->__typename ??= $this->data['__typename'];
     }
 
-    /**
-     * @var list<Project>
-     */
-    public array $projects {
-        get => $this->projects ??= array_map(fn($item) => new Project($item), $this->data['projects']);
-    }
-
-    public ?ViewerDetails $viewerDetails {
-        get => $this->viewerDetails ??= in_array($this->data['__typename'], ViewerDetails::POSSIBLE_TYPES, true) ? new ViewerDetails($this->data) : null;
+    public ?ApplicationDetails $applicationDetails {
+        get => $this->applicationDetails ??= $this->data['__typename'] === 'Application' ? new ApplicationDetails($this->data) : null;
     }
 
     /**
-     * @phpstan-assert-if-true !null $this->viewerDetails
+     * @phpstan-assert-if-true !null $this->applicationDetails
      */
-    public bool $isViewerDetails {
-        get => $this->isViewerDetails ??= in_array($this->data['__typename'], ViewerDetails::POSSIBLE_TYPES, true);
+    public bool $isApplicationDetails {
+        get => $this->isApplicationDetails ??= $this->data['__typename'] === 'Application';
+    }
+
+    public ?UserDetails $userDetails {
+        get => $this->userDetails ??= $this->data['__typename'] === 'User' ? new UserDetails($this->data) : null;
+    }
+
+    /**
+     * @phpstan-assert-if-true !null $this->userDetails
+     */
+    public bool $isUserDetails {
+        get => $this->isUserDetails ??= $this->data['__typename'] === 'User';
+    }
+
+    public ?ViewerName $viewerName {
+        get => $this->viewerName ??= in_array($this->data['__typename'], ViewerName::POSSIBLE_TYPES, true) ? new ViewerName($this->data) : null;
+    }
+
+    /**
+     * @phpstan-assert-if-true !null $this->viewerName
+     */
+    public bool $isViewerName {
+        get => $this->isViewerName ??= in_array($this->data['__typename'], ViewerName::POSSIBLE_TYPES, true);
     }
 
     /**
      * @param array{
      *     '__typename': string,
      *     'login': string,
-     *     'projects': list<array{
-     *         '__typename': string,
-     *         'description': null|string,
-     *         'name': string,
-     *         'state': null|string,
-     *     }>,
+     *     'name': string,
+     *     'url': string,
      * } $data
      */
     public function __construct(

@@ -1,13 +1,23 @@
 query Test {
     viewer {
-        ...ViewerDetails
-        projects {
-            ...ProjectView
-        }
+        ...ViewerName
+        ...UserDetails
+        ...ApplicationDetails
+    }
+    projects {
+        ...ProjectView
     }
 }
 
-fragment ViewerDetails on Viewer {
+fragment ViewerName on Viewer {
+    name
+}
+
+fragment ApplicationDetails on Application {
+    url
+}
+
+fragment UserDetails on User {
     login
 }
 
