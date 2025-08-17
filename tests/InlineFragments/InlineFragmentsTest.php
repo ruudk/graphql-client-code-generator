@@ -28,7 +28,7 @@ final class InlineFragmentsTest extends GraphQLTestCase
             ],
         ]))->execute();
 
-        self::assertSame('Ruud Kamphuis', $result->viewer->asViewer->name);
+        self::assertSame('Ruud Kamphuis', $result->viewer->name);
 
         self::assertTrue($result->viewer->isUser);
         self::assertSame('ruudk', $result->viewer->asUser?->login);
@@ -56,7 +56,7 @@ final class InlineFragmentsTest extends GraphQLTestCase
             ],
         ]))->execute();
 
-        self::assertSame('Application', $result->viewer->asViewer->name);
+        self::assertSame('Application', $result->viewer->name);
 
         self::assertFalse($result->viewer->isUser);
         self::assertNull($result->viewer->asUser);

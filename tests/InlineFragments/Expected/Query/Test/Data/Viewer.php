@@ -6,16 +6,13 @@ namespace Ruudk\GraphQLCodeGenerator\InlineFragments\Expected\Query\Test\Data;
 
 use Ruudk\GraphQLCodeGenerator\InlineFragments\Expected\Query\Test\Data\Viewer\AsApplication;
 use Ruudk\GraphQLCodeGenerator\InlineFragments\Expected\Query\Test\Data\Viewer\AsUser;
-use Ruudk\GraphQLCodeGenerator\InlineFragments\Expected\Query\Test\Data\Viewer\AsViewer;
 
 // This file was automatically generated and should not be edited.
 
 /**
  * ... on Viewer {
  *   __typename
- *   ... on Viewer {
- *     name
- *   }
+ *   name
  *   ... on User {
  *     login
  *   }
@@ -57,8 +54,8 @@ final class Viewer
         get => $this->isUser ??= $this->data['__typename'] === 'User';
     }
 
-    public AsViewer $asViewer {
-        get => $this->asViewer ??= new AsViewer($this->data);
+    public string $name {
+        get => $this->name ??= $this->data['name'];
     }
 
     /**

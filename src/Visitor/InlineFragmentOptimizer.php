@@ -9,7 +9,6 @@ use GraphQL\Language\AST\Node;
 use GraphQL\Language\AST\NodeKind;
 use GraphQL\Language\AST\NodeList;
 use GraphQL\Language\Visitor;
-use GraphQL\Type\Definition\ObjectType;
 use GraphQL\Type\Definition\Type;
 use GraphQL\Utils\TypeInfo;
 use Webmozart\Assert\Assert;
@@ -35,9 +34,7 @@ final readonly class InlineFragmentOptimizer
 
                     $type = Type::getNamedType($this->typeInfo->getParentType());
 
-                    if ( ! $type instanceof ObjectType) {
-                        return null;
-                    }
+                    Assert::notNull($type);
 
                     if ($type->name() !== $node->typeCondition?->name->value) {
                         return null;

@@ -22,19 +22,12 @@ final class AsUser
         get => $this->__typename ??= $this->data['__typename'];
     }
 
-    public ?AsViewer $asViewer {
-        get => $this->asViewer ??= in_array($this->data['__typename'], AsViewer::POSSIBLE_TYPES, true) ? new AsViewer($this->data) : null;
-    }
-
-    /**
-     * @phpstan-assert-if-true !null $this->asViewer
-     */
-    public bool $isViewer {
-        get => $this->isViewer ??= in_array($this->data['__typename'], AsViewer::POSSIBLE_TYPES, true);
-    }
-
     public string $login {
         get => $this->login ??= $this->data['login'];
+    }
+
+    public string $name {
+        get => $this->name ??= $this->data['name'];
     }
 
     /**

@@ -13,9 +13,7 @@ use Ruudk\GraphQLCodeGenerator\InlineFragments\Expected\Query\Test\Data\Viewer;
  * query Test {
  *   viewer {
  *     __typename
- *     ... on Viewer {
- *       name
- *     }
+ *     name
  *     ... on User {
  *       login
  *     }
