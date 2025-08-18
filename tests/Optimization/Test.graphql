@@ -1,0 +1,37 @@
+query Test {
+    viewer {
+        id
+        idAlias: id
+        name
+        ...on Viewer {
+            name
+        }
+        ...on User {
+            login
+            ...on User {
+                name
+            }
+        }
+        ...AppUrl
+    }
+    projects {
+        ...on Project {
+            name
+            ...on Project {
+                description
+                ...on Project {
+                    state
+                }
+            }
+        }
+    }
+}
+
+fragment AppUrl on Application {
+    url
+    ...AppName
+}
+
+fragment AppName on Application {
+    name
+}

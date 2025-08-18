@@ -38,9 +38,9 @@ final class UsedTypesCollector
     public private(set) array $usedTypes = [];
 
     /**
-     * @var array<string, true>
+     * @var list<string>
      */
-    private array $visitedFragments = [];
+    public private(set) array $usedFragments = [];
 
     /**
      * @var array<string, true>
@@ -196,7 +196,7 @@ final class UsedTypesCollector
                 if ($n instanceof FragmentSpreadNode) {
                     $name = $n->name->value;
 
-                    if (isset($this->visitedFragments[$name])) {
+                    if (in_array($name, $this->usedFragments, true)) {
                         return null;
                     }
 
@@ -206,7 +206,8 @@ final class UsedTypesCollector
                         return null;
                     }
 
-                    $this->visitedFragments[$name] = true;
+                    $this->usedFragments[] = $name;
+
                     // Recurse under same TypeInfo context
                     $this->visitNode($frag);
 

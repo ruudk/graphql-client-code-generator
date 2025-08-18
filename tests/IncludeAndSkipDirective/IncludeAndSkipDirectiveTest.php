@@ -1,0 +1,49 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Ruudk\GraphQLCodeGenerator\IncludeAndSkipDirective;
+
+use Ruudk\GraphQLCodeGenerator\GraphQLTestCase;
+use Ruudk\GraphQLCodeGenerator\IncludeAndSkipDirective\Expected\Query\TestQuery;
+
+final class IncludeAndSkipDirectiveTest extends GraphQLTestCase
+{
+    public function testQuery() : void
+    {
+        $result = new TestQuery($this->getClient([
+            'data' => [
+                'viewer' => [
+                    '__typename' => 'User',
+                    'name' => 'Ruud Kamphuis',
+                    'login' => 'ruudk',
+                ],
+                'user2' => [
+                    '__typename' => 'User',
+                    'name' => 'Ruud Kamphuis',
+                    'login' => 'ruudk',
+                ],
+                'admin' => [
+                    '__typename' => 'User',
+                    'name' => 'Ruud Kamphuis',
+                    'login' => 'ruudk',
+                ],
+                'admin2' => [
+                    '__typename' => 'User',
+                    'name' => 'Ruud Kamphuis',
+                    'login' => 'ruudk',
+                ],
+            ],
+        ]))->execute(true, false);
+
+        self::assertSame('Ruud Kamphuis', $result->viewer->name);
+
+        self::assertSame('Ruud Kamphuis', $result->user2->name);
+
+        self::assertNotNull($result->admin);
+        self::assertSame('Ruud Kamphuis', $result->admin->name);
+
+        self::assertNotNull($result->admin2);
+        self::assertSame('Ruud Kamphuis', $result->admin2->name);
+    }
+}

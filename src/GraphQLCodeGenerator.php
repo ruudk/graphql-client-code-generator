@@ -5,8 +5,6 @@ declare(strict_types=1);
 namespace Ruudk\GraphQLCodeGenerator;
 
 use Closure;
-use Doctrine\Inflector\Inflector;
-use Doctrine\Inflector\InflectorFactory;
 use Exception;
 use Generator;
 use GraphQL\Language\AST\DirectiveNode;
@@ -41,7 +39,6 @@ use GraphQL\Type\Definition\WrappingType;
 use GraphQL\Type\Schema;
 use GraphQL\Utils\BuildClientSchema;
 use GraphQL\Utils\BuildSchema;
-use GraphQL\Utils\TypeInfo;
 use JsonException;
 use JsonSerializable;
 use Override;
@@ -54,12 +51,10 @@ use Ruudk\GraphQLCodeGenerator\TypeInitializer\DelegatingTypeInitializer;
 use Ruudk\GraphQLCodeGenerator\TypeInitializer\NullableTypeInitializer;
 use Ruudk\GraphQLCodeGenerator\TypeInitializer\ObjectTypeInitializer;
 use Ruudk\GraphQLCodeGenerator\TypeInitializer\TypeInitializer;
-use Ruudk\GraphQLCodeGenerator\Visitor\DuplicateFieldOptimizer;
-use Ruudk\GraphQLCodeGenerator\Visitor\InlineFragmentOptimizer;
-use Ruudk\GraphQLCodeGenerator\Visitor\TypeNameVisitor;
 use Symfony\Component\Filesystem\Exception\IOException;
 use Symfony\Component\Filesystem\Filesystem;
 use Symfony\Component\Finder\Finder;
+use Symfony\Component\String\Inflector\EnglishInflector;
 use function Symfony\Component\String\u;
 use Symfony\Component\TypeInfo\Type\ArrayShapeType;
 use Symfony\Component\TypeInfo\Type as SymfonyType;
@@ -72,7 +67,6 @@ use Webmozart\Assert\Assert;
 final class GraphQLCodeGenerator
 {
     private readonly Schema $schema;
-    private readonly Inflector $inflector;
 
     /**
      * @var array<string, SymfonyType>
@@ -90,6 +84,7 @@ final class GraphQLCodeGenerator
     private array $scalars;
     private DelegatingTypeInitializer $typeInitializer;
     private ?string $schemaPath = null;
+    private Optimizer $optimizer;
 
     /**
      * @param array<string, SymfonyType|array{SymfonyType, SymfonyType}> $scalars
@@ -125,6 +120,7 @@ final class GraphQLCodeGenerator
         private readonly bool $addNodesOnConnections = false,
         private readonly bool $addSymfonyExcludeAttribute = false,
         private readonly Filesystem $filesystem = new Filesystem(),
+        private readonly EnglishInflector $inflector = new EnglishInflector(),
     ) {
         $this->typeInitializer = new DelegatingTypeInitializer(
             new NullableTypeInitializer(),
@@ -149,7 +145,7 @@ final class GraphQLCodeGenerator
 
         $this->schema = $schema;
 
-        $this->inflector = InflectorFactory::create()->build();
+        $this->optimizer = new Optimizer($this->schema);
 
         $this->scalars = [
             'ID' => SymfonyType::string(),
@@ -244,8 +240,7 @@ final class GraphQLCodeGenerator
 
         $ordered = FragmentOrderer::orderFragments($operations);
         foreach (array_reverse($ordered) as $fragment) {
-            $fragment = new TypeNameVisitor(new TypeInfo($this->schema))->visit($fragment);
-            $fragment = new DuplicateFieldOptimizer()->visit($fragment);
+            $fragment = $this->optimizer->optimize($fragment);
 
             $name = $fragment->name->value;
 
@@ -287,16 +282,18 @@ final class GraphQLCodeGenerator
 
     private function processOperation(DocumentNode $document) : void
     {
-        $document = new TypeNameVisitor(new TypeInfo($this->schema))->visit($document);
-        $document = new InlineFragmentOptimizer(new TypeInfo($this->schema))->visit($document);
-        $document = new DuplicateFieldOptimizer()->visit($document);
+        $document = $this->optimizer->optimize($document);
 
-        // TODO Why not handle multiple operations?
-        $operation = $this->getFirstOperation($document);
+        $operation = null;
+        foreach ($document->definitions as $definition) {
+            if ($definition instanceof OperationDefinitionNode) {
+                $operation = $definition;
 
-        if ($operation === null) {
-            return;
+                break;
+            }
         }
+
+        Assert::notNull($operation, 'Expected operation to be defined');
 
         Assert::notNull($operation->name, 'Expected operation to have a name');
 
@@ -1258,17 +1255,6 @@ final class GraphQLCodeGenerator
         $this->filesystem->dumpFile($this->outputDir . '/NodeNotFoundException.php', $class);
     }
 
-    private function getFirstOperation(DocumentNode $document) : ?OperationDefinitionNode
-    {
-        foreach ($document->definitions as $definition) {
-            if ($definition instanceof OperationDefinitionNode) {
-                return $definition;
-            }
-        }
-
-        return null;
-    }
-
     private function ensureDirectoryExists(string $dir) : void
     {
         $this->filesystem->mkdir($dir);
@@ -1477,7 +1463,7 @@ final class GraphQLCodeGenerator
                 }
 
                 if ($selection->selectionSet !== null) {
-                    $className = ucfirst($this->isList($fieldType) ? $this->inflector->singularize($fieldName) : $fieldName);
+                    $className = ucfirst($this->isList($fieldType) ? $this->singularize($fieldName) : $fieldName);
 
                     Assert::isInstanceOf($nakedFieldType, NamedType::class, 'Field type must be a named type');
 
@@ -1517,7 +1503,7 @@ final class GraphQLCodeGenerator
                         $this->addNodesOnConnections && str_ends_with($nakedFieldType->name(), 'Connection') ? SymfonyType::list($subFields2[$path . '.' . $fieldName . '.edges.*.node']) : null,
                     );
 
-                    if ($this->hasIncludeDirective($selection->directives)) {
+                    if ($this->hasIncludeOrSkipDirective($selection->directives)) {
                         $subType = SymfonyType::nullable($subType);
                         $subPayloadShape = SymfonyType::nullable($subPayloadShape);
                     }
@@ -1747,14 +1733,21 @@ final class GraphQLCodeGenerator
     /**
      * @param NodeList<DirectiveNode> $directives
      */
-    private function hasIncludeDirective(NodeList $directives) : bool
+    private function hasIncludeOrSkipDirective(NodeList $directives) : bool
     {
         foreach ($directives as $directive) {
-            if ($directive->name->value === 'include') {
+            if (in_array($directive->name->value, ['include', 'skip'], true)) {
                 return true;
             }
         }
 
         return false;
+    }
+
+    private function singularize(string $fieldName) : string
+    {
+        $options = $this->inflector->singularize($fieldName);
+
+        return array_first($options) ?? $fieldName;
     }
 }

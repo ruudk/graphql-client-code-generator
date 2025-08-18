@@ -16,13 +16,14 @@ use GraphQL\Language\AST\SelectionSetNode;
 use GraphQL\Language\Visitor;
 use GraphQL\Type\Definition\ObjectType;
 use GraphQL\Type\Definition\Type;
+use GraphQL\Type\Schema;
 use GraphQL\Utils\TypeInfo;
 use Webmozart\Assert\Assert;
 
 final readonly class TypeNameVisitor
 {
     public function __construct(
-        private TypeInfo $typeInfo,
+        private Schema $schema,
     ) {}
 
     /**
@@ -30,13 +31,15 @@ final readonly class TypeNameVisitor
      * @param T $node
      * @return T
      */
-    public function visit(Node $node) : Node
+    public function __invoke(Node $node) : Node
     {
-        $wrapped = Visitor::visitWithTypeInfo($this->typeInfo, [
-            NodeKind::SELECTION_SET => function (Node $node) : ?Node {
+        $typeInfo = new TypeInfo($this->schema);
+
+        $wrapped = Visitor::visitWithTypeInfo($typeInfo, [
+            NodeKind::SELECTION_SET => function (Node $node) use ($typeInfo) : ?Node {
                 Assert::isInstanceOf($node, SelectionSetNode::class);
 
-                $type = Type::getNamedType($this->typeInfo->getType());
+                $type = Type::getNamedType($typeInfo->getType());
 
                 if ($type instanceof ObjectType) {
                     return null;

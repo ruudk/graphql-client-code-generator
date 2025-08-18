@@ -19,7 +19,7 @@ final readonly class DuplicateFieldOptimizer
      * @param T $node
      * @return T
      */
-    public function visit(Node $node) : Node
+    public function __invoke(Node $node) : Node
     {
         $new = Visitor::visit($node, [
             NodeKind::SELECTION_SET => [
@@ -36,20 +36,16 @@ final readonly class DuplicateFieldOptimizer
                             continue;
                         }
 
-                        if ($selection->alias !== null) {
-                            $list[] = $selection;
+                        $name = $selection->alias->value ?? $selection->name->value;
 
-                            continue;
-                        }
-
-                        if (in_array($selection->name->value, $selected, true)) {
+                        if (in_array($name, $selected, true)) {
                             $changed = true;
 
                             continue;
                         }
 
                         $list[] = $selection;
-                        $selected[] = $selection->name->value;
+                        $selected[] = $name;
                     }
 
                     if ( ! $changed) {

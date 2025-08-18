@@ -10,13 +10,14 @@ use GraphQL\Language\AST\NodeKind;
 use GraphQL\Language\AST\NodeList;
 use GraphQL\Language\Visitor;
 use GraphQL\Type\Definition\Type;
+use GraphQL\Type\Schema;
 use GraphQL\Utils\TypeInfo;
 use Webmozart\Assert\Assert;
 
 final readonly class InlineFragmentOptimizer
 {
     public function __construct(
-        private TypeInfo $typeInfo,
+        private Schema $schema,
     ) {}
 
     /**
@@ -24,15 +25,17 @@ final readonly class InlineFragmentOptimizer
      * @param T $node
      * @return T
      */
-    public function visit(Node $node) : Node
+    public function __invoke(Node $node) : Node
     {
+        $typeInfo = new TypeInfo($this->schema);
+
         // @phpstan-ignore argument.type
-        $wrapped = Visitor::visitWithTypeInfo($this->typeInfo, [
+        $wrapped = Visitor::visitWithTypeInfo($typeInfo, [
             NodeKind::INLINE_FRAGMENT => [
-                'leave' => function (Node $node) : ?NodeList {
+                'leave' => function (Node $node) use ($typeInfo) : ?NodeList {
                     Assert::isInstanceOf($node, InlineFragmentNode::class);
 
-                    $type = Type::getNamedType($this->typeInfo->getParentType());
+                    $type = Type::getNamedType($typeInfo->getParentType());
 
                     Assert::notNull($type);
 
