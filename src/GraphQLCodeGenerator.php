@@ -55,9 +55,11 @@ use Ruudk\GraphQLCodeGenerator\TypeInitializer\DelegatingTypeInitializer;
 use Ruudk\GraphQLCodeGenerator\TypeInitializer\NullableTypeInitializer;
 use Ruudk\GraphQLCodeGenerator\TypeInitializer\ObjectTypeInitializer;
 use Ruudk\GraphQLCodeGenerator\TypeInitializer\TypeInitializer;
+use Ruudk\GraphQLCodeGenerator\Validator\IndexByValidator;
 use Ruudk\GraphQLCodeGenerator\Visitor\IndexByRemover;
 use Symfony\Component\Filesystem\Exception\IOException;
 use Symfony\Component\Filesystem\Filesystem;
+use Symfony\Component\Filesystem\Path;
 use Symfony\Component\Finder\Finder;
 use Symfony\Component\String\Inflector\EnglishInflector;
 use function Symfony\Component\String\u;
@@ -107,6 +109,7 @@ final class GraphQLCodeGenerator
      */
     public function __construct(
         Schema | string $schema,
+        private readonly string $projectDir,
         private readonly string $queriesDir,
         private readonly string $outputDir,
         private readonly string $namespace,
@@ -163,9 +166,6 @@ final class GraphQLCodeGenerator
 
         $this->schema = $schema;
 
-        $this->optimizer = new Optimizer($this->schema);
-        $this->validator = new Validator($this->schema, $this->indexByDirective);
-
         $this->scalars = [
             'ID' => SymfonyType::string(),
             'String' => SymfonyType::string(),
@@ -175,6 +175,11 @@ final class GraphQLCodeGenerator
 
             ...$scalars,
         ];
+
+        $this->optimizer = new Optimizer($this->schema);
+        $this->validator = new Validator(array_filter([
+            $this->indexByDirective ? new IndexByValidator($this->schema, $this->scalars) : null,
+        ]));
     }
 
     public function generate() : void
@@ -190,7 +195,7 @@ final class GraphQLCodeGenerator
             ->sortByName();
 
         if ($this->schemaPath !== null) {
-            $finder->notPath(rtrim(new Filesystem()->makePathRelative($this->schemaPath, $this->queriesDir), '/'));
+            $finder->notPath(Path::makeRelative($this->schemaPath, $this->queriesDir));
         }
 
         $operations = [];
@@ -202,7 +207,7 @@ final class GraphQLCodeGenerator
 
             $usedTypesCollector->analyze($document);
 
-            $operations[$file->getPathname()] = $document;
+            $operations[Path::makeRelative($file->getPathname(), $this->projectDir)] = $document;
         }
 
         $usedTypes = $usedTypesCollector->usedTypes;
@@ -296,12 +301,12 @@ final class GraphQLCodeGenerator
             );
         }
 
-        foreach ($operations as $document) {
-            $this->processOperation($document);
+        foreach ($operations as $relativeFilePath => $document) {
+            $this->processOperation($document, $relativeFilePath);
         }
     }
 
-    private function processOperation(DocumentNode $document) : void
+    private function processOperation(DocumentNode $document, string $relativeFilePath) : void
     {
         $document = $this->optimizer->optimize($document);
 
@@ -337,7 +342,15 @@ final class GraphQLCodeGenerator
 
         $variables = $this->parseVariables($operation);
 
-        $this->generateOperationClass($operationName, $queryDir, $operationType, $queryClassName, $operationDefinition, $variables);
+        $this->generateOperationClass(
+            $operationName,
+            $queryDir,
+            $operationType,
+            $queryClassName,
+            $operationDefinition,
+            $variables,
+            $relativeFilePath,
+        );
 
         $rootType = match ($operation->operation) {
             'query' => $this->schema->getQueryType(),
@@ -493,8 +506,15 @@ final class GraphQLCodeGenerator
      *
      * @throws IOException
      */
-    private function generateOperationClass(string $operationName, string $outputDirectory, string $operationType, string $queryClassName, string $operationDefinition, array $variables) : void
-    {
+    private function generateOperationClass(
+        string $operationName,
+        string $outputDirectory,
+        string $operationType,
+        string $queryClassName,
+        string $operationDefinition,
+        array $variables,
+        string $relativeFilePath,
+    ) : void {
         $namespace = $this->fullyQualified($operationType);
         $className = $queryClassName . $operationType;
         $failedException = $this->fullyQualified($operationType, $queryClassName, $queryClassName . $operationType . 'FailedException');
@@ -502,6 +522,7 @@ final class GraphQLCodeGenerator
         $generator = new CodeGenerator($namespace);
         $class = $generator->dump([
             '// This file was automatically generated and should not be edited.',
+            sprintf('// Based on %s', $relativeFilePath),
             '',
             sprintf('final readonly class %s {', $className),
             $generator->indent(function () use ($failedException, $namespace, $variables, $queryClassName, $generator, $operationDefinition, $operationName) {
@@ -1396,6 +1417,7 @@ final class GraphQLCodeGenerator
     }
 
     /**
+     * @param list<string> $indexBy
      * @return array{SymfonyType, array<string, SymfonyType>, SymfonyType, SymfonyType}
      */
     private function parseSelectionSet(
@@ -1406,7 +1428,7 @@ final class GraphQLCodeGenerator
         string $path,
         ?bool $nullable = null,
         ?SymfonyType $indexByType = null,
-        ?string $indexBy = null,
+        array $indexBy = [],
     ) : array {
         if ($parent instanceof ListOfType) {
             [$fields, $fields2, $payloadShape, $type] = $this->parseSelectionSet(
@@ -1422,7 +1444,7 @@ final class GraphQLCodeGenerator
                 SymfonyType::list($fields),
                 $fields2,
                 SymfonyType::list($payloadShape),
-                $indexByType !== null && $indexBy !== null ? new IndexByCollectionType($indexByType, $type, $indexBy) : SymfonyType::list($type),
+                $indexByType !== null && $indexBy !== [] ? new IndexByCollectionType($indexByType, $type, $indexBy) : SymfonyType::list($type),
             ];
         }
 
@@ -1500,14 +1522,13 @@ final class GraphQLCodeGenerator
 
                 if ($selection->selectionSet !== null) {
                     $indexByType = null;
-                    $indexBy = null;
+                    $indexBy = [];
 
                     if ($this->indexByDirective) {
                         $indexBy = $this->getIndexByDirective($selection->directives);
 
-                        if ($indexBy !== null) {
-                            Assert::isInstanceOf($nakedFieldType, HasFieldsType::class);
-                            $indexByType = $this->mapGraphQLTypeToPHPType($nakedFieldType->getField($indexBy)->getType());
+                        if ($indexBy !== []) {
+                            $indexByType = $this->mapGraphQLTypeToPHPType(RecursiveTypeFinder::find($nakedFieldType, $indexBy));
                         }
                     }
 
@@ -1533,6 +1554,21 @@ final class GraphQLCodeGenerator
                         indexBy: $indexBy,
                     );
 
+                    $nodesType = null;
+
+                    if ($this->addNodesOnConnections && str_ends_with($nakedFieldType->name(), 'Connection')) {
+                        $edges = $subFields2[$path . '.' . $fieldName . '.edges'];
+
+                        if ($edges instanceof IndexByCollectionType) {
+                            $nodesType = SymfonyType::array(
+                                $subFields2[$path . '.' . $fieldName . '.edges.*.node'],
+                                $edges->key,
+                            );
+                        } else {
+                            $nodesType = SymfonyType::list($subFields2[$path . '.' . $fieldName . '.edges.*.node']);
+                        }
+                    }
+
                     $this->generateDataClass(
                         $nakedFieldType,
                         $subFields instanceof SymfonyType\CollectionType && $subFields->isList() ? $subFields->getCollectionValueType() : $subFields,
@@ -1550,7 +1586,7 @@ final class GraphQLCodeGenerator
                             ]),
                             'selectionSet' => $selection->selectionSet,
                         ]),
-                        $this->addNodesOnConnections && str_ends_with($nakedFieldType->name(), 'Connection') ? SymfonyType::list($subFields2[$path . '.' . $fieldName . '.edges.*.node']) : null,
+                        $nodesType,
                     );
 
                     if ($this->hasIncludeOrSkipDirective($selection->directives)) {
@@ -1796,8 +1832,9 @@ final class GraphQLCodeGenerator
 
     /**
      * @param NodeList<DirectiveNode> $directives
+     * @return list<string>
      */
-    private function getIndexByDirective(NodeList $directives) : ?string
+    private function getIndexByDirective(NodeList $directives) : array
     {
         foreach ($directives as $directive) {
             if ($directive->name->value !== 'indexBy') {
@@ -1808,10 +1845,10 @@ final class GraphQLCodeGenerator
                 continue;
             }
 
-            return $directive->arguments[0]->value->value;
+            return explode('.', $directive->arguments[0]->value->value);
         }
 
-        return null;
+        return [];
     }
 
     private function singularize(string $fieldName) : string

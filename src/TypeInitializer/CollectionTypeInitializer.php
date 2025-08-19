@@ -34,11 +34,23 @@ final readonly class CollectionTypeInitializer implements TypeInitializer
         if ($type instanceof IndexByCollectionType) {
             yield 'array_combine(';
             yield $generator->indent(function () use ($generator, $type, $variable, $delegator) {
-                yield sprintf(
-                    'array_column(%s, %s),',
-                    $variable,
-                    var_export($type->indexBy, true),
-                );
+                if (count($type->indexBy) > 1) {
+                    yield sprintf(
+                        'array_map(fn($item) => $item%s, %s),',
+                        join(array_map(
+                            fn($key) => sprintf('[%s]', var_export($key, true)),
+                            $type->indexBy,
+                        )),
+                        $variable,
+                    );
+                } else {
+                    yield sprintf(
+                        'array_column(%s, %s),',
+                        $variable,
+                        var_export($type->indexBy[0], true),
+                    );
+                }
+
                 yield from $generator->wrap(
                     'array_map(fn($item) => ',
                     $delegator($type->getCollectionValueType(), $generator, '$item'),

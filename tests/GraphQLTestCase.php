@@ -10,6 +10,7 @@ use JsonException;
 use Override;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Finder\Finder;
+use Symfony\Component\TypeInfo\Type;
 
 abstract class GraphQLTestCase extends TestCase
 {
@@ -37,6 +38,7 @@ abstract class GraphQLTestCase extends TestCase
     {
         new GraphQLCodeGenerator(
             $this->directory . '/Schema.graphql',
+            dirname(__DIR__),
             $this->directory,
             $this->directory . '/' . $target,
             $this->namespace . '\\' . $target,
@@ -45,7 +47,9 @@ abstract class GraphQLTestCase extends TestCase
             false,
             true,
             true,
-            [],
+            [
+                'IssueId' => [Type::int(), Type::int()],
+            ],
             [],
             [],
             [],
@@ -53,7 +57,7 @@ abstract class GraphQLTestCase extends TestCase
             [],
             true,
             true,
-            false,
+            true,
             false,
         )->generate();
     }

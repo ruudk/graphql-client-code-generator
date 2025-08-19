@@ -17,12 +17,36 @@ final class IndexByTest extends GraphQLTestCase
                     [
                         'id' => '16b6f807-689d-4d3f-9c9b-a1c774eed7ea',
                         'name' => 'GraphQL Code Generator',
-                        'description' => null,
                     ],
                     [
                         'id' => '644e7023-6e09-4e18-9ef2-947de0d0ed82',
                         'name' => 'GraphQL PHP',
-                        'description' => null,
+                    ],
+                ],
+                'issues' => [
+                    [
+                        'id' => 222,
+                        'name' => 'Issue 222',
+                    ],
+                    [
+                        'id' => 444,
+                        'name' => 'Issue 444',
+                    ],
+                ],
+                'customers' => [
+                    'edges' => [
+                        [
+                            'node' => [
+                                'id' => 100,
+                                'name' => 'Customer 100',
+                            ],
+                        ],
+                        [
+                            'node' => [
+                                'id' => 200,
+                                'name' => 'Customer 200',
+                            ],
+                        ],
                     ],
                 ],
             ],
@@ -35,5 +59,28 @@ final class IndexByTest extends GraphQLTestCase
 
         self::assertArrayHasKey('644e7023-6e09-4e18-9ef2-947de0d0ed82', $result->projects);
         self::assertSame('GraphQL PHP', $result->projects['644e7023-6e09-4e18-9ef2-947de0d0ed82']->name);
+
+        self::assertCount(2, $result->issues);
+
+        self::assertArrayHasKey(222, $result->issues);
+        self::assertSame('Issue 222', $result->issues[222]->name);
+
+        self::assertArrayHasKey(444, $result->issues);
+        self::assertSame('Issue 444', $result->issues[444]->name);
+
+        self::assertCount(2, $result->customers->edges);
+
+        self::assertArrayHasKey(100, $result->customers->edges);
+        self::assertSame('Customer 100', $result->customers->edges[100]->node->name);
+
+        self::assertArrayHasKey(200, $result->customers->edges);
+        self::assertSame('Customer 200', $result->customers->edges[200]->node->name);
+
+        self::assertcount(2, $result->customers->nodes);
+        self::assertArrayHasKey(100, $result->customers->nodes);
+        self::assertSame('Customer 100', $result->customers->nodes[100]->name);
+
+        self::assertArrayHasKey(200, $result->customers->nodes);
+        self::assertSame('Customer 200', $result->customers->nodes[200]->name);
     }
 }

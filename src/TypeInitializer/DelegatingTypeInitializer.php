@@ -14,14 +14,17 @@ use Symfony\Component\TypeInfo\Type;
 final readonly class DelegatingTypeInitializer
 {
     /**
-     * @var array<TypeInitializer>
+     * @var array<class-string, TypeInitializer>
      */
     private array $initializers;
 
     public function __construct(
         TypeInitializer ...$initializers,
     ) {
-        $this->initializers = array_values($initializers);
+        $this->initializers = array_combine(
+            array_map(fn(TypeInitializer $initializer) => $initializer::class, $initializers),
+            $initializers,
+        );
     }
 
     /**

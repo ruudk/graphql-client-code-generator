@@ -11,6 +11,7 @@ new GraphQLCodeGenerator(
     // https://docs.github.com/public/fpt/schema.docs.graphql
     __DIR__ . '/schema.docs.graphql',
     __DIR__,
+    __DIR__,
     __DIR__ . '/Generated',
     'Ruudk\GraphQLCodeGenerator\Examples\Generated',
     GitHubClient::class,

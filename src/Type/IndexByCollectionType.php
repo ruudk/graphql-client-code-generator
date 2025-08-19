@@ -14,10 +14,13 @@ use Symfony\Component\TypeInfo\TypeIdentifier;
  */
 final class IndexByCollectionType extends Type\CollectionType
 {
+    /**
+     * @param non-empty-list<string> $indexBy
+     */
     public function __construct(
-        Type $key,
-        Type $value,
-        public readonly string $indexBy,
+        public readonly Type $key,
+        public readonly Type $value,
+        public readonly array $indexBy,
     ) {
         parent::__construct(
             new GenericType(

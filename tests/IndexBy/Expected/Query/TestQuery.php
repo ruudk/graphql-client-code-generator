@@ -8,6 +8,7 @@ use Ruudk\GraphQLCodeGenerator\IndexBy\Expected\Query\Test\Data;
 use Ruudk\GraphQLCodeGenerator\TestClient;
 
 // This file was automatically generated and should not be edited.
+// Based on tests/IndexBy/Test.graphql
 
 final readonly class TestQuery {
     public const string OPERATION_NAME = 'Test';
@@ -16,7 +17,18 @@ final readonly class TestQuery {
           projects {
             id
             name
-            description
+          }
+          issues {
+            id
+            name
+          }
+          customers {
+            edges {
+              node {
+                id
+                name
+              }
+            }
           }
         }
         

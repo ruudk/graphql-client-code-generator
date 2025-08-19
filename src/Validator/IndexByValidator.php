@@ -9,22 +9,25 @@ use GraphQL\Language\AST\Node;
 use GraphQL\Language\AST\NodeKind;
 use GraphQL\Language\AST\StringValueNode;
 use GraphQL\Language\Visitor;
-use GraphQL\Type\Definition\HasFieldsType;
-use GraphQL\Type\Definition\IDType;
-use GraphQL\Type\Definition\IntType;
 use GraphQL\Type\Definition\ListOfType;
 use GraphQL\Type\Definition\NonNull;
-use GraphQL\Type\Definition\StringType;
 use GraphQL\Type\Definition\Type;
 use GraphQL\Type\Schema;
 use GraphQL\Utils\TypeInfo;
 use InvalidArgumentException;
+use Ruudk\GraphQLCodeGenerator\RecursiveTypeFinder;
+use Symfony\Component\TypeInfo\Type as SymfonyType;
+use Symfony\Component\TypeInfo\TypeIdentifier;
 use Webmozart\Assert\Assert;
 
 final readonly class IndexByValidator
 {
+    /**
+     * @param array<string, SymfonyType|array{SymfonyType, SymfonyType}> $scalars
+     */
     public function __construct(
         private Schema $schema,
+        private array $scalars,
     ) {}
 
     public function __invoke(Node $node) : void
@@ -66,6 +69,8 @@ final readonly class IndexByValidator
                     return;
                 }
 
+                $indexBy = explode('.', $indexBy);
+
                 $type = $typeInfo->getType();
 
                 if ($type instanceof NonNull) {
@@ -78,35 +83,70 @@ final readonly class IndexByValidator
                 Assert::notNull($namedType);
 
                 $listOfType = $this->schema->getType($namedType->name());
+                Assert::notNull($listOfType);
 
-                Assert::isInstanceOf($listOfType, HasFieldsType::class);
-                $indexByType = $listOfType->getField($indexBy)->getType();
+                $indexByType = RecursiveTypeFinder::find($listOfType, $indexBy);
 
-                if ( ! $indexByType instanceof NonNull) {
-                    throw new InvalidArgumentException(sprintf('Field "%s" in the indexBy directive must be non-null', $indexBy));
-                }
+                $indexByType = Type::getNamedType($indexByType);
+                Assert::notNull($indexByType);
 
-                $indexByType = $indexByType->getWrappedType();
+                $possibleArrayKeyTypes = [];
+                foreach ($this->scalars as $name => $type) {
+                    if (is_array($type)) {
+                        [$type] = $type;
+                    }
 
-                Assert::isInstanceOfAny($indexByType, [
-                    IDType::class,
-                    StringType::class,
-                    IntType::class,
-                ], '@indexBy can only be used on fields of type ID, String or Int');
-
-                Assert::notNull($node->selectionSet);
-                foreach ($node->selectionSet->selections as $selection) {
-                    if ( ! $selection instanceof FieldNode) {
+                    if ( ! $type instanceof SymfonyType\BuiltinType) {
                         continue;
                     }
 
-                    if ($selection->name->value === $indexBy) {
-                        return;
+                    if ( ! in_array($type->getTypeIdentifier(), [TypeIdentifier::STRING, TypeIdentifier::INT], true)) {
+                        continue;
                     }
+
+                    $possibleArrayKeyTypes[] = $name;
                 }
 
-                throw new InvalidArgumentException(sprintf('Field "%s" is not selected in the indexBy directive', $indexBy));
+                Assert::inArray(
+                    $indexByType->name(),
+                    $possibleArrayKeyTypes,
+                    sprintf('@indexBy(field: "%s") cannot be used because the field is not a valid array key type.', $indexByType->name()),
+                );
+
+                $found = $this->find($node, $indexBy);
+
+                if ($found !== null) {
+                    return;
+                }
+
+                throw new InvalidArgumentException(sprintf('Field "%s" is not selected in the indexBy directive', implode('.', $indexBy)));
             },
         ]));
+    }
+
+    /**
+     * @param non-empty-list<string> $indexBy
+     */
+    public function find(FieldNode $node, array $indexBy) : ?FieldNode
+    {
+        $field = array_shift($indexBy);
+
+        foreach ($node->selectionSet->selections ?? [] as $selection) {
+            if ( ! $selection instanceof FieldNode) {
+                continue;
+            }
+
+            if ($selection->name->value !== $field) {
+                continue;
+            }
+
+            if ($indexBy === []) {
+                return $selection;
+            }
+
+            return $this->find($selection, $indexBy);
+        }
+
+        return null;
     }
 }

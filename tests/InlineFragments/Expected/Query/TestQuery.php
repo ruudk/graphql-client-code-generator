@@ -8,6 +8,7 @@ use Ruudk\GraphQLCodeGenerator\InlineFragments\Expected\Query\Test\Data;
 use Ruudk\GraphQLCodeGenerator\TestClient;
 
 // This file was automatically generated and should not be edited.
+// Based on tests/InlineFragments/Test.graphql
 
 final readonly class TestQuery {
     public const string OPERATION_NAME = 'Test';

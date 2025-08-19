@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Ruudk\GraphQLCodeGenerator\IndexBy\Expected\Query\Test;
 
+use Ruudk\GraphQLCodeGenerator\IndexBy\Expected\Query\Test\Data\CustomerConnection;
+use Ruudk\GraphQLCodeGenerator\IndexBy\Expected\Query\Test\Data\Issue;
 use Ruudk\GraphQLCodeGenerator\IndexBy\Expected\Query\Test\Data\Project;
 
 // This file was automatically generated and should not be edited.
@@ -13,12 +15,37 @@ use Ruudk\GraphQLCodeGenerator\IndexBy\Expected\Query\Test\Data\Project;
  *   projects @indexBy(field: "id") {
  *     id
  *     name
- *     description
+ *   }
+ *   issues @indexBy(field: "id") {
+ *     id
+ *     name
+ *   }
+ *   customers {
+ *     edges @indexBy(field: "node.id") {
+ *       node {
+ *         id
+ *         name
+ *       }
+ *     }
  *   }
  * }
  */
 final class Data
 {
+    public CustomerConnection $customers {
+        get => $this->customers ??= new CustomerConnection($this->data['customers']);
+    }
+
+    /**
+     * @var array<int,Issue>
+     */
+    public array $issues {
+        get => $this->issues ??= array_combine(
+            array_column($this->data['issues'], 'id'),
+            array_map(fn($item) => new Issue($item), $this->data['issues']),
+        );
+    }
+
     /**
      * @var array<string,Project>
      */
@@ -36,8 +63,19 @@ final class Data
 
     /**
      * @param array{
+     *     'customers': array{
+     *         'edges': list<array{
+     *             'node': array{
+     *                 'id': int,
+     *                 'name': string,
+     *             },
+     *         }>,
+     *     },
+     *     'issues': list<array{
+     *         'id': int,
+     *         'name': string,
+     *     }>,
      *     'projects': list<array{
-     *         'description': null|string,
      *         'id': string,
      *         'name': string,
      *     }>,
