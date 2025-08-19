@@ -24,11 +24,11 @@ dump(new ViewerQuery($client)->execute()->viewer->login);
 $data = new SearchQuery($client)->execute();
 
 foreach ($data->search->nodes as $node) {
-    if ($node->asIssue) {
+    if ($node->asIssue !== null) {
         dump(asIssue: $node->asIssue->title);
     }
 
-    if ($node->pullRequestInfo) {
+    if ($node->pullRequestInfo !== null) {
         dump(asPullRequest: $node->pullRequestInfo->title . ' is merged: ' . $node->pullRequestInfo->merged);
     }
 }

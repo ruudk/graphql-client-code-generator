@@ -202,7 +202,7 @@ final class UsedTypesCollector
 
                     $frag = $this->fragments[$name] ?? null;
 
-                    if ( ! $frag) {
+                    if ($frag === null) {
                         return null;
                     }
 

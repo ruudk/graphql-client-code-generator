@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "59c2176f6a8232e7ed555b1108e09517",
+    "content-hash": "f1b1b304a4eac729981f112f82e8a801",
     "packages": [
         {
             "name": "psr/container",
@@ -944,16 +944,16 @@
         },
         {
             "name": "webonyx/graphql-php",
-            "version": "v15.23.0",
+            "version": "v15.23.1",
             "source": {
                 "type": "git",
                 "url": "https://github.com/webonyx/graphql-php.git",
-                "reference": "05f48eea3061e1c2717bc9dbe56effdb2fdc090e"
+                "reference": "a4e9d262ef9cdb5d620c1a86a18363c3af9e3a12"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/webonyx/graphql-php/zipball/05f48eea3061e1c2717bc9dbe56effdb2fdc090e",
-                "reference": "05f48eea3061e1c2717bc9dbe56effdb2fdc090e",
+                "url": "https://api.github.com/repos/webonyx/graphql-php/zipball/a4e9d262ef9cdb5d620c1a86a18363c3af9e3a12",
+                "reference": "a4e9d262ef9cdb5d620c1a86a18363c3af9e3a12",
                 "shasum": ""
             },
             "require": {
@@ -1006,7 +1006,7 @@
             ],
             "support": {
                 "issues": "https://github.com/webonyx/graphql-php/issues",
-                "source": "https://github.com/webonyx/graphql-php/tree/v15.23.0"
+                "source": "https://github.com/webonyx/graphql-php/tree/v15.23.1"
             },
             "funding": [
                 {
@@ -1014,7 +1014,7 @@
                     "type": "open_collective"
                 }
             ],
-            "time": "2025-08-19T13:03:43+00:00"
+            "time": "2025-08-19T17:54:55+00:00"
         }
     ],
     "packages-dev": [
@@ -3915,6 +3915,54 @@
                 }
             ],
             "time": "2025-08-04T19:17:37+00:00"
+        },
+        {
+            "name": "phpstan/phpstan-strict-rules",
+            "version": "2.0.6",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/phpstan/phpstan-strict-rules.git",
+                "reference": "f9f77efa9de31992a832ff77ea52eb42d675b094"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/phpstan/phpstan-strict-rules/zipball/f9f77efa9de31992a832ff77ea52eb42d675b094",
+                "reference": "f9f77efa9de31992a832ff77ea52eb42d675b094",
+                "shasum": ""
+            },
+            "require": {
+                "php": "^7.4 || ^8.0",
+                "phpstan/phpstan": "^2.0.4"
+            },
+            "require-dev": {
+                "php-parallel-lint/php-parallel-lint": "^1.2",
+                "phpstan/phpstan-deprecation-rules": "^2.0",
+                "phpstan/phpstan-phpunit": "^2.0",
+                "phpunit/phpunit": "^9.6"
+            },
+            "type": "phpstan-extension",
+            "extra": {
+                "phpstan": {
+                    "includes": [
+                        "rules.neon"
+                    ]
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "PHPStan\\": "src/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "description": "Extra strict and opinionated rules for PHPStan",
+            "support": {
+                "issues": "https://github.com/phpstan/phpstan-strict-rules/issues",
+                "source": "https://github.com/phpstan/phpstan-strict-rules/tree/2.0.6"
+            },
+            "time": "2025-07-21T12:19:29+00:00"
         },
         {
             "name": "phpunit/php-code-coverage",

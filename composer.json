@@ -23,6 +23,7 @@
         "php-http/mock-client": "^1.6",
         "phpstan/extension-installer": "^1.4",
         "phpstan/phpstan": "^2.1",
+        "phpstan/phpstan-strict-rules": "^2.0",
         "phpunit/phpunit": "^12.3",
         "staabm/phpstan-todo-by": "^0.3.0",
         "symfony/dotenv": "^7.3",

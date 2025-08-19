@@ -50,7 +50,7 @@ final class FragmentOrderer
             }
         }
 
-        if ($unknown) {
+        if ($unknown !== []) {
             $list = implode(', ', array_keys($unknown));
 
             throw new RuntimeException(sprintf('Unknown fragment reference(s): %s', $list));

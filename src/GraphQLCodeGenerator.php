@@ -1361,14 +1361,14 @@ final class GraphQLCodeGenerator
         if ($type instanceof ArrayShapeType) {
             $items = [];
 
-            foreach ($type->getShape() as $key => ['type' => $type, 'optional' => $optional]) {
+            foreach ($type->getShape() as $key => ['type' => $itemType, 'optional' => $optional]) {
                 $itemKey = sprintf("'%s'", $key);
 
                 if ($optional) {
                     $itemKey = sprintf('%s?', $itemKey);
                 }
 
-                $items[] = sprintf('%s: %s', $itemKey, $this->dumpPHPDocType($type, $importer, $indentation + 1));
+                $items[] = sprintf('%s: %s', $itemKey, $this->dumpPHPDocType($itemType, $importer, $indentation + 1));
             }
 
             if ($items === []) {

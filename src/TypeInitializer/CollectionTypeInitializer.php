@@ -12,6 +12,7 @@ use Symfony\Component\TypeInfo\Type;
 use Webmozart\Assert\Assert;
 
 /**
+ * @phpstan-import-type CodeLine from CodeGenerator
  * @implements TypeInitializer<Type\CollectionType<*>>
  */
 final readonly class CollectionTypeInitializer implements TypeInitializer
@@ -22,6 +23,9 @@ final readonly class CollectionTypeInitializer implements TypeInitializer
         return $type instanceof Type\CollectionType;
     }
 
+    /**
+     * @return Generator<CodeLine>
+     */
     #[Override]
     public function initialize(
         Type $type,
@@ -62,7 +66,7 @@ final readonly class CollectionTypeInitializer implements TypeInitializer
             return;
         }
 
-        yield $generator->wrap(
+        yield from $generator->wrap(
             'array_map(fn($item) => ',
             $delegator($type->getCollectionValueType(), $generator, '$item'),
             sprintf(', %s)', $variable),

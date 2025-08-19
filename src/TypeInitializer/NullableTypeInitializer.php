@@ -10,6 +10,7 @@ use Ruudk\CodeGenerator\CodeGenerator;
 use Symfony\Component\TypeInfo\Type;
 
 /**
+ * @phpstan-import-type CodeLine from CodeGenerator
  * @implements TypeInitializer<Type\NullableType<*>>
  */
 final readonly class NullableTypeInitializer implements TypeInitializer
@@ -20,6 +21,9 @@ final readonly class NullableTypeInitializer implements TypeInitializer
         return $type instanceof Type\NullableType;
     }
 
+    /**
+     * @return Generator<CodeLine>
+     */
     #[Override]
     public function initialize(
         Type $type,
@@ -27,7 +31,7 @@ final readonly class NullableTypeInitializer implements TypeInitializer
         string $variable,
         DelegatingTypeInitializer $delegator,
     ) : Generator {
-        yield $generator->wrap(
+        yield from $generator->wrap(
             sprintf(
                 '%s !== null ? ',
                 $variable,

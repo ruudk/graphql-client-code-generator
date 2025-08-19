@@ -91,16 +91,16 @@ final readonly class IndexByValidator
                 Assert::notNull($indexByType);
 
                 $possibleArrayKeyTypes = [];
-                foreach ($this->scalars as $name => $type) {
-                    if (is_array($type)) {
-                        [$type] = $type;
+                foreach ($this->scalars as $name => $scalarType) {
+                    if (is_array($scalarType)) {
+                        [$scalarType] = $scalarType;
                     }
 
-                    if ( ! $type instanceof SymfonyType\BuiltinType) {
+                    if ( ! $scalarType instanceof SymfonyType\BuiltinType) {
                         continue;
                     }
 
-                    if ( ! in_array($type->getTypeIdentifier(), [TypeIdentifier::STRING, TypeIdentifier::INT], true)) {
+                    if ( ! in_array($scalarType->getTypeIdentifier(), [TypeIdentifier::STRING, TypeIdentifier::INT], true)) {
                         continue;
                     }
 

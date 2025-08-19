@@ -76,7 +76,7 @@ final class IndexByTest extends GraphQLTestCase
         self::assertArrayHasKey(200, $result->customers->edges);
         self::assertSame('Customer 200', $result->customers->edges[200]->node->name);
 
-        self::assertcount(2, $result->customers->nodes);
+        self::assertCount(2, $result->customers->nodes);
         self::assertArrayHasKey(100, $result->customers->nodes);
         self::assertSame('Customer 100', $result->customers->nodes[100]->name);
 
