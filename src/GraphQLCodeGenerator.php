@@ -326,8 +326,6 @@ final class GraphQLCodeGenerator
         Assert::notNull($operation->name, 'Expected operation to have a name');
 
         $operationName = $operation->name->value;
-        Assert::notNull($operationName);
-
         $operationType = ucfirst($operation->operation);
 
         $document = new IndexByRemover()->__invoke($document);

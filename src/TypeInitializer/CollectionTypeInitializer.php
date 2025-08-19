@@ -9,7 +9,6 @@ use Override;
 use Ruudk\CodeGenerator\CodeGenerator;
 use Ruudk\GraphQLCodeGenerator\Type\IndexByCollectionType;
 use Symfony\Component\TypeInfo\Type;
-use Webmozart\Assert\Assert;
 
 /**
  * @phpstan-import-type CodeLine from CodeGenerator
@@ -33,8 +32,6 @@ final readonly class CollectionTypeInitializer implements TypeInitializer
         string $variable,
         DelegatingTypeInitializer $delegator,
     ) : Generator {
-        Assert::isInstanceOf($type, Type\CollectionType::class);
-
         if ($type instanceof IndexByCollectionType) {
             yield 'array_combine(';
             yield $generator->indent(function () use ($generator, $type, $variable, $delegator) {

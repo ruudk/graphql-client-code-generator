@@ -80,7 +80,6 @@ final readonly class IndexByValidator
                 Assert::isInstanceOf($type, ListOfType::class, '@indexBy can only be used on lists');
 
                 $namedType = Type::getNamedType($type);
-                Assert::notNull($namedType);
 
                 $listOfType = $this->schema->getType($namedType->name());
                 Assert::notNull($listOfType);
@@ -88,7 +87,6 @@ final readonly class IndexByValidator
                 $indexByType = RecursiveTypeFinder::find($listOfType, $indexBy);
 
                 $indexByType = Type::getNamedType($indexByType);
-                Assert::notNull($indexByType);
 
                 $possibleArrayKeyTypes = [];
                 foreach ($this->scalars as $name => $scalarType) {

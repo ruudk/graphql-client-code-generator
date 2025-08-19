@@ -22,10 +22,10 @@ final readonly class RecursiveTypeFinder
         $type = $parent->getField($field)->getType();
 
         if ($indexBy !== []) {
-            $type = Type::getNamedType($type);
-            Assert::notNull($type);
-
-            return self::find($type, $indexBy);
+            return self::find(
+                Type::getNamedType($type),
+                $indexBy,
+            );
         }
 
         return $type;
