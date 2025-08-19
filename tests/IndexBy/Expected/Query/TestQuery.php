@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Ruudk\GraphQLCodeGenerator\Enum\Expected\Query;
+namespace Ruudk\GraphQLCodeGenerator\IndexBy\Expected\Query;
 
-use Ruudk\GraphQLCodeGenerator\Enum\Expected\Query\Test\Data;
+use Ruudk\GraphQLCodeGenerator\IndexBy\Expected\Query\Test\Data;
 use Ruudk\GraphQLCodeGenerator\TestClient;
 
 // This file was automatically generated and should not be edited.
@@ -13,8 +13,11 @@ final readonly class TestQuery {
     public const string OPERATION_NAME = 'Test';
     public const string OPERATION_DEFINITION = <<<'GRAPHQL'
         query Test {
-          accountStatus
-          role
+          projects {
+            id
+            name
+            description
+          }
         }
         
         GRAPHQL;

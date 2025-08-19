@@ -12,7 +12,7 @@
         "symfony/string": "^7.3",
         "symfony/type-info": "^7.3",
         "webmozart/assert": "^1.11",
-        "webonyx/graphql-php": "dev-replace-node-with-node-list as 15.22.999"
+        "webonyx/graphql-php": "^15.23.0"
     },
     "require-dev": {
         "captainhook/captainhook-phar": "^5.25",
@@ -30,12 +30,6 @@
         "ticketswap/php-cs-fixer-config": "^1.0",
         "ticketswap/phpstan-error-formatter": "^1.1"
     },
-    "repositories": [
-        {
-            "type": "vcs",
-            "url": "https://github.com/ruudk/graphql-php"
-        }
-    ],
     "autoload": {
         "psr-4": {
             "Ruudk\\GraphQLCodeGenerator\\": "src/"

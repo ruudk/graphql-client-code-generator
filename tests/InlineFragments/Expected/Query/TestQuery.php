@@ -10,6 +10,28 @@ use Ruudk\GraphQLCodeGenerator\TestClient;
 // This file was automatically generated and should not be edited.
 
 final readonly class TestQuery {
+    public const string OPERATION_NAME = 'Test';
+    public const string OPERATION_DEFINITION = <<<'GRAPHQL'
+        query Test {
+          viewer {
+            __typename
+            name
+            ... on User {
+              login
+            }
+            ... on Application {
+              url
+            }
+          }
+          projects {
+            name
+            description
+            state
+          }
+        }
+        
+        GRAPHQL;
+
     public function __construct(
         private TestClient $client,
     ) {}
@@ -17,29 +39,10 @@ final readonly class TestQuery {
     public function execute() : Data
     {
         $data = $this->client->graphql(
-            <<<'GRAPHQL'
-                query Test {
-                  viewer {
-                    __typename
-                    name
-                    ... on User {
-                      login
-                    }
-                    ... on Application {
-                      url
-                    }
-                  }
-                  projects {
-                    name
-                    description
-                    state
-                  }
-                }
-                
-                GRAPHQL,
+            self::OPERATION_DEFINITION,
             [
             ],
-            'Test',
+            self::OPERATION_NAME,
         );
 
         return new Data(

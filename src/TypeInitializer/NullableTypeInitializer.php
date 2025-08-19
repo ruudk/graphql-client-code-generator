@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace Ruudk\GraphQLCodeGenerator\TypeInitializer;
 
+use Generator;
 use Override;
+use Ruudk\CodeGenerator\CodeGenerator;
 use Symfony\Component\TypeInfo\Type;
 
 /**
@@ -13,18 +15,25 @@ use Symfony\Component\TypeInfo\Type;
 final readonly class NullableTypeInitializer implements TypeInitializer
 {
     #[Override]
-    public function getType() : string
+    public function supports(Type $type) : bool
     {
-        return Type\NullableType::class;
+        return $type instanceof Type\NullableType;
     }
 
     #[Override]
-    public function __invoke(Type $type, callable $importer, string $variable, DelegatingTypeInitializer $delegator) : string
-    {
-        return sprintf(
-            '%s !== null ? %s : null',
-            $variable,
-            $delegator($type->getWrappedType(), $importer, $variable),
+    public function initialize(
+        Type $type,
+        CodeGenerator $generator,
+        string $variable,
+        DelegatingTypeInitializer $delegator,
+    ) : Generator {
+        yield $generator->wrap(
+            sprintf(
+                '%s !== null ? ',
+                $variable,
+            ),
+            $delegator($type->getWrappedType(), $generator, $variable),
+            ' : null',
         );
     }
 }

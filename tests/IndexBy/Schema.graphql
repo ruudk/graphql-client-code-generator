@@ -1,0 +1,10 @@
+type Query {
+    projects: [Project!]!
+}
+
+type Project {
+    id: ID!
+    name: String!
+    description: String
+    isDeleted: Boolean!
+}

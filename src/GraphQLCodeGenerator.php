@@ -20,6 +20,7 @@ use GraphQL\Language\AST\NodeList;
 use GraphQL\Language\AST\NonNullTypeNode;
 use GraphQL\Language\AST\OperationDefinitionNode;
 use GraphQL\Language\AST\SelectionSetNode;
+use GraphQL\Language\AST\StringValueNode;
 use GraphQL\Language\AST\TypeNode;
 use GraphQL\Language\Parser;
 use GraphQL\Language\Printer;
@@ -39,18 +40,22 @@ use GraphQL\Type\Definition\WrappingType;
 use GraphQL\Type\Schema;
 use GraphQL\Utils\BuildClientSchema;
 use GraphQL\Utils\BuildSchema;
+use GraphQL\Utils\SchemaExtender;
 use JsonException;
 use JsonSerializable;
 use Override;
 use ReflectionException;
 use Ruudk\CodeGenerator\CodeGenerator;
 use Ruudk\CodeGenerator\Group;
+use Ruudk\GraphQLCodeGenerator\Type\FragmentObjectType;
+use Ruudk\GraphQLCodeGenerator\Type\IndexByCollectionType;
 use Ruudk\GraphQLCodeGenerator\TypeInitializer\BackedEnumTypeInitializer;
 use Ruudk\GraphQLCodeGenerator\TypeInitializer\CollectionTypeInitializer;
 use Ruudk\GraphQLCodeGenerator\TypeInitializer\DelegatingTypeInitializer;
 use Ruudk\GraphQLCodeGenerator\TypeInitializer\NullableTypeInitializer;
 use Ruudk\GraphQLCodeGenerator\TypeInitializer\ObjectTypeInitializer;
 use Ruudk\GraphQLCodeGenerator\TypeInitializer\TypeInitializer;
+use Ruudk\GraphQLCodeGenerator\Visitor\IndexByRemover;
 use Symfony\Component\Filesystem\Exception\IOException;
 use Symfony\Component\Filesystem\Filesystem;
 use Symfony\Component\Finder\Finder;
@@ -85,6 +90,7 @@ final class GraphQLCodeGenerator
     private DelegatingTypeInitializer $typeInitializer;
     private ?string $schemaPath = null;
     private Optimizer $optimizer;
+    private Validator $validator;
 
     /**
      * @param array<string, SymfonyType|array{SymfonyType, SymfonyType}> $scalars
@@ -119,6 +125,7 @@ final class GraphQLCodeGenerator
         private readonly bool $useEdgeNameForEdges = false,
         private readonly bool $addNodesOnConnections = false,
         private readonly bool $addSymfonyExcludeAttribute = false,
+        private readonly bool $indexByDirective = true,
         private readonly Filesystem $filesystem = new Filesystem(),
         private readonly EnglishInflector $inflector = new EnglishInflector(),
     ) {
@@ -143,9 +150,21 @@ final class GraphQLCodeGenerator
 
         Assert::isInstanceOf($schema, Schema::class, 'Invalid schema given, expected .graphql or .json file or Schema instance');
 
+        if ($this->indexByDirective) {
+            $schema = SchemaExtender::extend(
+                $schema,
+                Parser::parse(
+                    <<<'GRAPHQL'
+                        directive @indexBy(field: String!) on FIELD
+                        GRAPHQL
+                ),
+            );
+        }
+
         $this->schema = $schema;
 
         $this->optimizer = new Optimizer($this->schema);
+        $this->validator = new Validator($this->schema, $this->indexByDirective);
 
         $this->scalars = [
             'ID' => SymfonyType::string(),
@@ -240,6 +259,8 @@ final class GraphQLCodeGenerator
 
         $ordered = FragmentOrderer::orderFragments($operations);
         foreach (array_reverse($ordered) as $fragment) {
+            $this->validator->validate($fragment);
+
             $fragment = $this->optimizer->optimize($fragment);
 
             $name = $fragment->name->value;
@@ -295,12 +316,16 @@ final class GraphQLCodeGenerator
 
         Assert::notNull($operation, 'Expected operation to be defined');
 
+        $this->validator->validate($operation);
+
         Assert::notNull($operation->name, 'Expected operation to have a name');
 
         $operationName = $operation->name->value;
         Assert::notNull($operationName);
 
         $operationType = ucfirst($operation->operation);
+
+        $document = new IndexByRemover()->__invoke($document);
 
         $operationDefinition = Printer::doPrint($document);
 
@@ -480,6 +505,10 @@ final class GraphQLCodeGenerator
             '',
             sprintf('final readonly class %s {', $className),
             $generator->indent(function () use ($failedException, $namespace, $variables, $queryClassName, $generator, $operationDefinition, $operationName) {
+                yield sprintf('public const string OPERATION_NAME = %s;', var_export($operationName, true));
+                yield sprintf('public const string OPERATION_DEFINITION = %s;', $generator->maybeNowDoc($operationDefinition, 'GRAPHQL'));
+
+                yield '';
                 yield 'public function __construct(';
                 yield $generator->indent([
                     sprintf('private %s $client,', $generator->import($this->client)),
@@ -525,10 +554,10 @@ final class GraphQLCodeGenerator
                     yield '{';
                 }
 
-                yield $generator->indent(function () use ($operationDefinition, $generator, $operationName, $variables) {
+                yield $generator->indent(function () use ($generator, $variables) {
                     yield '$data = $this->client->graphql(';
-                    yield $generator->indent(function () use ($generator, $operationDefinition, $operationName, $variables) {
-                        yield sprintf('%s,', $generator->maybeNowDoc($operationDefinition, 'GRAPHQL'));
+                    yield $generator->indent(function () use ($generator, $variables) {
+                        yield 'self::OPERATION_DEFINITION,';
                         yield '[';
                         yield $generator->indent(function () use ($variables) {
                             foreach ($variables as $name => $phpType) {
@@ -536,7 +565,7 @@ final class GraphQLCodeGenerator
                             }
                         });
                         yield '],';
-                        yield sprintf('%s,', var_export($operationName, true));
+                        yield 'self::OPERATION_NAME,';
                     });
                     yield ');';
                     yield '';
@@ -726,14 +755,17 @@ final class GraphQLCodeGenerator
                                     return;
                                 }
 
-                                yield sprintf(
-                                    'get => $this->%s ??= %s;',
-                                    $fieldName,
+                                yield from $generator->wrap(
+                                    sprintf(
+                                        'get => $this->%s ??= ',
+                                        $fieldName,
+                                    ),
                                     $this->typeInitializer->__invoke(
                                         $fieldType,
-                                        $generator->import(...),
+                                        $generator,
                                         sprintf('$this->data[%s]', var_export($fieldName, true)),
                                     ),
+                                    ';',
                                 );
                             });
                             yield '}';
@@ -1373,6 +1405,8 @@ final class GraphQLCodeGenerator
         string $fqcn,
         string $path,
         ?bool $nullable = null,
+        ?SymfonyType $indexByType = null,
+        ?string $indexBy = null,
     ) : array {
         if ($parent instanceof ListOfType) {
             [$fields, $fields2, $payloadShape, $type] = $this->parseSelectionSet(
@@ -1388,7 +1422,7 @@ final class GraphQLCodeGenerator
                 SymfonyType::list($fields),
                 $fields2,
                 SymfonyType::list($payloadShape),
-                SymfonyType::list($type),
+                $indexByType !== null && $indexBy !== null ? new IndexByCollectionType($indexByType, $type, $indexBy) : SymfonyType::list($type),
             ];
         }
 
@@ -1400,6 +1434,8 @@ final class GraphQLCodeGenerator
                 $fqcn,
                 $path,
                 false,
+                $indexByType,
+                $indexBy,
             );
         }
 
@@ -1463,6 +1499,18 @@ final class GraphQLCodeGenerator
                 }
 
                 if ($selection->selectionSet !== null) {
+                    $indexByType = null;
+                    $indexBy = null;
+
+                    if ($this->indexByDirective) {
+                        $indexBy = $this->getIndexByDirective($selection->directives);
+
+                        if ($indexBy !== null) {
+                            Assert::isInstanceOf($nakedFieldType, HasFieldsType::class);
+                            $indexByType = $this->mapGraphQLTypeToPHPType($nakedFieldType->getField($indexBy)->getType());
+                        }
+                    }
+
                     $className = ucfirst($this->isList($fieldType) ? $this->singularize($fieldName) : $fieldName);
 
                     Assert::isInstanceOf($nakedFieldType, NamedType::class, 'Field type must be a named type');
@@ -1481,6 +1529,8 @@ final class GraphQLCodeGenerator
                         $fieldType,
                         $fqcn . '\\' . $className,
                         $path . '.' . $fieldName,
+                        indexByType: $indexByType,
+                        indexBy: $indexBy,
                     );
 
                     $this->generateDataClass(
@@ -1742,6 +1792,26 @@ final class GraphQLCodeGenerator
         }
 
         return false;
+    }
+
+    /**
+     * @param NodeList<DirectiveNode> $directives
+     */
+    private function getIndexByDirective(NodeList $directives) : ?string
+    {
+        foreach ($directives as $directive) {
+            if ($directive->name->value !== 'indexBy') {
+                continue;
+            }
+
+            if ( ! $directive->arguments[0]->value instanceof StringValueNode) {
+                continue;
+            }
+
+            return $directive->arguments[0]->value->value;
+        }
+
+        return null;
     }
 
     private function singularize(string $fieldName) : string

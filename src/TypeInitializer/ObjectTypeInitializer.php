@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace Ruudk\GraphQLCodeGenerator\TypeInitializer;
 
+use Generator;
 use Override;
+use Ruudk\CodeGenerator\CodeGenerator;
 use Symfony\Component\TypeInfo\Type;
 use Symfony\Component\TypeInfo\Type\ObjectType;
 
@@ -14,32 +16,37 @@ use Symfony\Component\TypeInfo\Type\ObjectType;
 final class ObjectTypeInitializer implements TypeInitializer
 {
     /**
-     * @var array<class-string, TypeInitializer>
+     * @var list<TypeInitializer>
      */
     private array $initializers;
 
     public function __construct(
         TypeInitializer ...$initializers,
     ) {
-        $this->initializers = array_combine(
-            array_map(fn($initializer) => $initializer->getType(), $initializers),
-            $initializers,
-        );
+        $this->initializers = array_values($initializers);
     }
 
     #[Override]
-    public function getType() : string
+    public function supports(Type $type) : bool
     {
-        return ObjectType::class;
+        return $type instanceof ObjectType;
     }
 
     #[Override]
-    public function __invoke(Type $type, callable $importer, string $variable, DelegatingTypeInitializer $delegator) : string
-    {
-        if (isset($this->initializers[$type->getClassName()])) {
-            return $this->initializers[$type->getClassName()]($type, $importer, $variable, $delegator);
+    public function initialize(
+        Type $type,
+        CodeGenerator $generator,
+        string $variable,
+        DelegatingTypeInitializer $delegator,
+    ) : Generator | string {
+        foreach ($this->initializers as $initializer) {
+            if ( ! $initializer->supports($type)) {
+                continue;
+            }
+
+            return $initializer->initialize($type, $generator, $variable, $delegator);
         }
 
-        return sprintf('new %s(%s)', $importer($type->getClassName()), $variable);
+        return sprintf('new %s(%s)', $generator->import($type->getClassName()), $variable);
     }
 }

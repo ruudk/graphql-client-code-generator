@@ -10,6 +10,25 @@ use Ruudk\GraphQLCodeGenerator\TestClient;
 // This file was automatically generated and should not be edited.
 
 final readonly class TestQuery {
+    public const string OPERATION_NAME = 'Test';
+    public const string OPERATION_DEFINITION = <<<'GRAPHQL'
+        query Test($includeAdmin: Boolean!, $skipAdmin: Boolean!) {
+          viewer {
+            name
+          }
+          user2: user {
+            name
+          }
+          admin @include(if: $includeAdmin) {
+            name
+          }
+          admin2: admin @skip(if: $skipAdmin) {
+            name
+          }
+        }
+        
+        GRAPHQL;
+
     public function __construct(
         private TestClient $client,
     ) {}
@@ -19,28 +38,12 @@ final readonly class TestQuery {
         bool $skipAdmin,
     ) : Data {
         $data = $this->client->graphql(
-            <<<'GRAPHQL'
-                query Test($includeAdmin: Boolean!, $skipAdmin: Boolean!) {
-                  viewer {
-                    name
-                  }
-                  user2: user {
-                    name
-                  }
-                  admin @include(if: $includeAdmin) {
-                    name
-                  }
-                  admin2: admin @skip(if: $skipAdmin) {
-                    name
-                  }
-                }
-                
-                GRAPHQL,
+            self::OPERATION_DEFINITION,
             [
                 'includeAdmin' => $includeAdmin,
                 'skipAdmin' => $skipAdmin,
             ],
-            'Test',
+            self::OPERATION_NAME,
         );
 
         return new Data(

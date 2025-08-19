@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "643baffed13c5ca29740a6e44dcf4c07",
+    "content-hash": "59c2176f6a8232e7ed555b1108e09517",
     "packages": [
         {
             "name": "psr/container",
@@ -944,16 +944,16 @@
         },
         {
             "name": "webonyx/graphql-php",
-            "version": "dev-replace-node-with-node-list",
+            "version": "v15.23.0",
             "source": {
                 "type": "git",
-                "url": "https://github.com/ruudk/graphql-php.git",
-                "reference": "7553ded95f7309f1a1fee804cb6ac682659efedc"
+                "url": "https://github.com/webonyx/graphql-php.git",
+                "reference": "05f48eea3061e1c2717bc9dbe56effdb2fdc090e"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/ruudk/graphql-php/zipball/7553ded95f7309f1a1fee804cb6ac682659efedc",
-                "reference": "7553ded95f7309f1a1fee804cb6ac682659efedc",
+                "url": "https://api.github.com/repos/webonyx/graphql-php/zipball/05f48eea3061e1c2717bc9dbe56effdb2fdc090e",
+                "reference": "05f48eea3061e1c2717bc9dbe56effdb2fdc090e",
                 "shasum": ""
             },
             "require": {
@@ -994,58 +994,27 @@
                     "GraphQL\\": "src/"
                 }
             },
-            "autoload-dev": {
-                "psr-4": {
-                    "GraphQL\\Benchmarks\\": "benchmarks/",
-                    "GraphQL\\Examples\\Blog\\": "examples/01-blog/Blog/",
-                    "GraphQL\\Tests\\": "tests/"
-                }
-            },
-            "scripts": {
-                "baseline": [
-                    "phpstan --generate-baseline"
-                ],
-                "bench": [
-                    "phpbench run"
-                ],
-                "check": [
-                    "@fix",
-                    "@stan",
-                    "@test"
-                ],
-                "docs": [
-                    "php generate-class-reference.php"
-                ],
-                "fix": [
-                    "@rector",
-                    "@php-cs-fixer"
-                ],
-                "php-cs-fixer": [
-                    "php-cs-fixer fix"
-                ],
-                "rector": [
-                    "rector process"
-                ],
-                "stan": [
-                    "phpstan --verbose"
-                ],
-                "test": [
-                    "php -d zend.exception_ignore_args=Off -d zend.assertions=On -d assert.active=On -d assert.exception=On vendor/bin/phpunit"
-                ]
-            },
+            "notification-url": "https://packagist.org/downloads/",
             "license": [
                 "MIT"
             ],
             "description": "A PHP port of GraphQL reference implementation",
             "homepage": "https://github.com/webonyx/graphql-php",
             "keywords": [
-                "API",
+                "api",
                 "graphql"
             ],
             "support": {
-                "source": "https://github.com/ruudk/graphql-php/tree/replace-node-with-node-list"
+                "issues": "https://github.com/webonyx/graphql-php/issues",
+                "source": "https://github.com/webonyx/graphql-php/tree/v15.23.0"
             },
-            "time": "2025-08-17T16:55:12+00:00"
+            "funding": [
+                {
+                    "url": "https://opencollective.com/webonyx-graphql-php",
+                    "type": "open_collective"
+                }
+            ],
+            "time": "2025-08-19T13:03:43+00:00"
         }
     ],
     "packages-dev": [
@@ -7251,18 +7220,10 @@
             "time": "2025-05-02T09:46:24+00:00"
         }
     ],
-    "aliases": [
-        {
-            "package": "webonyx/graphql-php",
-            "version": "dev-replace-node-with-node-list",
-            "alias": "15.22.999",
-            "alias_normalized": "15.22.999.0"
-        }
-    ],
+    "aliases": [],
     "minimum-stability": "stable",
     "stability-flags": {
-        "symfony/polyfill-php85": 20,
-        "webonyx/graphql-php": 20
+        "symfony/polyfill-php85": 20
     },
     "prefer-stable": false,
     "prefer-lowest": false,

@@ -1,0 +1,7 @@
+query Test {
+    projects @indexBy(field: "id") {
+        id
+        name
+        description
+    }
+}

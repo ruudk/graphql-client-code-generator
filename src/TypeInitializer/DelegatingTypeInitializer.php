@@ -4,31 +4,40 @@ declare(strict_types=1);
 
 namespace Ruudk\GraphQLCodeGenerator\TypeInitializer;
 
+use Generator;
+use Ruudk\CodeGenerator\CodeGenerator;
 use Symfony\Component\TypeInfo\Type;
 
+/**
+ * @phpstan-import-type CodeLine from CodeGenerator
+ */
 final readonly class DelegatingTypeInitializer
 {
     /**
-     * @var array<class-string, TypeInitializer>
+     * @var array<TypeInitializer>
      */
     private array $initializers;
 
     public function __construct(
         TypeInitializer ...$initializers,
     ) {
-        $this->initializers = array_combine(
-            array_map(fn($initializer) => $initializer->getType(), $initializers),
-            $initializers,
-        );
+        $this->initializers = array_values($initializers);
     }
 
     /**
-     * @param callable(string): string $importer
+     * @return string|Generator<CodeLine>
      */
-    public function __invoke(Type $type, callable $importer, string $variable) : string
-    {
-        if (isset($this->initializers[$type::class])) {
-            return $this->initializers[$type::class]($type, $importer, $variable, $this);
+    public function __invoke(
+        Type $type,
+        CodeGenerator $generator,
+        string $variable,
+    ) : Generator | string {
+        foreach ($this->initializers as $initializer) {
+            if ( ! $initializer->supports($type)) {
+                continue;
+            }
+
+            return $initializer->initialize($type, $generator, $variable, $this);
         }
 
         return $variable;

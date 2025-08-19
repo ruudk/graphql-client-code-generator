@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Ruudk\GraphQLCodeGenerator;
+namespace Ruudk\GraphQLCodeGenerator\Type;
 
 use GraphQL\Type\Definition\NamedType;
 use GraphQL\Type\Definition\Type;
