@@ -16,6 +16,7 @@ abstract class GraphQLTestCase extends TestCase
 {
     private string $namespace;
     private string $directory;
+    private Client $client;
 
     #[Override]
     protected function setUp() : void
@@ -26,6 +27,8 @@ abstract class GraphQLTestCase extends TestCase
         array_pop($parts);
         $this->namespace = implode('\\', $parts);
         $this->directory = __DIR__ . '/' . array_last($parts);
+
+        $this->client = new Client();
     }
 
     public function generateExpected() : void
@@ -95,17 +98,16 @@ abstract class GraphQLTestCase extends TestCase
     }
 
     /**
-     * @param array<string, mixed> $response
+     * @param array<string, mixed> $data
      * @throws JsonException
      */
-    protected function getClient(array $response) : TestClient
+    protected function getClient(array $data, GraphQLRequestMatcher $matcher = new GraphQLRequestMatcher()) : TestClient
     {
-        $client = new Client();
-        $client->addResponse(new Response(200, [
+        $this->client->on($matcher, new Response(200, [
             'Content-Type' => 'application/json',
-        ], json_encode($response, flags: JSON_THROW_ON_ERROR)));
+        ], json_encode($data, flags: JSON_THROW_ON_ERROR)));
 
-        return new TestClient($client);
+        return new TestClient($this->client);
     }
 
     public function testGenerate() : void

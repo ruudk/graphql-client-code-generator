@@ -254,7 +254,7 @@ final class GraphQLCodeGenerator
                     continue;
                 }
 
-                $this->generateInputType($typeName, $type);
+                $this->generateInputType($typeName, $type, $type->isOneOf());
 
                 continue;
             }
@@ -1183,14 +1183,14 @@ final class GraphQLCodeGenerator
         $this->filesystem->dumpFile($this->outputDir . '/Enum/' . $name . '.php', $enumClass);
     }
 
-    private function generateInputType(string $name, InputObjectType $type) : void
+    private function generateInputType(string $name, InputObjectType $type, bool $isOneOf) : void
     {
         if (in_array($name, $this->ignoreTypes, true)) {
             return;
         }
 
         $generator = new CodeGenerator($this->fullyQualified('Input'));
-        $inputClass = $generator->dump(function () use ($generator, $type) {
+        $inputClass = $generator->dump(function () use ($isOneOf, $generator, $type) {
             yield '// This file was automatically generated and should not be edited.';
 
             if ($type->description() !== null) {
@@ -1208,7 +1208,7 @@ final class GraphQLCodeGenerator
 
             yield sprintf('final readonly class %s implements %s', $type, $generator->import(JsonSerializable::class));
             yield '{';
-            yield $generator->indent(function () use ($type, $generator) {
+            yield $generator->indent(function () use ($isOneOf, $type, $generator) {
                 $required = [];
                 $optional = [];
 
@@ -1240,7 +1240,7 @@ final class GraphQLCodeGenerator
                     ' */',
                 );
 
-                yield 'public function __construct(';
+                yield sprintf('%s function __construct(', $isOneOf ? 'private' : 'public');
                 yield $generator->indent(function () use ($generator, $type) {
                     foreach ($type->getFields() as $fieldName => $field) {
                         $fieldType = $this->mapGraphQLTypeToPHPType($field->getType());
@@ -1254,6 +1254,31 @@ final class GraphQLCodeGenerator
                     }
                 });
                 yield ') {}';
+
+                if ($isOneOf) {
+                    foreach ($type->getFields() as $fieldName => $field) {
+                        $fieldType = $field->getType();
+
+                        if ($fieldType instanceof NullableType) {
+                            $fieldType = Type::nonNull($fieldType);
+                        }
+
+                        $fieldType = $this->mapGraphQLTypeToPHPType($fieldType);
+
+                        yield '';
+                        yield sprintf(
+                            'public static function create%s(%s $%s) : self',
+                            ucfirst($fieldName),
+                            $this->dumpPHPType($fieldType, $generator->import(...)),
+                            $fieldName,
+                        );
+                        yield '{';
+                        yield $generator->indent(function () use ($fieldName) {
+                            yield sprintf('return new self(%s: $%s);', $fieldName, $fieldName);
+                        });
+                        yield '}';
+                    }
+                }
 
                 yield '';
                 yield '/**';
