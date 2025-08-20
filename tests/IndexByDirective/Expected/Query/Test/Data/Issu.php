@@ -12,7 +12,7 @@ namespace Ruudk\GraphQLCodeGenerator\IndexByDirective\Expected\Query\Test\Data;
  *   name
  * }
  */
-final class Issue
+final class Issu
 {
     public int $id {
         get => $this->id ??= $this->data['id'];
