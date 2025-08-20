@@ -136,7 +136,7 @@ final class GraphQLCodeGenerator
         $this->typeInitializer = new DelegatingTypeInitializer(
             new NullableTypeInitializer(),
             new CollectionTypeInitializer(),
-            new BackedEnumTypeInitializer($addUnknownCaseToEnums),
+            new BackedEnumTypeInitializer($addUnknownCaseToEnums, $namespace),
             new ObjectTypeInitializer(),
             ...$typeInitializers,
         );

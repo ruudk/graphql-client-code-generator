@@ -15,6 +15,7 @@ final readonly class BackedEnumTypeInitializer implements TypeInitializer
 {
     public function __construct(
         private bool $addUnknownCaseToEnums,
+        private string $namespace,
     ) {}
 
     #[Override]
@@ -30,7 +31,7 @@ final readonly class BackedEnumTypeInitializer implements TypeInitializer
         string $variable,
         DelegatingTypeInitializer $delegator,
     ) : string {
-        if ($this->addUnknownCaseToEnums) {
+        if ($this->addUnknownCaseToEnums && str_starts_with($type->getClassName(), $this->namespace)) {
             return sprintf(
                 '%s::tryFrom(%s) ?? %s::Unknown__',
                 $generator->import($type->getClassName()),
