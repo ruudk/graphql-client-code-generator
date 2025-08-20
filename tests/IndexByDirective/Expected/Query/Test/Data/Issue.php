@@ -2,19 +2,19 @@
 
 declare(strict_types=1);
 
-namespace Ruudk\GraphQLCodeGenerator\IndexBy\Expected\Query\Test\Data;
+namespace Ruudk\GraphQLCodeGenerator\IndexByDirective\Expected\Query\Test\Data;
 
 // This file was automatically generated and should not be edited.
 
 /**
- * ... on Project {
+ * ... on Issue {
  *   id
  *   name
  * }
  */
-final class Project
+final class Issue
 {
-    public string $id {
+    public int $id {
         get => $this->id ??= $this->data['id'];
     }
 
@@ -24,7 +24,7 @@ final class Project
 
     /**
      * @param array{
-     *     'id': string,
+     *     'id': int,
      *     'name': string,
      * } $data
      */

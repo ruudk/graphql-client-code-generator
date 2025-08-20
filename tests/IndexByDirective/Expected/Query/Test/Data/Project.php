@@ -2,19 +2,19 @@
 
 declare(strict_types=1);
 
-namespace Ruudk\GraphQLCodeGenerator\IndexBy\Expected\Query\Test\Data\CustomerConnection\CustomerEdge;
+namespace Ruudk\GraphQLCodeGenerator\IndexByDirective\Expected\Query\Test\Data;
 
 // This file was automatically generated and should not be edited.
 
 /**
- * ... on Customer {
+ * ... on Project {
  *   id
  *   name
  * }
  */
-final class Customer
+final class Project
 {
-    public int $id {
+    public string $id {
         get => $this->id ??= $this->data['id'];
     }
 
@@ -24,7 +24,7 @@ final class Customer
 
     /**
      * @param array{
-     *     'id': int,
+     *     'id': string,
      *     'name': string,
      * } $data
      */

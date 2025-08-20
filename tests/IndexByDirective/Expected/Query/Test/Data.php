@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace Ruudk\GraphQLCodeGenerator\IndexBy\Expected\Query\Test;
+namespace Ruudk\GraphQLCodeGenerator\IndexByDirective\Expected\Query\Test;
 
-use Ruudk\GraphQLCodeGenerator\IndexBy\Expected\Query\Test\Data\CustomerConnection;
-use Ruudk\GraphQLCodeGenerator\IndexBy\Expected\Query\Test\Data\Issue;
-use Ruudk\GraphQLCodeGenerator\IndexBy\Expected\Query\Test\Data\Project;
+use Ruudk\GraphQLCodeGenerator\IndexByDirective\Expected\Query\Test\Data\CustomerConnection;
+use Ruudk\GraphQLCodeGenerator\IndexByDirective\Expected\Query\Test\Data\Issue;
+use Ruudk\GraphQLCodeGenerator\IndexByDirective\Expected\Query\Test\Data\Project;
 
 // This file was automatically generated and should not be edited.
 

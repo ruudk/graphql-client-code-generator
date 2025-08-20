@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
-namespace Ruudk\GraphQLCodeGenerator\IndexBy\Expected\Query;
+namespace Ruudk\GraphQLCodeGenerator\IndexByDirective\Expected\Query;
 
-use Ruudk\GraphQLCodeGenerator\IndexBy\Expected\Query\Test\Data;
+use Ruudk\GraphQLCodeGenerator\IndexByDirective\Expected\Query\Test\Data;
 use Ruudk\GraphQLCodeGenerator\TestClient;
 
 // This file was automatically generated and should not be edited.
-// Based on tests/IndexBy/Test.graphql
+// Based on tests/IndexByDirective/Test.graphql
 
 final readonly class TestQuery {
     public const string OPERATION_NAME = 'Test';

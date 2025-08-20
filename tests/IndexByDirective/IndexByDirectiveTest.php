@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace Ruudk\GraphQLCodeGenerator\IndexBy;
+namespace Ruudk\GraphQLCodeGenerator\IndexByDirective;
 
 use Ruudk\GraphQLCodeGenerator\GraphQLTestCase;
-use Ruudk\GraphQLCodeGenerator\IndexBy\Expected\Query\TestQuery;
+use Ruudk\GraphQLCodeGenerator\IndexByDirective\Expected\Query\TestQuery;
 
-final class IndexByTest extends GraphQLTestCase
+final class IndexByDirectiveTest extends GraphQLTestCase
 {
     public function testQuery() : void
     {

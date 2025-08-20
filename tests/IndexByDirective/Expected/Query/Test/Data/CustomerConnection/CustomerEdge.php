@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Ruudk\GraphQLCodeGenerator\IndexBy\Expected\Query\Test\Data\CustomerConnection;
+namespace Ruudk\GraphQLCodeGenerator\IndexByDirective\Expected\Query\Test\Data\CustomerConnection;
 
-use Ruudk\GraphQLCodeGenerator\IndexBy\Expected\Query\Test\Data\CustomerConnection\CustomerEdge\Customer;
+use Ruudk\GraphQLCodeGenerator\IndexByDirective\Expected\Query\Test\Data\CustomerConnection\CustomerEdge\Customer;
 
 // This file was automatically generated and should not be edited.
 

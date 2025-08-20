@@ -2,17 +2,17 @@
 
 declare(strict_types=1);
 
-namespace Ruudk\GraphQLCodeGenerator\IndexBy\Expected\Query\Test\Data;
+namespace Ruudk\GraphQLCodeGenerator\IndexByDirective\Expected\Query\Test\Data\CustomerConnection\CustomerEdge;
 
 // This file was automatically generated and should not be edited.
 
 /**
- * ... on Issue {
+ * ... on Customer {
  *   id
  *   name
  * }
  */
-final class Issue
+final class Customer
 {
     public int $id {
         get => $this->id ??= $this->data['id'];

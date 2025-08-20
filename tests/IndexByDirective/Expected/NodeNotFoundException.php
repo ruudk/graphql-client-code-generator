@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Ruudk\GraphQLCodeGenerator\IndexBy\Expected;
+namespace Ruudk\GraphQLCodeGenerator\IndexByDirective\Expected;
 
 use Exception;
 
