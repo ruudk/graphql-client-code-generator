@@ -13,16 +13,21 @@ use Ruudk\GraphQLCodeGenerator\Enum\Expected\Enum\State;
  * query Test {
  *   accountStatus
  *   role
+ *   otherRole: role
  * }
  */
 final class Data
 {
     public ?State $accountStatus {
-        get => $this->accountStatus ??= $this->data['accountStatus'] !== null ? State::from($this->data['accountStatus']) : null;
+        get => $this->accountStatus ??= $this->data['accountStatus'] !== null ? State::tryFrom($this->data['accountStatus']) ?? State::Unknown__ : null;
+    }
+
+    public ?Role $otherRole {
+        get => $this->otherRole ??= $this->data['otherRole'] !== null ? Role::tryFrom($this->data['otherRole']) ?? Role::Unknown__ : null;
     }
 
     public ?Role $role {
-        get => $this->role ??= $this->data['role'] !== null ? Role::from($this->data['role']) : null;
+        get => $this->role ??= $this->data['role'] !== null ? Role::tryFrom($this->data['role']) ?? Role::Unknown__ : null;
     }
 
     /**
@@ -33,6 +38,7 @@ final class Data
     /**
      * @param array{
      *     'accountStatus': null|string,
+     *     'otherRole': null|string,
      *     'role': null|string,
      * } $data
      * @param list<array{

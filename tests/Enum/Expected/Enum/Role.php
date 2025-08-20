@@ -13,4 +13,7 @@ enum Role: string
 {
     case User = 'USER';
     case Admin = 'ADMIN';
+
+    // When the server returns an unknown enum value, this is the value that will be used.
+    case Unknown__ = 'unknown__';
 }

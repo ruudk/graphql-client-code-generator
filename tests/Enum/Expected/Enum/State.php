@@ -12,4 +12,7 @@ namespace Ruudk\GraphQLCodeGenerator\Enum\Expected\Enum;
 enum State: string
 {
     case Active = 'ACTIVE';
+
+    // When the server returns an unknown enum value, this is the value that will be used.
+    case Unknown__ = 'unknown__';
 }

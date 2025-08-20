@@ -17,10 +17,12 @@ final class EnumTest extends GraphQLTestCase
             'data' => [
                 'accountStatus' => 'ACTIVE',
                 'role' => 'ADMIN',
+                'otherRole' => 'SUPERADMIN',
             ],
         ]))->execute();
 
         self::assertSame(State::Active, $result->accountStatus);
         self::assertSame(Role::Admin, $result->role);
+        self::assertSame(Role::Unknown__, $result->otherRole);
     }
 }

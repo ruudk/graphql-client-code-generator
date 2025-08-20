@@ -13,6 +13,10 @@ use Symfony\Component\TypeInfo\Type;
  */
 final readonly class BackedEnumTypeInitializer implements TypeInitializer
 {
+    public function __construct(
+        private bool $addUnknownCaseToEnums,
+    ) {}
+
     #[Override]
     public function supports(Type $type) : bool
     {
@@ -26,6 +30,15 @@ final readonly class BackedEnumTypeInitializer implements TypeInitializer
         string $variable,
         DelegatingTypeInitializer $delegator,
     ) : string {
+        if ($this->addUnknownCaseToEnums) {
+            return sprintf(
+                '%s::tryFrom(%s) ?? %s::Unknown__',
+                $generator->import($type->getClassName()),
+                $variable,
+                $generator->import($type->getClassName()),
+            );
+        }
+
         return sprintf(
             '%s::from(%s)',
             $generator->import($type->getClassName()),

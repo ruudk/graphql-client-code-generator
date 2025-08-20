@@ -129,13 +129,14 @@ final class GraphQLCodeGenerator
         private readonly bool $addNodesOnConnections = false,
         private readonly bool $addSymfonyExcludeAttribute = false,
         private readonly bool $indexByDirective = true,
+        private readonly bool $addUnknownCaseToEnums = true,
         private readonly Filesystem $filesystem = new Filesystem(),
         private readonly EnglishInflector $inflector = new EnglishInflector(),
     ) {
         $this->typeInitializer = new DelegatingTypeInitializer(
             new NullableTypeInitializer(),
             new CollectionTypeInitializer(),
-            new BackedEnumTypeInitializer(),
+            new BackedEnumTypeInitializer($addUnknownCaseToEnums),
             new ObjectTypeInitializer(),
             ...$typeInitializers,
         );
@@ -1142,6 +1143,12 @@ final class GraphQLCodeGenerator
                     if ($value->description !== null) {
                         yield '';
                     }
+                }
+
+                if ($this->addUnknownCaseToEnums) {
+                    yield '';
+                    yield '// When the server returns an unknown enum value, this is the value that will be used.';
+                    yield 'case Unknown__ = \'unknown__\';';
                 }
 
                 if ($this->dumpMethods) {

@@ -62,6 +62,8 @@ abstract class GraphQLTestCase extends TestCase
             true,
             true,
             false,
+            true,
+            true,
         )->generate();
     }
 

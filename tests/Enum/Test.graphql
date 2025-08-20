@@ -1,4 +1,5 @@
 query Test {
     accountStatus
     role
+    otherRole: role
 }
