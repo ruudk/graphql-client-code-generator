@@ -1,6 +1,6 @@
 <p align="center">
-    GraphQL Client Code Generator for PHP
-    <strong>Transform GraphQL queries into type-safe, zero-dependency PHP 8.4+ code that just works.</strong>
+    <strong>GraphQL Client Code Generator for PHP</strong><br>
+    Transform GraphQL queries into type-safe, zero-dependency PHP 8.4+ code that just works.
 </p>
 <p align="center">
     <a href="https://packagist.org/packages/ruudk/code-generator"><img src="https://poser.pugx.org/ruudk/graphql-client-code-generator/v?style=for-the-badge" alt="Latest Stable Version"></a>
