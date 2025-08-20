@@ -1,6 +1,6 @@
 {
     "name": "ruudk/graphql-client-code-generator",
-    "description": "GraphQL client code generator for PHP",
+    "description": "Transform GraphQL queries into type-safe, zero-dependency PHP 8.4+ code that just works.",
     "license": "MIT",
     "type": "library",
     "require": {
