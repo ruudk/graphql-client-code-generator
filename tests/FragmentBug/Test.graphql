@@ -1,0 +1,25 @@
+query Test {
+    projects {
+        ...ProjectView
+    }
+}
+
+fragment ProjectView on Project {
+    name
+    creator {
+        ... on User {
+            name
+        }
+        ... on Admin {
+            name
+            role
+        }
+    }
+    ...ProjectStateView
+}
+
+fragment ProjectStateView on Project {
+    creator {
+        id
+    }
+}

@@ -1,0 +1,35 @@
+type Query {
+    viewer: Viewer!
+    projects: [Project!]!
+}
+
+interface Viewer {
+    name: String!
+}
+
+type User implements Viewer & Creator {
+    name: String!
+    login: String!
+}
+
+type Admin implements Viewer & Creator {
+    name: String!
+    role: String!
+}
+
+type Application implements Viewer {
+    name: String!
+    url: String!
+}
+
+type Project {
+    id: ID!
+    name: String!
+    description: String
+    state: String
+    creator: Creator!
+}
+
+interface Creator {
+    id: ID!
+}

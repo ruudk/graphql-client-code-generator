@@ -1797,7 +1797,12 @@ final class GraphQLCodeGenerator
 
                 $nakedFragmentPayloadShape = $this->getNakedType($this->fragmentPayloadShapes[$selection->name->value]);
                 Assert::isInstanceOf($nakedFragmentPayloadShape, ArrayShapeType::class, 'Fragment shape must be an array shape');
-                foreach ($nakedFragmentPayloadShape->getShape() as $key => $value) {
+
+                foreach ($nakedFragmentPayloadShape->getShape() as $key => ['type' => $value]) {
+                    if (isset($payloadShape[$key]) && $payloadShape[$key] instanceof SymfonyType\CollectionType) {
+                        $value = $this->mergeArrayShape($payloadShape[$key], $value);
+                    }
+
                     $payloadShape[$key] = $value;
                 }
             }
