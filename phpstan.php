@@ -1,6 +1,9 @@
 <?php declare(strict_types=1);
 
 return [
+    'includes' => [
+        'phar://phpstan.phar/conf/bleedingEdge.neon',
+    ],
     'parameters' => [
         'level' => 'max',
         'checkMissingCallableSignature' => true,

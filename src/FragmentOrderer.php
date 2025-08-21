@@ -77,7 +77,7 @@ final class FragmentOrderer
         }
 
         $sortedNames = [];
-        while ($queue) {
+        while (count($queue) > 0) {
             $n = array_shift($queue);
             $sortedNames[] = $n;
 
@@ -115,7 +115,6 @@ final class FragmentOrderer
     private static function collectDeps(FragmentDefinitionNode $fragment) : array
     {
         $set = [];
-
         Visitor::visit($fragment, [
             NodeKind::FRAGMENT_SPREAD => function ($node) use (&$set) {
                 Assert::isInstanceOf($node, FragmentSpreadNode::class);
