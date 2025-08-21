@@ -8,8 +8,32 @@ use Ruudk\GraphQLCodeGenerator\Examples\Generated\Query\Search\Data;
 use Ruudk\GraphQLCodeGenerator\Examples\GitHubClient;
 
 // This file was automatically generated and should not be edited.
+// Based on Search.graphql
 
 final readonly class SearchQuery {
+    public const string OPERATION_NAME = 'Search';
+    public const string OPERATION_DEFINITION = <<<'GRAPHQL'
+        query Search {
+          search(query: "repo:twigstan/twigstan", type: ISSUE, first: 10) {
+            nodes {
+              __typename
+              ... on Issue {
+                number
+                title
+              }
+              ...PullRequestInfo
+            }
+          }
+        }
+        
+        fragment PullRequestInfo on PullRequest {
+          number
+          title
+          merged
+        }
+        
+        GRAPHQL;
+
     public function __construct(
         private GitHubClient $client,
     ) {}
@@ -17,30 +41,10 @@ final readonly class SearchQuery {
     public function execute() : Data
     {
         $data = $this->client->graphql(
-            <<<'GRAPHQL'
-                query Search {
-                  search(query: "repo:twigstan/twigstan", type: ISSUE, first: 10) {
-                    nodes {
-                      __typename
-                      ... on Issue {
-                        number
-                        title
-                      }
-                      ...PullRequestInfo
-                    }
-                  }
-                }
-                
-                fragment PullRequestInfo on PullRequest {
-                  number
-                  title
-                  merged
-                }
-                
-                GRAPHQL,
+            self::OPERATION_DEFINITION,
             [
             ],
-            'Search',
+            self::OPERATION_NAME,
         );
 
         return new Data(

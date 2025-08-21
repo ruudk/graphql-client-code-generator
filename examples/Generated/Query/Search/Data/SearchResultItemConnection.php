@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Ruudk\GraphQLCodeGenerator\Examples\Generated\Query\Search\Data;
 
-use Ruudk\GraphQLCodeGenerator\Examples\Generated\Query\Search\Data\SearchResultItemConnection\Node;
+use Ruudk\GraphQLCodeGenerator\Examples\Generated\Query\Search\Data\SearchResultItemConnection\Nod;
 
 // This file was automatically generated and should not be edited.
 
@@ -23,10 +23,10 @@ use Ruudk\GraphQLCodeGenerator\Examples\Generated\Query\Search\Data\SearchResult
 final class SearchResultItemConnection
 {
     /**
-     * @var list<Node>
+     * @var list<Nod>
      */
     public array $nodes {
-        get => $this->nodes ??= array_map(fn($item) => new Node($item), $this->data['nodes']);
+        get => $this->nodes ??= array_map(fn($item) => new Nod($item), $this->data['nodes']);
     }
 
     /**

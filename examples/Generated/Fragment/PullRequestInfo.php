@@ -15,11 +15,6 @@ namespace Ruudk\GraphQLCodeGenerator\Examples\Generated\Fragment;
  */
 final class PullRequestInfo
 {
-    /**
-     * @var list<string>
-     */
-    public const array POSSIBLE_TYPES = ['PullRequest'];
-
     public bool $merged {
         get => $this->merged ??= $this->data['merged'];
     }

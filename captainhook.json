@@ -7,6 +7,12 @@
         "enabled": true,
         "actions": [
             {
+                "action": "php examples/generate.php"
+            },
+            {
+                "action": "php tests/bin/regenerate.php"
+            },
+            {
                 "action": "composer validate --strict"
             },
             {

@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Ruudk\GraphQLCodeGenerator\Examples\Generated\Query\Search\Data\SearchResultItemConnection;
 
 use Ruudk\GraphQLCodeGenerator\Examples\Generated\Fragment\PullRequestInfo;
-use Ruudk\GraphQLCodeGenerator\Examples\Generated\Query\Search\Data\SearchResultItemConnection\Node\AsIssue;
+use Ruudk\GraphQLCodeGenerator\Examples\Generated\Query\Search\Data\SearchResultItemConnection\Nod\AsIssue;
 
 // This file was automatically generated and should not be edited.
 
@@ -19,32 +19,32 @@ use Ruudk\GraphQLCodeGenerator\Examples\Generated\Query\Search\Data\SearchResult
  *   ...PullRequestInfo
  * }
  */
-final class Node
+final class Nod
 {
     public string $__typename {
         get => $this->__typename ??= $this->data['__typename'];
     }
 
     public ?AsIssue $asIssue {
-        get => $this->asIssue ??= in_array($this->__typename, AsIssue::POSSIBLE_TYPES, true) ? new AsIssue($this->data) : null;
+        get => $this->asIssue ??= $this->data['__typename'] === 'Issue' ? new AsIssue($this->data) : null;
     }
 
     /**
      * @phpstan-assert-if-true !null $this->asIssue
      */
     public bool $isIssue {
-        get => $this->isIssue ??= in_array($this->__typename, AsIssue::POSSIBLE_TYPES, true);
+        get => $this->isIssue ??= $this->data['__typename'] === 'Issue';
     }
 
     public ?PullRequestInfo $pullRequestInfo {
-        get => $this->pullRequestInfo ??= in_array($this->__typename, PullRequestInfo::POSSIBLE_TYPES, true) ? new PullRequestInfo($this->data) : null;
+        get => $this->pullRequestInfo ??= $this->data['__typename'] === 'PullRequest' ? new PullRequestInfo($this->data) : null;
     }
 
     /**
      * @phpstan-assert-if-true !null $this->pullRequestInfo
      */
     public bool $isPullRequestInfo {
-        get => $this->isPullRequestInfo ??= in_array($this->__typename, PullRequestInfo::POSSIBLE_TYPES, true);
+        get => $this->isPullRequestInfo ??= $this->data['__typename'] === 'PullRequest';
     }
 
     /**
