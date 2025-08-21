@@ -6,10 +6,12 @@ namespace Ruudk\GraphQLCodeGenerator;
 
 use GraphQL\Language\AST\DocumentNode;
 use GraphQL\Language\AST\FragmentDefinitionNode;
+use GraphQL\Language\AST\FragmentSpreadNode;
 use GraphQL\Language\AST\NodeKind;
 use GraphQL\Language\Parser;
 use GraphQL\Language\Visitor;
 use RuntimeException;
+use Webmozart\Assert\Assert;
 
 final class FragmentOrderer
 {
@@ -61,6 +63,7 @@ final class FragmentOrderer
         $inDegree = array_fill_keys(array_keys($fragments), 0);
         foreach ($deps as $set) {
             foreach (array_keys($set) as $to) {
+                $inDegree[$to] ??= 0;
                 ++$inDegree[$to];
             }
         }
@@ -79,6 +82,7 @@ final class FragmentOrderer
             $sortedNames[] = $n;
 
             foreach (array_keys($deps[$n] ?? []) as $m) {
+                $inDegree[$m] ??= 0;
                 --$inDegree[$m];
 
                 if ($inDegree[$m] === 0) {
@@ -111,11 +115,12 @@ final class FragmentOrderer
     private static function collectDeps(FragmentDefinitionNode $fragment) : array
     {
         $set = [];
+
         Visitor::visit($fragment, [
-            'enter' => function ($node) use (&$set) {
-                if ($node->kind === NodeKind::FRAGMENT_SPREAD) {
-                    $set[$node->name->value] = true;
-                }
+            NodeKind::FRAGMENT_SPREAD => function ($node) use (&$set) {
+                Assert::isInstanceOf($node, FragmentSpreadNode::class);
+
+                $set[$node->name->value] = true;
 
                 return null;
             },

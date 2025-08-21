@@ -190,8 +190,12 @@ final class GraphQLCodeGenerator
         } elseif (is_string($schema) && str_ends_with($schema, '.json')) {
             $this->schemaPath = $schema;
             $introspection = json_decode($filesystem->readFile($schema), true, flags: JSON_THROW_ON_ERROR);
+
             Assert::isArray($introspection, 'Expected introspection to be an array');
             Assert::keyExists($introspection, 'data', 'Expected introspection to have a "data" key');
+            Assert::isArray($introspection['data'], 'Expected introspection data to be an array');
+
+            // @phpstan-ignore argument.type (expects array<string, mixed>, array<mixed, mixed> given)
             $schema = BuildClientSchema::build($introspection['data']);
         }
 
@@ -1293,9 +1297,11 @@ final class GraphQLCodeGenerator
         $inputClass = $generator->dump(function () use ($isOneOf, $generator, $type) {
             yield '// This file was automatically generated and should not be edited.';
 
-            if ($type->description() !== null) {
+            $description = $type->description();
+
+            if ($description !== null) {
                 yield '';
-                foreach (explode(PHP_EOL, $type->description()) as $line) {
+                foreach (explode(PHP_EOL, $description) as $line) {
                     yield sprintf('// %s', $line);
                 }
             }
@@ -1748,8 +1754,9 @@ final class GraphQLCodeGenerator
                     $fields2[$path . '.' . $fieldName] = SymfonyType::nullable($fields2[$path . '.' . $fieldName]);
                 }
 
-                Assert::isInstanceOf($this->getNakedType($this->fragmentPayloadShapes[$selection->name->value]), ArrayShapeType::class, 'Fragment shape must be an array shape');
-                foreach ($this->getNakedType($this->fragmentPayloadShapes[$selection->name->value])->getShape() as $key => $value) {
+                $nakedFragmentPayloadShape = $this->getNakedType($this->fragmentPayloadShapes[$selection->name->value]);
+                Assert::isInstanceOf($nakedFragmentPayloadShape, ArrayShapeType::class, 'Fragment shape must be an array shape');
+                foreach ($nakedFragmentPayloadShape->getShape() as $key => $value) {
                     $payloadShape[$key] = $value;
                 }
             }
@@ -1807,8 +1814,9 @@ final class GraphQLCodeGenerator
                 $fields2[$path . '.' . $fieldName] = SymfonyType::nullable($fields2[$path . '.' . $fieldName]);
             }
 
-            Assert::isInstanceOf($this->getNakedType($subPayloadShape), ArrayShapeType::class, 'Payload shape must be an array shape');
-            foreach ($this->getNakedType($subPayloadShape)->getShape() as $key => $value) {
+            $nakedSubPayloadShape = $this->getNakedType($subPayloadShape);
+            Assert::isInstanceOf($nakedSubPayloadShape, ArrayShapeType::class, 'Payload shape must be an array shape');
+            foreach ($nakedSubPayloadShape->getShape() as $key => $value) {
                 $payloadShape[$key] = $value;
             }
         }
@@ -1978,6 +1986,6 @@ final class GraphQLCodeGenerator
     {
         $options = $this->inflector->singularize($fieldName);
 
-        return array_first($options) ?? $fieldName;
+        return $options[0] ?? $fieldName;
     }
 }

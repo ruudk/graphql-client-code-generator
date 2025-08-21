@@ -14,6 +14,7 @@ use Webmozart\Assert\Assert;
 $dotenv = new Dotenv();
 $dotenv->bootEnv(__DIR__ . '/.env.local');
 
+Assert::keyExists($_ENV, 'GITHUB_TOKEN');
 $token = $_ENV['GITHUB_TOKEN'];
 Assert::stringNotEmpty($token);
 

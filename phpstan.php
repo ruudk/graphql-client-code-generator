@@ -2,12 +2,14 @@
 
 return [
     'parameters' => [
-        'level' => '9',
+        'level' => 'max',
         'checkMissingCallableSignature' => true,
         'checkBenevolentUnionTypes' => true,
         'checkMissingOverrideMethodAttribute' => true,
         'reportUnmatchedIgnoredErrors' => true,
-        'reportPossiblyNonexistentConstantArrayOffset' => true,
+        'checkUninitializedProperties' => false,
+        'rememberPossiblyImpureFunctionValues' => false,
+        'reportPossiblyNonexistentGeneralArrayOffset' => false,
 
         // Analysis settings
         'paths' => [

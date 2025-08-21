@@ -60,7 +60,7 @@ final readonly class GraphQLRequestMatcher implements RequestMatcherInterface
             return false;
         }
 
-        if ($this->variables !== null && $body['variables'] !== $this->variables) {
+        if ($this->variables !== null && array_key_exists('variables', $body) && $body['variables'] !== $this->variables) {
             return false;
         }
 
