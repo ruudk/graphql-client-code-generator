@@ -28,6 +28,7 @@
         "phpstan/phpstan-strict-rules": "^2.0",
         "phpstan/phpstan-webmozart-assert": "^2.0",
         "phpunit/phpunit": "^12.3",
+        "shipmonk/dead-code-detector": "^0.13.2",
         "staabm/phpstan-todo-by": "^0.3.0",
         "symfony/dotenv": "^7.3",
         "symfony/var-dumper": "^7.3",

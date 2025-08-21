@@ -25,6 +25,24 @@ return [
                 'tracker' => 'github',
             ]
         ],
+        'shipmonkDeadCode' => [
+            'detect' => [
+                'deadEnumCases' => true,
+            ],
+        ],
+        'ignoreErrors' => [
+            [
+                'identifiers' => [
+                    'shipmonk.deadConstant',
+                    'shipmonk.deadMethod',
+                ],
+                'paths' => [
+                    __DIR__ . '/examples/Generated/*',
+                    __DIR__ . '/tests/*/Actual/*',
+                    __DIR__ . '/tests/*/Expected/*',
+                ],
+            ],
+        ],
 
         // Developer experience
         'errorFormat' => 'ticketswap',

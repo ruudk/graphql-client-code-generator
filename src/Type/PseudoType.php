@@ -7,6 +7,11 @@ namespace Ruudk\GraphQLCodeGenerator\Type;
 use Override;
 use Symfony\Component\TypeInfo\Type;
 
+/**
+ * Can be used by users to create custom types.
+ *
+ * @api
+ */
 final class PseudoType extends Type
 {
     public function __construct(
