@@ -41,6 +41,45 @@ use GraphQL\Type\Schema;
 use GraphQL\Utils\BuildClientSchema;
 use GraphQL\Utils\BuildSchema;
 use GraphQL\Utils\SchemaExtender;
+use GraphQL\Validator\DocumentValidator;
+use GraphQL\Validator\Rules\ExecutableDefinitions;
+use GraphQL\Validator\Rules\FieldsOnCorrectType;
+use GraphQL\Validator\Rules\FragmentsOnCompositeTypes;
+use GraphQL\Validator\Rules\KnownArgumentNames;
+use GraphQL\Validator\Rules\KnownArgumentNamesOnDirectives;
+use GraphQL\Validator\Rules\KnownDirectives;
+use GraphQL\Validator\Rules\KnownFragmentNames;
+use GraphQL\Validator\Rules\KnownTypeNames;
+use GraphQL\Validator\Rules\LoneAnonymousOperation;
+use GraphQL\Validator\Rules\LoneSchemaDefinition;
+use GraphQL\Validator\Rules\NoFragmentCycles;
+use GraphQL\Validator\Rules\NoUndefinedVariables;
+use GraphQL\Validator\Rules\NoUnusedFragments;
+use GraphQL\Validator\Rules\NoUnusedVariables;
+use GraphQL\Validator\Rules\OneOfInputObjectsRule;
+use GraphQL\Validator\Rules\OverlappingFieldsCanBeMerged;
+use GraphQL\Validator\Rules\PossibleFragmentSpreads;
+use GraphQL\Validator\Rules\PossibleTypeExtensions;
+use GraphQL\Validator\Rules\ProvidedRequiredArguments;
+use GraphQL\Validator\Rules\ProvidedRequiredArgumentsOnDirectives;
+use GraphQL\Validator\Rules\ScalarLeafs;
+use GraphQL\Validator\Rules\SingleFieldSubscription;
+use GraphQL\Validator\Rules\UniqueArgumentDefinitionNames;
+use GraphQL\Validator\Rules\UniqueArgumentNames;
+use GraphQL\Validator\Rules\UniqueDirectiveNames;
+use GraphQL\Validator\Rules\UniqueDirectivesPerLocation;
+use GraphQL\Validator\Rules\UniqueEnumValueNames;
+use GraphQL\Validator\Rules\UniqueFieldDefinitionNames;
+use GraphQL\Validator\Rules\UniqueFragmentNames;
+use GraphQL\Validator\Rules\UniqueInputFieldNames;
+use GraphQL\Validator\Rules\UniqueOperationNames;
+use GraphQL\Validator\Rules\UniqueOperationTypes;
+use GraphQL\Validator\Rules\UniqueTypeNames;
+use GraphQL\Validator\Rules\UniqueVariableNames;
+use GraphQL\Validator\Rules\ValidationRule;
+use GraphQL\Validator\Rules\ValuesOfCorrectType;
+use GraphQL\Validator\Rules\VariablesAreInputTypes;
+use GraphQL\Validator\Rules\VariablesInAllowedPosition;
 use JsonException;
 use JsonSerializable;
 use Override;
@@ -92,7 +131,11 @@ final class GraphQLCodeGenerator
     private DelegatingTypeInitializer $typeInitializer;
     private ?string $schemaPath = null;
     private Optimizer $optimizer;
-    private Validator $validator;
+
+    /**
+     * @var array<class-string<ValidationRule>, ValidationRule>
+     */
+    public private(set) array $validatorRules;
 
     /**
      * @param array<string, SymfonyType|array{SymfonyType, SymfonyType}> $scalars
@@ -178,9 +221,50 @@ final class GraphQLCodeGenerator
         ];
 
         $this->optimizer = new Optimizer($this->schema);
-        $this->validator = new Validator(array_filter([
-            $this->indexByDirective ? new IndexByValidator($this->schema, $this->scalars) : null,
-        ]));
+
+        $this->validatorRules = [
+            ExecutableDefinitions::class => new ExecutableDefinitions(),
+            UniqueOperationNames::class => new UniqueOperationNames(),
+            LoneAnonymousOperation::class => new LoneAnonymousOperation(),
+            SingleFieldSubscription::class => new SingleFieldSubscription(),
+            KnownTypeNames::class => new KnownTypeNames(),
+            FragmentsOnCompositeTypes::class => new FragmentsOnCompositeTypes(),
+            VariablesAreInputTypes::class => new VariablesAreInputTypes(),
+            ScalarLeafs::class => new ScalarLeafs(),
+            FieldsOnCorrectType::class => new FieldsOnCorrectType(),
+            UniqueFragmentNames::class => new UniqueFragmentNames(),
+            // KnownFragmentNames::class => new KnownFragmentNames(),
+            // NoUnusedFragments::class => new NoUnusedFragments(),
+            PossibleFragmentSpreads::class => new PossibleFragmentSpreads(),
+            NoFragmentCycles::class => new NoFragmentCycles(),
+            UniqueVariableNames::class => new UniqueVariableNames(),
+            NoUndefinedVariables::class => new NoUndefinedVariables(),
+            NoUnusedVariables::class => new NoUnusedVariables(),
+            KnownDirectives::class => new KnownDirectives(),
+            UniqueDirectivesPerLocation::class => new UniqueDirectivesPerLocation(),
+            KnownArgumentNames::class => new KnownArgumentNames(),
+            UniqueArgumentNames::class => new UniqueArgumentNames(),
+            ValuesOfCorrectType::class => new ValuesOfCorrectType(),
+            ProvidedRequiredArguments::class => new ProvidedRequiredArguments(),
+            VariablesInAllowedPosition::class => new VariablesInAllowedPosition(),
+            OverlappingFieldsCanBeMerged::class => new OverlappingFieldsCanBeMerged(),
+            UniqueInputFieldNames::class => new UniqueInputFieldNames(),
+            OneOfInputObjectsRule::class => new OneOfInputObjectsRule(),
+            LoneSchemaDefinition::class => new LoneSchemaDefinition(),
+            UniqueOperationTypes::class => new UniqueOperationTypes(),
+            UniqueTypeNames::class => new UniqueTypeNames(),
+            UniqueEnumValueNames::class => new UniqueEnumValueNames(),
+            UniqueFieldDefinitionNames::class => new UniqueFieldDefinitionNames(),
+            UniqueArgumentDefinitionNames::class => new UniqueArgumentDefinitionNames(),
+            UniqueDirectiveNames::class => new UniqueDirectiveNames(),
+            PossibleTypeExtensions::class => new PossibleTypeExtensions(),
+            KnownArgumentNamesOnDirectives::class => new KnownArgumentNamesOnDirectives(),
+            ProvidedRequiredArgumentsOnDirectives::class => new ProvidedRequiredArgumentsOnDirectives(),
+        ];
+
+        if ($this->indexByDirective) {
+            $this->validatorRules[IndexByValidator::class] = new IndexByValidator($this->scalars);
+        }
     }
 
     public function generate() : void
@@ -265,7 +349,13 @@ final class GraphQLCodeGenerator
 
         $ordered = FragmentOrderer::orderFragments($operations);
         foreach (array_reverse($ordered) as $fragment) {
-            $this->validator->validate($fragment);
+            $errors = DocumentValidator::validate($this->schema, new DocumentNode([
+                'definitions' => new NodeList([$fragment]),
+            ]), $this->validatorRules);
+
+            if ($errors !== []) {
+                throw new Exception(sprintf('Fragment validation failed: %s', implode(PHP_EOL, array_map(fn($error) => $error->getMessage(), $errors))));
+            }
 
             $fragment = $this->optimizer->optimize($fragment);
 
@@ -311,6 +401,12 @@ final class GraphQLCodeGenerator
     {
         $document = $this->optimizer->optimize($document);
 
+        $errors = DocumentValidator::validate($this->schema, $document, $this->validatorRules);
+
+        if ($errors !== []) {
+            throw new Exception(sprintf('Document validation failed: %s', implode(PHP_EOL, array_map(fn($error) => $error->getMessage(), $errors))));
+        }
+
         $operation = null;
         foreach ($document->definitions as $definition) {
             if ($definition instanceof OperationDefinitionNode) {
@@ -321,9 +417,6 @@ final class GraphQLCodeGenerator
         }
 
         Assert::notNull($operation, 'Expected operation to be defined');
-
-        $this->validator->validate($operation);
-
         Assert::notNull($operation->name, 'Expected operation to have a name');
 
         $operationName = $operation->name->value;

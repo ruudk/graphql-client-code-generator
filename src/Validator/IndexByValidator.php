@@ -8,34 +8,32 @@ use GraphQL\Language\AST\FieldNode;
 use GraphQL\Language\AST\Node;
 use GraphQL\Language\AST\NodeKind;
 use GraphQL\Language\AST\StringValueNode;
-use GraphQL\Language\Visitor;
 use GraphQL\Type\Definition\ListOfType;
 use GraphQL\Type\Definition\NonNull;
 use GraphQL\Type\Definition\Type;
-use GraphQL\Type\Schema;
-use GraphQL\Utils\TypeInfo;
+use GraphQL\Validator\QueryValidationContext;
+use GraphQL\Validator\Rules\ValidationRule;
 use InvalidArgumentException;
+use Override;
 use Ruudk\GraphQLCodeGenerator\RecursiveTypeFinder;
 use Symfony\Component\TypeInfo\Type as SymfonyType;
 use Symfony\Component\TypeInfo\TypeIdentifier;
 use Webmozart\Assert\Assert;
 
-final readonly class IndexByValidator
+final class IndexByValidator extends ValidationRule
 {
     /**
      * @param array<string, SymfonyType|array{SymfonyType, SymfonyType}> $scalars
      */
     public function __construct(
-        private Schema $schema,
         private array $scalars,
     ) {}
 
-    public function __invoke(Node $node) : void
+    #[Override]
+    public function getVisitor(QueryValidationContext $context) : array
     {
-        $typeInfo = new TypeInfo($this->schema);
-
-        Visitor::visit($node, Visitor::visitWithTypeInfo($typeInfo, [
-            NodeKind::FIELD => function (Node $node) use ($typeInfo) : void {
+        return [
+            NodeKind::FIELD => function (Node $node) use ($context) : void {
                 Assert::isInstanceOf($node, FieldNode::class);
 
                 if ($node->directives->count() === 0) {
@@ -71,7 +69,7 @@ final readonly class IndexByValidator
 
                 $indexBy = explode('.', $indexBy);
 
-                $type = $typeInfo->getType();
+                $type = $context->getType();
 
                 if ($type instanceof NonNull) {
                     $type = $type->getWrappedType();
@@ -81,7 +79,7 @@ final readonly class IndexByValidator
 
                 $namedType = Type::getNamedType($type);
 
-                $listOfType = $this->schema->getType($namedType->name());
+                $listOfType = $context->getSchema()->getType($namedType->name());
                 Assert::notNull($listOfType);
 
                 $indexByType = RecursiveTypeFinder::find($listOfType, $indexBy);
@@ -119,7 +117,7 @@ final readonly class IndexByValidator
 
                 throw new InvalidArgumentException(sprintf('Field "%s" is not selected in the indexBy directive', implode('.', $indexBy)));
             },
-        ]));
+        ];
     }
 
     /**
