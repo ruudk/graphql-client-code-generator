@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "917fb798943ddeb2a89df77485f11163",
+    "content-hash": "87f4b88c3cbaadbee2962553a55fc8f9",
     "packages": [
         {
             "name": "psr/container",
@@ -61,16 +61,16 @@
         },
         {
             "name": "ruudk/code-generator",
-            "version": "0.1.6",
+            "version": "0.3.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/ruudk/code-generator.git",
-                "reference": "947c2bd5ee8842f236b22bbc7de2449248ddc349"
+                "reference": "77685c5e30b48e6b600ab1cbbe6764c16c5e56e8"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/ruudk/code-generator/zipball/947c2bd5ee8842f236b22bbc7de2449248ddc349",
-                "reference": "947c2bd5ee8842f236b22bbc7de2449248ddc349",
+                "url": "https://api.github.com/repos/ruudk/code-generator/zipball/77685c5e30b48e6b600ab1cbbe6764c16c5e56e8",
+                "reference": "77685c5e30b48e6b600ab1cbbe6764c16c5e56e8",
                 "shasum": ""
             },
             "require": {
@@ -79,11 +79,12 @@
             "require-dev": {
                 "captainhook/captainhook-phar": "^5.25",
                 "ergebnis/composer-normalize": "^2.47",
-                "erickskrauch/php-cs-fixer-custom-fixers": "^1.3",
                 "friendsofphp/php-cs-fixer": "^3.85",
                 "phpstan/extension-installer": "^1.4",
                 "phpstan/phpstan": "^2.1",
                 "phpunit/phpunit": "^12.3",
+                "ruudk/readme-examples-sync-hook": "^1.0",
+                "ticketswap/php-cs-fixer-config": "^1.0",
                 "ticketswap/phpstan-error-formatter": "^1.1"
             },
             "type": "library",
@@ -102,12 +103,16 @@
                     "email": "ruudk@users.noreply.github.com"
                 }
             ],
-            "description": "A library for generating beautiful PHP code with automatic namespace import management.",
+            "description": "Yield your code line by line: let generators handle indentation, formatting, and structure for you",
+            "keywords": [
+                "code generator",
+                "dev"
+            ],
             "support": {
                 "issues": "https://github.com/ruudk/code-generator/issues",
-                "source": "https://github.com/ruudk/code-generator/tree/0.1.6"
+                "source": "https://github.com/ruudk/code-generator/tree/0.3.0"
             },
-            "time": "2025-08-13T07:23:17+00:00"
+            "time": "2025-08-21T17:27:01+00:00"
         },
         {
             "name": "symfony/deprecation-contracts",

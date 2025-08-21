@@ -616,7 +616,7 @@ final class GraphQLCodeGenerator
         $failedException = $this->fullyQualified($operationType, $queryClassName, $queryClassName . $operationType . 'FailedException');
 
         $generator = new CodeGenerator($namespace);
-        $class = $generator->dump([
+        $class = $generator->dumpFile([
             '// This file was automatically generated and should not be edited.',
             sprintf('// Based on %s', $relativeFilePath),
             '',
@@ -781,7 +781,7 @@ final class GraphQLCodeGenerator
         $namespace = implode('\\', $parts);
 
         $generator = new CodeGenerator($namespace);
-        $class = $generator->dump(function () use ($parentType, $nodesType, $fqcn, $definitionNode, $payloadShape, $isData, $fields, $possibleTypes, $generator, $className) {
+        $class = $generator->dumpFile(function () use ($parentType, $nodesType, $fqcn, $definitionNode, $payloadShape, $isData, $fields, $possibleTypes, $generator, $className) {
             yield '// This file was automatically generated and should not be edited.';
             yield '';
 
@@ -1132,7 +1132,7 @@ final class GraphQLCodeGenerator
     private function generateErrorClass(string $operationDir, string $operationType, string $operationName) : void
     {
         $generator = new CodeGenerator($this->fullyQualified($operationType, $operationName));
-        $class = $generator->dump(function () use ($generator) {
+        $class = $generator->dumpFile(function () use ($generator) {
             yield '// This file was automatically generated and should not be edited.';
 
             yield '';
@@ -1179,7 +1179,7 @@ final class GraphQLCodeGenerator
     private function generateExceptionClass(string $outputDir, string $operationType, string $operationName, string $className) : void
     {
         $generator = new CodeGenerator($this->fullyQualified($operationType, $operationName));
-        $class = $generator->dump(function () use ($className, $generator) {
+        $class = $generator->dumpFile(function () use ($className, $generator) {
             yield '// This file was automatically generated and should not be edited.';
 
             yield '';
@@ -1212,7 +1212,7 @@ final class GraphQLCodeGenerator
         }
 
         $generator = new CodeGenerator($this->fullyQualified('Enum'));
-        $enumClass = $generator->dump(function () use ($type, $name, $generator) {
+        $enumClass = $generator->dumpFile(function () use ($type, $name, $generator) {
             yield '// This file was automatically generated and should not be edited.';
             yield '';
             yield '/**';
@@ -1294,7 +1294,7 @@ final class GraphQLCodeGenerator
         }
 
         $generator = new CodeGenerator($this->fullyQualified('Input'));
-        $inputClass = $generator->dump(function () use ($isOneOf, $generator, $type) {
+        $inputClass = $generator->dumpFile(function () use ($isOneOf, $generator, $type) {
             yield '// This file was automatically generated and should not be edited.';
 
             $description = $type->description();
@@ -1417,7 +1417,7 @@ final class GraphQLCodeGenerator
     private function generateNodeNotFoundException() : void
     {
         $generator = new CodeGenerator($this->namespace);
-        $class = $generator->dump(function () use ($generator) {
+        $class = $generator->dumpFile(function () use ($generator) {
             yield '// This file was automatically generated and should not be edited.';
 
             yield '';
