@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Ruudk\GraphQLCodeGenerator;
 
+use Exception;
 use GraphQL\Language\AST\DocumentNode;
 use GraphQL\Language\AST\EnumValueNode;
 use GraphQL\Language\AST\FieldNode;
@@ -21,6 +22,7 @@ use GraphQL\Type\Definition\Type;
 use GraphQL\Type\Schema;
 use GraphQL\Utils\AST;
 use GraphQL\Utils\TypeInfo;
+use Webmozart\Assert\InvalidArgumentException;
 
 final class UsedTypesCollector
 {
@@ -54,6 +56,10 @@ final class UsedTypesCollector
         $this->typeInfo = new TypeInfo($schema);
     }
 
+    /**
+     * @throws InvalidArgumentException
+     * @throws Exception
+     */
     public function analyze(DocumentNode $doc) : void
     {
         $this->indexFragments($doc);
@@ -77,6 +83,8 @@ final class UsedTypesCollector
 
     /**
      * Process an InputObjectType to find all nested types
+     * @throws InvalidArgumentException
+     * @throws Exception
      */
     private function processInputObjectType(InputObjectType $type) : void
     {
@@ -105,6 +113,10 @@ final class UsedTypesCollector
         }
     }
 
+    /**
+     * @throws InvalidArgumentException
+     * @throws Exception
+     */
     private function visitNode(Node $node) : void
     {
         $wrapped = Visitor::visitWithTypeInfo($this->typeInfo, [

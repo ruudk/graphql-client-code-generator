@@ -13,6 +13,12 @@ return [
         'checkUninitializedProperties' => false,
         'rememberPossiblyImpureFunctionValues' => false,
         'reportPossiblyNonexistentGeneralArrayOffset' => false,
+        'exceptions' => [
+            'check' => [
+                'missingCheckedExceptionInThrows' => true,
+                'tooWideThrowType' => true,
+            ],
+        ],
 
         // Analysis settings
         'paths' => [
@@ -51,6 +57,15 @@ return [
                     __DIR__ . '/tests/*/Expected/*',
                 ],
             ],
+            [
+                'identifiers' => [
+                    'missingType.checkedException'
+                ],
+                'paths' => [
+                    __DIR__ . '/examples/Generated/*',
+                    __DIR__ . '/tests/*',
+                ]
+            ]
         ],
 
         // Developer experience

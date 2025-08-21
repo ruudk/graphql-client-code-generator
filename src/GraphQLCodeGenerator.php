@@ -7,6 +7,7 @@ namespace Ruudk\GraphQLCodeGenerator;
 use Closure;
 use Exception;
 use Generator;
+use GraphQL\Error\InvariantViolation;
 use GraphQL\Language\AST\DirectiveNode;
 use GraphQL\Language\AST\DocumentNode;
 use GraphQL\Language\AST\FieldNode;
@@ -106,6 +107,7 @@ use Symfony\Component\TypeInfo\Type\ArrayShapeType;
 use Symfony\Component\TypeInfo\Type as SymfonyType;
 use Symfony\Component\TypeInfo\Type\BackedEnumType;
 use Webmozart\Assert\Assert;
+use Webmozart\Assert\InvalidArgumentException;
 
 /**
  * @phpstan-import-type CodeLines from CodeGenerator
@@ -149,6 +151,7 @@ final class GraphQLCodeGenerator
      * @throws \GraphQL\Error\SyntaxError
      * @throws JsonException
      * @throws ReflectionException
+     * @throws Exception
      */
     public function __construct(
         Schema | string $schema,
@@ -271,6 +274,14 @@ final class GraphQLCodeGenerator
         }
     }
 
+    /**
+     * @throws JsonException
+     * @throws \GraphQL\Error\SyntaxError
+     * @throws InvariantViolation
+     * @throws IOException
+     * @throws Exception
+     * @throws InvalidArgumentException
+     */
     public function generate() : void
     {
         $this->filesystem->remove($this->outputDir);
@@ -401,6 +412,13 @@ final class GraphQLCodeGenerator
         }
     }
 
+    /**
+     * @throws IOException
+     * @throws Exception
+     * @throws InvalidArgumentException
+     * @throws JsonException
+     * @throws InvariantViolation
+     */
     private function processOperation(DocumentNode $document, string $relativeFilePath) : void
     {
         $document = $this->optimizer->optimize($document);
@@ -755,6 +773,7 @@ final class GraphQLCodeGenerator
 
     /**
      * @param list<string> $possibleTypes
+     * @throws IOException
      */
     private function generateDataClass(
         NamedType & Type $parentType,
@@ -1129,6 +1148,9 @@ final class GraphQLCodeGenerator
         $this->filesystem->dumpFile($outputDirectory . '/' . $className . '.php', $class);
     }
 
+    /**
+     * @throws IOException
+     */
     private function generateErrorClass(string $operationDir, string $operationType, string $operationName) : void
     {
         $generator = new CodeGenerator($this->fullyQualified($operationType, $operationName));
@@ -1176,6 +1198,9 @@ final class GraphQLCodeGenerator
         $this->filesystem->dumpFile($operationDir . '/Error.php', $class);
     }
 
+    /**
+     * @throws IOException
+     */
     private function generateExceptionClass(string $outputDir, string $operationType, string $operationName, string $className) : void
     {
         $generator = new CodeGenerator($this->fullyQualified($operationType, $operationName));
@@ -1205,6 +1230,9 @@ final class GraphQLCodeGenerator
         $this->filesystem->dumpFile($outputDir . '/' . $className . '.php', $class);
     }
 
+    /**
+     * @throws IOException
+     */
     private function generateEnumType(string $name, EnumType $type) : void
     {
         if (in_array($name, $this->ignoreTypes, true)) {
@@ -1287,6 +1315,9 @@ final class GraphQLCodeGenerator
         $this->filesystem->dumpFile($this->outputDir . '/Enum/' . $name . '.php', $enumClass);
     }
 
+    /**
+     * @throws IOException
+     */
     private function generateInputType(string $name, InputObjectType $type, bool $isOneOf) : void
     {
         if (in_array($name, $this->ignoreTypes, true)) {
@@ -1414,6 +1445,9 @@ final class GraphQLCodeGenerator
         $this->filesystem->dumpFile($this->outputDir . '/Input/' . $name . '.php', $inputClass);
     }
 
+    /**
+     * @throws IOException
+     */
     private function generateNodeNotFoundException() : void
     {
         $generator = new CodeGenerator($this->namespace);
@@ -1437,6 +1471,9 @@ final class GraphQLCodeGenerator
         $this->filesystem->dumpFile($this->outputDir . '/NodeNotFoundException.php', $class);
     }
 
+    /**
+     * @throws IOException
+     */
     private function ensureDirectoryExists(string $dir) : void
     {
         $this->filesystem->mkdir($dir);
@@ -1547,6 +1584,10 @@ final class GraphQLCodeGenerator
 
     /**
      * @param list<string> $indexBy
+     *
+     * @throws InvalidArgumentException
+     * @throws InvariantViolation
+     * @throws IOException
      * @return array{SymfonyType, array<string, SymfonyType>, SymfonyType, SymfonyType}
      */
     private function parseSelectionSet(
@@ -1887,6 +1928,7 @@ final class GraphQLCodeGenerator
     }
 
     /**
+     * @throws InvariantViolation
      * @return list<string>
      */
     private function getPossibleTypes(Type $type) : array
@@ -1920,6 +1962,9 @@ final class GraphQLCodeGenerator
         return [];
     }
 
+    /**
+     * @throws InvalidArgumentException
+     */
     private function mergeArrayShape(SymfonyType $left, SymfonyType $right) : SymfonyType
     {
         if ($right instanceof SymfonyType\NullableType) {

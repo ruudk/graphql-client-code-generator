@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Ruudk\GraphQLCodeGenerator\Visitor;
 
+use Exception;
 use GraphQL\Language\AST\FieldNode;
 use GraphQL\Language\AST\Node;
 use GraphQL\Language\AST\NodeKind;
@@ -11,12 +12,16 @@ use GraphQL\Language\AST\NodeList;
 use GraphQL\Language\AST\SelectionSetNode;
 use GraphQL\Language\Visitor;
 use Webmozart\Assert\Assert;
+use Webmozart\Assert\InvalidArgumentException;
 
 final readonly class DuplicateFieldOptimizer
 {
     /**
      * @template T of Node
      * @param T $node
+     *
+     * @throws InvalidArgumentException
+     * @throws Exception
      * @return T
      */
     public function __invoke(Node $node) : Node

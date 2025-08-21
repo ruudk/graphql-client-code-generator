@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Ruudk\GraphQLCodeGenerator\Examples;
 
 use GuzzleHttp\Psr7\Request;
+use InvalidArgumentException;
+use JsonException;
 use Psr\Http\Client\ClientExceptionInterface;
 use Psr\Http\Client\ClientInterface;
 use SensitiveParameter;
@@ -20,6 +22,9 @@ final readonly class GitHubClient
 
     /**
      * @param array<string, mixed> $variables
+     *
+     * @throws InvalidArgumentException
+     * @throws JsonException
      * @throws ClientExceptionInterface
      * @return array<mixed>
      */

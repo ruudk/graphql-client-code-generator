@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace Ruudk\GraphQLCodeGenerator;
 
+use Exception;
 use GraphQL\Language\AST\DocumentNode;
 use GraphQL\Language\AST\FragmentDefinitionNode;
 use GraphQL\Language\AST\FragmentSpreadNode;
 use GraphQL\Language\AST\NodeKind;
-use GraphQL\Language\Parser;
 use GraphQL\Language\Visitor;
 use RuntimeException;
 use Webmozart\Assert\Assert;
@@ -16,29 +16,34 @@ use Webmozart\Assert\Assert;
 final class FragmentOrderer
 {
     /**
-     * @param array<string|DocumentNode> $docs GraphQL SDL strings or DocumentNode instances
-     * @throws RuntimeException On circular or missing dependencies
+     * @param array<DocumentNode> $documents
+     *
+     * @throws Exception
+     * @throws RuntimeException
      * @return list<FragmentDefinitionNode> Sorted so that dependencies come first
      */
-    public static function orderFragments(array $docs) : array
+    public static function orderFragments(array $documents) : array
     {
-        // 1) Parse everything to ASTs
-        $documents = array_map(fn($d) : DocumentNode => $d instanceof DocumentNode ? $d : Parser::parse($d), $docs);
-
-        // 2) Index all fragments by name and collect their dependencies
-        /** @var array<string, FragmentDefinitionNode> $fragments */
+        // Index all fragments by name and collect their dependencies
+        /**
+         * @var array<string, FragmentDefinitionNode> $fragments
+         */
         $fragments = [];
-        /** @var array<string, array<string, true>> $deps  fragmentName => set(depName) */
+
+        /**
+         * @var array<string, array<string, true>> $deps  fragmentName => set(depName)
+         */
         $deps = [];
 
         foreach ($documents as $doc) {
             foreach ($doc->definitions as $def) {
-                if ($def->kind === NodeKind::FRAGMENT_DEFINITION) {
-                    /** @var FragmentDefinitionNode $def */
-                    $name = $def->name->value;
-                    $fragments[$name] = $def;
-                    $deps[$name] = self::collectDeps($def); // set-like array: depName => true
+                if ( ! $def instanceof FragmentDefinitionNode) {
+                    continue;
                 }
+
+                $name = $def->name->value;
+                $fragments[$name] = $def;
+                $deps[$name] = self::collectDeps($def); // set-like array: depName => true
             }
         }
 
@@ -58,7 +63,7 @@ final class FragmentOrderer
             throw new RuntimeException(sprintf('Unknown fragment reference(s): %s', $list));
         }
 
-        // 3) Kahn’s algorithm (topological sort)
+        // Kahn’s algorithm (topological sort)
         // Compute in-degrees
         $inDegree = array_fill_keys(array_keys($fragments), 0);
         foreach ($deps as $set) {
@@ -105,11 +110,12 @@ final class FragmentOrderer
             );
         }
 
-        // 4) Return in dependency-safe order (dependencies first)
+        // Return in dependency-safe order (dependencies first)
         return array_map(fn($name) => $fragments[$name], $sortedNames);
     }
 
     /**
+     * @throws Exception
      * @return array<string,true> set of fragment names used via spreads
      */
     private static function collectDeps(FragmentDefinitionNode $fragment) : array

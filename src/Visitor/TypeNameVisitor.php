@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Ruudk\GraphQLCodeGenerator\Visitor;
 
+use Exception;
 use GraphQL\Language\AST\FieldNode;
 use GraphQL\Language\AST\FragmentSpreadNode;
 use GraphQL\Language\AST\InlineFragmentNode;
@@ -19,6 +20,7 @@ use GraphQL\Type\Definition\Type;
 use GraphQL\Type\Schema;
 use GraphQL\Utils\TypeInfo;
 use Webmozart\Assert\Assert;
+use Webmozart\Assert\InvalidArgumentException;
 
 final readonly class TypeNameVisitor
 {
@@ -29,6 +31,9 @@ final readonly class TypeNameVisitor
     /**
      * @template T of Node
      * @param T $node
+     *
+     * @throws InvalidArgumentException
+     * @throws Exception
      * @return T
      */
     public function __invoke(Node $node) : Node

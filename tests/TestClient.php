@@ -5,9 +5,11 @@ declare(strict_types=1);
 namespace Ruudk\GraphQLCodeGenerator;
 
 use GuzzleHttp\Psr7\Request;
+use JsonException;
 use Psr\Http\Client\ClientExceptionInterface;
 use Psr\Http\Client\ClientInterface;
 use Webmozart\Assert\Assert;
+use Webmozart\Assert\InvalidArgumentException;
 
 final readonly class TestClient
 {
@@ -17,7 +19,10 @@ final readonly class TestClient
 
     /**
      * @param array<string, mixed> $variables
+     *
+     * @throws InvalidArgumentException
      * @throws ClientExceptionInterface
+     * @throws JsonException
      * @return array<mixed>
      */
     public function graphql(string $query, array $variables = [], ?string $operationName = null) : array

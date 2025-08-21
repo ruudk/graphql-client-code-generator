@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Ruudk\GraphQLCodeGenerator;
 
+use Exception;
 use GraphQL\Language\AST\Node;
 use GraphQL\Type\Schema;
 use Ruudk\GraphQLCodeGenerator\Visitor\DuplicateFieldOptimizer;
@@ -34,6 +35,7 @@ final readonly class Optimizer
     /**
      * @template T of Node
      * @param T $node
+     * @throws Exception
      * @return T
      */
     public function optimize(Node $node) : Node

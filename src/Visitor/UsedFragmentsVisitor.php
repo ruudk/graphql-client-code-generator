@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Ruudk\GraphQLCodeGenerator\Visitor;
 
+use Exception;
 use GraphQL\Language\AST\FragmentSpreadNode;
 use GraphQL\Language\AST\Node;
 use GraphQL\Language\AST\NodeKind;
@@ -13,6 +14,7 @@ use Webmozart\Assert\Assert;
 final readonly class UsedFragmentsVisitor
 {
     /**
+     * @throws Exception
      * @return list<string>
      */
     public static function getUsedFragments(Node $node) : array

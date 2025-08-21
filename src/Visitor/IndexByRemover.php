@@ -4,18 +4,23 @@ declare(strict_types=1);
 
 namespace Ruudk\GraphQLCodeGenerator\Visitor;
 
+use Exception;
 use GraphQL\Language\AST\DirectiveNode;
 use GraphQL\Language\AST\Node;
 use GraphQL\Language\AST\NodeKind;
 use GraphQL\Language\Visitor;
 use GraphQL\Language\VisitorRemoveNode;
 use Webmozart\Assert\Assert;
+use Webmozart\Assert\InvalidArgumentException;
 
 final readonly class IndexByRemover
 {
     /**
      * @template T of Node
      * @param T $node
+     *
+     * @throws InvalidArgumentException
+     * @throws Exception
      * @return T
      */
     public function __invoke(Node $node) : Node
