@@ -25,7 +25,7 @@ foreach (Finder::create()->files()->depth(1)->in(__DIR__)->name('*Test.php') as 
     $reflector = new ReflectionClass($test);
     $reflector->getMethod('setUp')->invoke($test);
 
-    $config[] = $test->getConfig();
+    $config[] = $test->getConfig('Expected');
 }
 
 return $config;
