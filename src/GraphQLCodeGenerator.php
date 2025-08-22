@@ -4,14 +4,11 @@ declare(strict_types=1);
 
 namespace Ruudk\GraphQLCodeGenerator;
 
-use Closure;
 use Exception;
-use Generator;
 use GraphQL\Error\InvariantViolation;
 use GraphQL\Language\AST\DirectiveNode;
 use GraphQL\Language\AST\DocumentNode;
 use GraphQL\Language\AST\FieldNode;
-use GraphQL\Language\AST\FragmentDefinitionNode;
 use GraphQL\Language\AST\FragmentSpreadNode;
 use GraphQL\Language\AST\InlineFragmentNode;
 use GraphQL\Language\AST\ListTypeNode;
@@ -82,14 +79,17 @@ use GraphQL\Validator\Rules\ValuesOfCorrectType;
 use GraphQL\Validator\Rules\VariablesAreInputTypes;
 use GraphQL\Validator\Rules\VariablesInAllowedPosition;
 use JsonException;
-use JsonSerializable;
-use Override;
 use ReflectionException;
 use Ruudk\CodeGenerator\CodeGenerator;
-use Ruudk\CodeGenerator\Group;
+use Ruudk\GraphQLCodeGenerator\Generator\DataClassGenerator;
+use Ruudk\GraphQLCodeGenerator\Generator\EnumTypeGenerator;
+use Ruudk\GraphQLCodeGenerator\Generator\ErrorClassGenerator;
+use Ruudk\GraphQLCodeGenerator\Generator\ExceptionClassGenerator;
+use Ruudk\GraphQLCodeGenerator\Generator\InputTypeGenerator;
+use Ruudk\GraphQLCodeGenerator\Generator\NodeNotFoundExceptionGenerator;
+use Ruudk\GraphQLCodeGenerator\Generator\OperationClassGenerator;
 use Ruudk\GraphQLCodeGenerator\Type\FragmentObjectType;
 use Ruudk\GraphQLCodeGenerator\Type\IndexByCollectionType;
-use Ruudk\GraphQLCodeGenerator\Type\StringLiteralType;
 use Ruudk\GraphQLCodeGenerator\TypeInitializer\BackedEnumTypeInitializer;
 use Ruudk\GraphQLCodeGenerator\TypeInitializer\CollectionTypeInitializer;
 use Ruudk\GraphQLCodeGenerator\TypeInitializer\DelegatingTypeInitializer;
@@ -97,12 +97,12 @@ use Ruudk\GraphQLCodeGenerator\TypeInitializer\NullableTypeInitializer;
 use Ruudk\GraphQLCodeGenerator\TypeInitializer\ObjectTypeInitializer;
 use Ruudk\GraphQLCodeGenerator\Validator\IndexByValidator;
 use Ruudk\GraphQLCodeGenerator\Visitor\IndexByRemover;
+use function str_replace as str_replace1;
 use Symfony\Component\Filesystem\Exception\IOException;
 use Symfony\Component\Filesystem\Filesystem;
 use Symfony\Component\Filesystem\Path;
 use Symfony\Component\Finder\Finder;
 use Symfony\Component\String\Inflector\EnglishInflector;
-use function Symfony\Component\String\u;
 use Symfony\Component\TypeInfo\Type\ArrayShapeType;
 use Symfony\Component\TypeInfo\Type as SymfonyType;
 use Symfony\Component\TypeInfo\Type\BackedEnumType;
@@ -144,6 +144,13 @@ final class GraphQLCodeGenerator
     private ?string $schemaPath = null;
     private Optimizer $optimizer;
     private readonly Config $config;
+    private readonly NodeNotFoundExceptionGenerator $nodeNotFoundExceptionGenerator;
+    private readonly ErrorClassGenerator $errorClassGenerator;
+    private readonly ExceptionClassGenerator $exceptionClassGenerator;
+    private readonly EnumTypeGenerator $enumTypeGenerator;
+    private readonly OperationClassGenerator $operationClassGenerator;
+    private readonly DataClassGenerator $dataClassGenerator;
+    private readonly InputTypeGenerator $inputTypeGenerator;
 
     /**
      * @var array<string, SymfonyType>
@@ -233,6 +240,15 @@ final class GraphQLCodeGenerator
         ];
 
         $this->optimizer = new Optimizer($this->schema);
+
+        // Initialize generators
+        $this->nodeNotFoundExceptionGenerator = new NodeNotFoundExceptionGenerator($config);
+        $this->errorClassGenerator = new ErrorClassGenerator($config);
+        $this->exceptionClassGenerator = new ExceptionClassGenerator($config);
+        $this->enumTypeGenerator = new EnumTypeGenerator($config);
+        $this->operationClassGenerator = new OperationClassGenerator($config);
+        $this->dataClassGenerator = new DataClassGenerator($config);
+        $this->inputTypeGenerator = new InputTypeGenerator($config);
 
         $this->validatorRules = [
             ExecutableDefinitions::class => new ExecutableDefinitions(),
@@ -349,7 +365,9 @@ final class GraphQLCodeGenerator
                     continue;
                 }
 
-                $this->generateEnumType($typeName, $type);
+                if ( ! in_array($typeName, $this->config->ignoreTypes, true)) {
+                    $this->files['Enum/' . $typeName . '.php'] = $this->enumTypeGenerator->generate($typeName, $type);
+                }
 
                 continue;
             }
@@ -359,13 +377,17 @@ final class GraphQLCodeGenerator
                     continue;
                 }
 
-                $this->generateInputType($typeName, $type, $type->isOneOf());
+                $this->files['Input/' . $typeName . '.php'] = $this->inputTypeGenerator->generate(
+                    $type,
+                    $type->isOneOf(),
+                    fn($t) => $this->mapGraphQLTypeToPHPType($t),
+                );
 
                 continue;
             }
         }
 
-        $this->generateNodeNotFoundException();
+        $this->files['NodeNotFoundException.php'] = $this->nodeNotFoundExceptionGenerator->generate();
 
         $ordered = FragmentOrderer::orderFragments($operations);
         foreach (array_reverse($ordered) as $fragment) {
@@ -398,17 +420,19 @@ final class GraphQLCodeGenerator
 
             $this->fragmentPayloadShapes[$name] = $payloadShape;
 
-            $this->generateDataClass(
+            $relativePath = str_replace($this->config->outputDir . '/', '', $this->config->outputDir . '/Fragment/' . $name . '.php');
+            $this->files[$relativePath] = $this->dataClassGenerator->generate(
                 $type,
                 $fields,
                 $payloadShape,
                 $this->getPossibleTypes($type),
-                $this->config->outputDir . '/Fragment',
                 $fqcn,
                 false,
                 true,
                 $fragment,
                 null,
+                $this->typeInitializer,
+                $this->inlineFragmentRequiredFields,
             );
         }
 
@@ -461,9 +485,9 @@ final class GraphQLCodeGenerator
 
         $variables = $this->parseVariables($operation);
 
-        $this->generateOperationClass(
+        $relativePath = str_replace($this->config->outputDir . '/', '', $queryDir . '/' . $queryClassName . $operationType . '.php');
+        $this->files[$relativePath] = $this->operationClassGenerator->generate(
             $operationName,
-            $queryDir,
             $operationType,
             $queryClassName,
             $operationDefinition,
@@ -487,22 +511,34 @@ final class GraphQLCodeGenerator
             $fqcn,
             $operation->operation,
         );
-        $this->generateDataClass(
+        $relativePath = str_replace($this->config->outputDir . '/', '', $operationDir . '/Data.php');
+        $this->files[$relativePath] = $this->dataClassGenerator->generate(
             $rootType,
             $fields,
             $payloadShape,
             [],
-            $operationDir,
             $fqcn,
             true,
             false,
             $operation,
             null,
+            $this->typeInitializer,
+            $this->inlineFragmentRequiredFields,
         );
 
-        $this->generateErrorClass($operationDir, $operationType, $operationName);
+        $relativePath = \str_replace($this->config->outputDir . '/', '', $operationDir . '/Error.php');
+        $this->files[$relativePath] = $this->errorClassGenerator->generate($operationType, $operationName);
 
-        $this->generateExceptionClass($operationDir, $operationType, $operationName, $queryClassName . $operationType . 'FailedException');
+        $relativePath1 = str_replace1(
+            $this->config->outputDir . '/',
+            '',
+            $operationDir . '/' . $queryClassName . $operationType . 'FailedException.php',
+        );
+        $this->files[$relativePath1] = $this->exceptionClassGenerator->generate(
+            $operationType,
+            $operationName,
+            $queryClassName . $operationType . 'FailedException',
+        );
     }
 
     /**
@@ -618,1015 +654,6 @@ final class GraphQLCodeGenerator
         }
 
         return SymfonyType::mixed();
-    }
-
-    /**
-     * @param array<string, SymfonyType> $variables
-     *
-     * @throws IOException
-     */
-    private function generateOperationClass(
-        string $operationName,
-        string $outputDirectory,
-        string $operationType,
-        string $queryClassName,
-        string $operationDefinition,
-        array $variables,
-        string $relativeFilePath,
-    ) : void {
-        $namespace = $this->fullyQualified($operationType);
-        $className = $queryClassName . $operationType;
-        $failedException = $this->fullyQualified($operationType, $queryClassName, $queryClassName . $operationType . 'FailedException');
-
-        $generator = new CodeGenerator($namespace);
-        $class = $generator->dumpFile([
-            '// This file was automatically generated and should not be edited.',
-            sprintf('// Based on %s', $relativeFilePath),
-            '',
-            sprintf('final readonly class %s {', $className),
-            $generator->indent(function () use ($failedException, $namespace, $variables, $queryClassName, $generator, $operationDefinition, $operationName) {
-                yield sprintf('public const string OPERATION_NAME = %s;', var_export($operationName, true));
-                yield sprintf('public const string OPERATION_DEFINITION = %s;', $generator->maybeNowDoc($operationDefinition, 'GRAPHQL'));
-
-                yield '';
-                yield 'public function __construct(';
-                yield $generator->indent([
-                    sprintf('private %s $client,', $generator->import($this->config->client)),
-                ]);
-                yield ') {}';
-
-                $parameters = $generator->indent(function () use ($generator, $variables) {
-                    foreach ($variables as $name => $phpType) {
-                        yield sprintf(
-                            '%s $%s%s,',
-                            $this->dumpPHPType($phpType, $generator->import(...)),
-                            $name,
-                            $phpType instanceof SymfonyType\NullableType ? ' = null' : '',
-                        );
-                    }
-                });
-
-                yield '';
-                yield from $generator->maybeDump(
-                    '/**',
-                    $this->prefix(' * ', function () use ($generator, $variables) {
-                        foreach ($variables as $name => $phpType) {
-                            if ( ! $phpType instanceof SymfonyType\CollectionType) {
-                                continue;
-                            }
-
-                            yield sprintf(
-                                '@param %s $%s',
-                                $this->dumpPHPDocType($phpType, $generator->import(...)),
-                                $name,
-                            );
-                        }
-                    }),
-                    ' */',
-                );
-
-                if ($variables !== []) {
-                    yield 'public function execute(';
-                    yield $parameters;
-                    yield sprintf(') : %s {', $generator->import(sprintf($namespace . '\\%s\Data', $queryClassName)));
-                } else {
-                    yield sprintf('public function execute() : %s', $generator->import(sprintf($namespace . '\\%s\Data', $queryClassName)));
-                    yield '{';
-                }
-
-                yield $generator->indent(function () use ($generator, $variables) {
-                    yield '$data = $this->client->graphql(';
-                    yield $generator->indent(function () use ($generator, $variables) {
-                        yield 'self::OPERATION_DEFINITION,';
-                        yield '[';
-                        yield $generator->indent(function () use ($variables) {
-                            foreach ($variables as $name => $phpType) {
-                                yield sprintf("'%s' => \$%s,", $name, $name);
-                            }
-                        });
-                        yield '],';
-                        yield 'self::OPERATION_NAME,';
-                    });
-                    yield ');';
-                    yield '';
-                    yield 'return new Data(';
-                    yield $generator->indent([
-                        "\$data['data'] ?? [], // @phpstan-ignore argument.type",
-                        "\$data['errors'] ?? [] // @phpstan-ignore argument.type",
-                    ]);
-                    yield ');';
-                });
-                yield '}';
-
-                if ($this->config->dumpOrThrows) {
-                    yield '';
-                    yield from $generator->maybeDump(
-                        '/**',
-                        $this->prefix(' * ', function () use ($failedException, $generator, $variables) {
-                            foreach ($variables as $name => $phpType) {
-                                if ( ! $phpType instanceof SymfonyType\CollectionType) {
-                                    continue;
-                                }
-
-                                yield sprintf(
-                                    '@param %s $%s',
-                                    $this->dumpPHPDocType($phpType, $generator->import(...)),
-                                    $name,
-                                );
-                            }
-
-                            yield sprintf('@throws %s', $generator->import($failedException));
-                        }),
-                        ' */',
-                    );
-
-                    if ($variables !== []) {
-                        yield 'public function executeOrThrow(';
-                        yield $parameters;
-                        yield sprintf(') : %s {', $generator->import(sprintf($namespace . '\\%s\Data', $queryClassName)));
-                    } else {
-                        yield sprintf('public function executeOrThrow() : %s', $generator->import(sprintf($namespace . '\\%s\Data', $queryClassName)));
-                        yield '{';
-                    }
-
-                    yield $generator->indent(function () use ($failedException, $generator, $variables) {
-                        yield '$data = $this->execute(';
-                        yield $generator->indent(function () use ($variables) {
-                            foreach ($variables as $name => $phpType) {
-                                yield sprintf('$%s,', $name);
-                            }
-                        });
-                        yield ');';
-
-                        yield '';
-                        yield 'if ($data->errors !== []) {';
-                        yield $generator->indent([
-                            sprintf('throw new %s($data);', $generator->import($failedException)),
-                        ]);
-                        yield '}';
-
-                        yield '';
-                        yield 'return $data;';
-                    });
-                    yield '}';
-                }
-            }),
-            '}',
-        ]);
-        $relativePath = str_replace($this->config->outputDir . '/', '', $outputDirectory . '/' . $className . '.php');
-        $this->files[$relativePath] = $class;
-    }
-
-    /**
-     * @param list<string> $possibleTypes
-     * @throws IOException
-     */
-    private function generateDataClass(
-        NamedType & Type $parentType,
-        SymfonyType $fields,
-        SymfonyType $payloadShape,
-        array $possibleTypes,
-        string $outputDirectory,
-        string $fqcn,
-        bool $isData,
-        bool $isFragment,
-        null | FragmentDefinitionNode | InlineFragmentNode | OperationDefinitionNode $definitionNode,
-        ?SymfonyType $nodesType,
-    ) : void {
-        if ($fields instanceof SymfonyType\NullableType) {
-            $fields = $fields->getWrappedType();
-        }
-
-        if ($payloadShape instanceof SymfonyType\NullableType) {
-            $payloadShape = $payloadShape->getWrappedType();
-        }
-
-        $parts = explode('\\', $fqcn);
-        $className = array_pop($parts);
-        $namespace = implode('\\', $parts);
-
-        // For inline fragments with a single possible type, use literal type for __typename
-        if ($isFragment && count($possibleTypes) === 1 && $payloadShape instanceof ArrayShapeType) {
-            $shape = $payloadShape->getShape();
-
-            if (isset($shape['__typename'])) {
-                // Use a StringLiteralType for the __typename
-                $shape['__typename'] = new StringLiteralType($possibleTypes[0]);
-                $payloadShape = SymfonyType::arrayShape($shape);
-            }
-        }
-
-        $generator = new CodeGenerator($namespace);
-        $class = $generator->dumpFile(function () use ($parentType, $nodesType, $fqcn, $definitionNode, $payloadShape, $isData, $fields, $possibleTypes, $generator, $className) {
-            yield '// This file was automatically generated and should not be edited.';
-            yield '';
-
-            if ($this->config->dumpDefinition && $definitionNode !== null) {
-                yield from $generator->maybeDump(
-                    '/**',
-                    $this->prefix(' * ', Printer::doPrint($definitionNode)),
-                    ' */',
-                );
-            }
-
-            if ($this->config->addSymfonyExcludeAttribute) {
-                yield $generator->dumpAttribute('Symfony\Component\DependencyInjection\Attribute\Exclude');
-            }
-
-            yield sprintf('final class %s', $generator->import($fqcn));
-            yield '{';
-            yield $generator->indent(
-                function () use ($parentType, $nodesType, $possibleTypes, $className, $fields, $isData, $payloadShape, $generator) {
-                    if ($possibleTypes !== []) {
-                        yield '/**';
-                        yield ' * @var list<string>';
-                        yield ' */';
-                        yield sprintf(
-                            'public const array POSSIBLE_TYPES = [%s];',
-                            $generator->join(
-                                ', ',
-                                array_map(fn(string $type) => var_export($type, true), $possibleTypes),
-                            ),
-                        );
-                    }
-
-                    if ($fields instanceof ArrayShapeType) {
-                        foreach ($fields->getShape() as $fieldName => ['type' => $fieldType, 'optional' => $optional]) {
-                            Assert::string($fieldName);
-
-                            $nakedFieldType = $this->getNakedType($fieldType);
-
-                            yield '';
-
-                            yield from $generator->maybeDump(
-                                '/**',
-                                $this->prefix(' * ', function () use ($fieldType, $generator) {
-                                    if ($this->getNakedType($fieldType) instanceof SymfonyType\CollectionType) {
-                                        yield sprintf(
-                                            '@var %s',
-                                            $this->dumpPHPDocType($fieldType, $generator->import(...)),
-                                        );
-                                    }
-                                }),
-                                ' */',
-                            );
-                            yield sprintf(
-                                'public %s $%s {',
-                                $this->dumpPHPType($fieldType, $generator->import(...)),
-                                $fieldName,
-                            );
-                            yield $generator->indent(function () use ($parentType, $nakedFieldType, $fieldType, $generator, $fieldName) {
-                                if ($nakedFieldType instanceof FragmentObjectType && ($nakedFieldType->fragmentType instanceof InterfaceType || $nakedFieldType->fragmentType instanceof UnionType)) {
-                                    yield sprintf(
-                                        'get => $this->%s ??= in_array($this->data[\'__typename\'], %s::POSSIBLE_TYPES, true) ? new %s($this->data) : null;',
-                                        $fieldName,
-                                        $generator->import($nakedFieldType->getClassName()),
-                                        $generator->import($nakedFieldType->getClassName()),
-                                    );
-
-                                    return;
-                                }
-
-                                if ($nakedFieldType instanceof FragmentObjectType && ! $parentType instanceof ObjectType) {
-                                    // Check if we have required fields for this inline fragment
-                                    $requiredFields = $this->inlineFragmentRequiredFields[$nakedFieldType->getClassName()] ?? [];
-
-                                    if (count($requiredFields) > 0) {
-                                        yield 'get {';
-                                        yield $generator->indent(function () use ($fieldName, $nakedFieldType, $requiredFields, $generator) {
-                                            yield sprintf('if (isset($this->%s)) {', $fieldName);
-                                            yield $generator->indent(sprintf('return $this->%s;', $fieldName));
-                                            yield '}';
-
-                                            yield '';
-                                            yield sprintf(
-                                                'if ($this->data[\'__typename\'] !== %s) {',
-                                                var_export($nakedFieldType->fragmentType->name(), true),
-                                            );
-                                            yield $generator->indent(sprintf('return $this->%s = null;', $fieldName));
-                                            yield '}';
-
-                                            foreach ($requiredFields as $requiredField) {
-                                                yield '';
-                                                yield sprintf('if (! array_key_exists(%s, $this->data)) {', var_export($requiredField, true));
-                                                yield $generator->indent(sprintf('return $this->%s = null;', $fieldName));
-                                                yield '}';
-                                            }
-
-                                            yield '';
-                                            yield sprintf(
-                                                'return $this->%s = new %s($this->data);',
-                                                $fieldName,
-                                                $generator->import($nakedFieldType->getClassName()),
-                                            );
-                                        });
-                                        yield '}';
-                                    } else {
-                                        yield sprintf(
-                                            'get => $this->%s ??= $this->data[\'__typename\'] === %s ? new %s($this->data) : null;',
-                                            $fieldName,
-                                            var_export($nakedFieldType->fragmentType->name(), true),
-                                            $generator->import($nakedFieldType->getClassName()),
-                                        );
-                                    }
-
-                                    return;
-                                }
-
-                                if ($nakedFieldType instanceof FragmentObjectType) {
-                                    yield sprintf(
-                                        'get => $this->%s ??= new %s($this->data);',
-                                        $fieldName,
-                                        $generator->import($nakedFieldType->getClassName()),
-                                    );
-
-                                    return;
-                                }
-
-                                yield from $generator->wrap(
-                                    sprintf(
-                                        'get => $this->%s ??= ',
-                                        $fieldName,
-                                    ),
-                                    $this->typeInitializer->__invoke(
-                                        $fieldType,
-                                        $generator,
-                                        sprintf('$this->data[%s]', var_export($fieldName, true)),
-                                    ),
-                                    ';',
-                                );
-                            });
-                            yield '}';
-
-                            if ($nakedFieldType instanceof FragmentObjectType && $fieldType instanceof SymfonyType\NullableType) {
-                                yield '';
-                                yield '/**';
-                                yield sprintf(' * @phpstan-assert-if-true !null $this->%s', $fieldName);
-                                yield ' */';
-                                yield sprintf(
-                                    'public bool $is%s {',
-                                    $nakedFieldType->fragmentName,
-                                );
-                                yield $generator->indent(function () use ($nakedFieldType, $generator) {
-                                    if ($nakedFieldType->fragmentType instanceof ObjectType) {
-                                        yield sprintf(
-                                            'get => $this->is%s ??= $this->data[\'__typename\'] === %s;',
-                                            $nakedFieldType->fragmentName,
-                                            var_export($nakedFieldType->fragmentType->name(), true),
-                                        );
-
-                                        return;
-                                    }
-
-                                    yield sprintf(
-                                        'get => $this->is%s ??= in_array($this->data[\'__typename\'], %s::POSSIBLE_TYPES, true);',
-                                        $nakedFieldType->fragmentName,
-                                        $generator->import($nakedFieldType->getClassName()),
-                                    );
-                                });
-                                yield '}';
-                            }
-
-                            if ($this->config->dumpOrThrows && $fieldType instanceof SymfonyType\NullableType) {
-                                $fieldType = $fieldType->getWrappedType();
-
-                                yield '';
-                                yield from $generator->maybeDump(
-                                    '/**',
-                                    $this->prefix(' * ', function () use ($fieldType, $generator) {
-                                        if ($this->getNakedType($fieldType) instanceof SymfonyType\CollectionType) {
-                                            yield sprintf(
-                                                '@var %s',
-                                                $this->dumpPHPDocType($fieldType, $generator->import(...)),
-                                            );
-                                        }
-
-                                        yield '@throws NodeNotFoundException';
-                                    }),
-                                    ' */',
-                                );
-                                yield sprintf(
-                                    'public %s $%sOrThrow {',
-                                    $this->dumpPHPType($fieldType, $generator->import(...)),
-                                    $fieldName,
-                                );
-                                yield $generator->indent(function () use ($className, $generator, $fieldName) {
-                                    yield sprintf(
-                                        'get => $this->%s ?? throw %s::create(%s, %s);',
-                                        $fieldName,
-                                        $generator->import($this->fullyQualified('NodeNotFoundException')),
-                                        var_export($className, true),
-                                        var_export($fieldName, true),
-                                    );
-                                });
-                                yield '}';
-                            }
-                        }
-                    }
-
-                    if ($nodesType !== null) {
-                        yield '';
-                        yield from $generator->maybeDump(
-                            '/**',
-                            $this->prefix(' * ', sprintf(
-                                '@var %s',
-                                $this->dumpPHPDocType($nodesType, $generator->import(...)),
-                            )),
-                            ' */',
-                        );
-                        yield sprintf(
-                            'public %s $nodes {',
-                            $this->dumpPHPType($nodesType, $generator->import(...)),
-                        );
-                        yield $generator->indent(sprintf(
-                            'get => array_map(fn($edge) => $edge->node, $this->edges);',
-                        ));
-                        yield '}';
-                    }
-
-                    if ($isData) {
-                        yield '';
-
-                        yield '/**';
-                        yield ' * @var list<Error>';
-                        yield ' */';
-                        yield 'public readonly array $errors;';
-                    }
-
-                    yield '';
-                    yield from $generator->maybeDump(
-                        '/**',
-                        $this->prefix(' * ', function () use ($isData, $generator, $payloadShape) {
-                            yield sprintf(
-                                '@param %s $data',
-                                $this->dumpPHPDocType($payloadShape, $generator->import(...)),
-                            );
-
-                            if ($isData) {
-                                yield sprintf(
-                                    '@param %s $errors',
-                                    $this->dumpPHPDocType(SymfonyType::list(SymfonyType::arrayShape([
-                                        'message' => SymfonyType::string(),
-                                        'code' => SymfonyType::string(),
-                                        'debugMessage' => [
-                                            'type' => SymfonyType::string(),
-                                            'optional' => true,
-                                        ],
-                                    ])), $generator->import(...)),
-                                );
-                            }
-                        }),
-                        ' */',
-                    );
-                    yield 'public function __construct(';
-                    yield $generator->indent(function () use ($generator, $payloadShape, $isData) {
-                        yield sprintf(
-                            'private readonly %s $data,',
-                            $this->dumpPHPType($payloadShape, $generator->import(...)),
-                        );
-
-                        if ($isData) {
-                            yield 'array $errors,';
-                        }
-                    });
-
-                    if ($isData) {
-                        yield ') {';
-                        yield $generator->indent(function () {
-                            yield '$this->errors = array_map(fn(array $error) => new Error($error), $errors);';
-                        });
-                        yield '}';
-                    } else {
-                        yield ') {}';
-                    }
-
-                    if ($this->config->dumpMethods && $fields instanceof ArrayShapeType) {
-                        foreach ($fields->getShape() as $fieldName => ['type' => $fieldType]) {
-                            Assert::string($fieldName);
-
-                            if ($fieldName === '__typename') {
-                                continue;
-                            }
-
-                            yield '';
-
-                            if ($this->getNakedType($fieldType) instanceof SymfonyType\CollectionType) {
-                                yield '/**';
-                                yield sprintf(
-                                    ' * @return %s',
-                                    $this->dumpPHPDocType($fieldType, $generator->import(...)),
-                                );
-                                yield ' */';
-                            }
-
-                            yield sprintf(
-                                'public function %s() : %s',
-                                $this->getterMethod($fieldName),
-                                $this->dumpPHPType($fieldType, $generator->import(...)),
-                            );
-                            yield '{';
-                            yield $generator->indent(function () use ($fieldName) {
-                                yield sprintf('return $this->%s;', $fieldName);
-                            });
-                            yield '}';
-
-                            if ($this->config->dumpOrThrows && $fieldType instanceof SymfonyType\NullableType) {
-                                $fieldType = $fieldType->getWrappedType();
-
-                                yield '';
-                                yield from $generator->maybeDump(
-                                    '/**',
-                                    $this->prefix(' * ', function () use ($fieldType, $generator) {
-                                        if ($this->getNakedType($fieldType) instanceof SymfonyType\CollectionType) {
-                                            yield sprintf(
-                                                '@return %s',
-                                                $this->dumpPHPDocType($fieldType, $generator->import(...)),
-                                            );
-                                        }
-
-                                        yield '@throws NodeNotFoundException';
-                                    }),
-                                    ' */',
-                                );
-                                yield sprintf(
-                                    'public function %sOrThrow() : %s',
-                                    $this->getterMethod($fieldName),
-                                    $this->dumpPHPType($fieldType, $generator->import(...)),
-                                );
-                                yield '{';
-                                yield $generator->indent(function () use ($fieldName) {
-                                    yield sprintf('return $this->%sOrThrow;', $fieldName);
-                                });
-                                yield '}';
-                            }
-                        }
-                    }
-
-                    if ($isData && $this->config->dumpMethods) {
-                        yield '';
-                        yield '/**';
-                        yield ' * @return list<Error>';
-                        yield ' */';
-                        yield 'public function getErrors() : array';
-                        yield '{';
-                        yield $generator->indent(function () {
-                            yield 'return $this->errors;';
-                        });
-                        yield '}';
-                    }
-
-                    if ($nodesType !== null && $this->config->dumpMethods) {
-                        yield '';
-                        yield from $generator->maybeDump(
-                            '/**',
-                            $this->prefix(' * ', sprintf(
-                                '@return %s',
-                                $this->dumpPHPDocType($nodesType, $generator->import(...)),
-                            )),
-                            ' */',
-                        );
-                        yield 'public function getNodes() : array';
-                        yield '{';
-                        yield $generator->indent(function () {
-                            yield 'return $this->nodes;';
-                        });
-                        yield '}';
-                    }
-                },
-            );
-            yield '}';
-        });
-
-        $relativePath = str_replace($this->config->outputDir . '/', '', $outputDirectory . '/' . $className . '.php');
-        $this->files[$relativePath] = $class;
-    }
-
-    /**
-     * @throws IOException
-     */
-    private function generateErrorClass(string $operationDir, string $operationType, string $operationName) : void
-    {
-        $generator = new CodeGenerator($this->fullyQualified($operationType, $operationName));
-        $class = $generator->dumpFile(function () use ($generator) {
-            yield '// This file was automatically generated and should not be edited.';
-
-            yield '';
-
-            if ($this->config->addSymfonyExcludeAttribute) {
-                yield $generator->dumpAttribute('Symfony\Component\DependencyInjection\Attribute\Exclude');
-            }
-
-            yield 'final readonly class Error';
-            yield '{';
-            yield $generator->indent(function () use ($generator) {
-                yield 'public string $message;';
-                yield 'public string $code;';
-
-                yield '';
-                yield from $generator->maybeDump(
-                    '/**',
-                    $this->prefix(' * ', function () use ($generator) {
-                        yield sprintf('@param %s $error', $this->dumpPHPDocType(SymfonyType::arrayShape([
-                            'message' => SymfonyType::string(),
-                            'code' => SymfonyType::string(),
-                            'debugMessage' => [
-                                'type' => SymfonyType::string(),
-                                'optional' => true,
-                            ],
-                        ]), $generator->import(...)));
-                    }),
-                    ' */',
-                );
-                yield 'public function __construct(array $error)';
-                yield '{';
-                yield $generator->indent(function () {
-                    yield "\$this->message = \$error['debugMessage'] ?? \$error['message'];";
-                    yield "\$this->code = \$error['code'];";
-                });
-                yield '}';
-            });
-            yield '}';
-        });
-
-        $relativePath = str_replace($this->config->outputDir . '/', '', $operationDir . '/Error.php');
-        $this->files[$relativePath] = $class;
-    }
-
-    /**
-     * @throws IOException
-     */
-    private function generateExceptionClass(string $outputDir, string $operationType, string $operationName, string $className) : void
-    {
-        $generator = new CodeGenerator($this->fullyQualified($operationType, $operationName));
-        $class = $generator->dumpFile(function () use ($className, $generator) {
-            yield '// This file was automatically generated and should not be edited.';
-
-            yield '';
-            yield sprintf('final class %s extends %s', $className, $generator->import(Exception::class));
-            yield '{';
-            yield $generator->indent(function () use ($generator, $className) {
-                yield 'public function __construct(';
-                yield $generator->indent('public readonly Data $data,');
-                yield ') {';
-                yield $generator->indent(function () use ($generator, $className) {
-                    yield 'parent::__construct(sprintf(';
-                    yield $generator->indent([
-                        sprintf("'%s failed%%s',", $className),
-                        "\$data->errors !== [] ? sprintf(': %s', \$data->errors[0]->message) : '',",
-                    ]);
-                    yield '));';
-                });
-                yield '}';
-            });
-            yield '}';
-        });
-
-        $relativePath = str_replace($this->config->outputDir . '/', '', $outputDir . '/' . $className . '.php');
-        $this->files[$relativePath] = $class;
-    }
-
-    /**
-     * @throws IOException
-     */
-    private function generateEnumType(string $name, EnumType $type) : void
-    {
-        if (in_array($name, $this->config->ignoreTypes, true)) {
-            return;
-        }
-
-        $generator = new CodeGenerator($this->fullyQualified('Enum'));
-        $enumClass = $generator->dumpFile(function () use ($type, $name, $generator) {
-            yield '// This file was automatically generated and should not be edited.';
-            yield '';
-            yield '/**';
-            yield ' * @api';
-            yield ' */';
-
-            if ($this->config->addSymfonyExcludeAttribute) {
-                yield $generator->dumpAttribute('Symfony\Component\DependencyInjection\Attribute\Exclude');
-            }
-
-            yield sprintf('enum %s: string', $name);
-            yield '{';
-            yield $generator->indent(function () use ($generator, $type) {
-                foreach ($type->getValues() as $value) {
-                    Assert::string($value->value, 'Enum value must be a string');
-
-                    if ($value->description !== null) {
-                        foreach (explode(PHP_EOL, $value->description) as $description) {
-                            yield sprintf('// %s', $description);
-                        }
-                    }
-
-                    yield sprintf("case %s = '%s';", u($value->value)->lower()->pascal()->toString(), $value->value);
-
-                    if ($value->description !== null) {
-                        yield '';
-                    }
-                }
-
-                if ($this->config->addUnknownCaseToEnums) {
-                    yield '';
-                    yield '// When the server returns an unknown enum value, this is the value that will be used.';
-                    yield 'case Unknown__ = \'unknown__\';';
-                }
-
-                if ($this->config->dumpMethods) {
-                    $numberOfValues = count($type->getValues());
-                    foreach ($type->getValues() as $value) {
-                        Assert::string($value->value, 'Enum value must be a string');
-
-                        yield '';
-                        yield sprintf('public function is%s() : bool', u($value->value)->lower()->pascal()->toString());
-                        yield '{';
-                        yield $generator->indent(function () use ($numberOfValues, $value) {
-                            if ($numberOfValues === 1) {
-                                yield '// @phpstan-ignore identical.alwaysTrue';
-                            }
-
-                            yield sprintf(
-                                'return $this === self::%s;',
-                                u($value->value)->lower()->pascal()->toString(),
-                            );
-                        });
-                        yield '}';
-
-                        yield '';
-                        yield sprintf(
-                            'public static function create%s() : self',
-                            u($value->value)->lower()->pascal()->toString(),
-                        );
-                        yield '{';
-                        yield $generator->indent(function () use ($value) {
-                            yield sprintf('return self::%s;', u($value->value)->lower()->pascal()->toString());
-                        });
-                        yield '}';
-                    }
-                }
-            });
-            yield '}';
-        });
-
-        $this->files['Enum/' . $name . '.php'] = $enumClass;
-    }
-
-    /**
-     * @throws IOException
-     */
-    private function generateInputType(string $name, InputObjectType $type, bool $isOneOf) : void
-    {
-        if (in_array($name, $this->config->ignoreTypes, true)) {
-            return;
-        }
-
-        $generator = new CodeGenerator($this->fullyQualified('Input'));
-        $inputClass = $generator->dumpFile(function () use ($isOneOf, $generator, $type) {
-            yield '// This file was automatically generated and should not be edited.';
-
-            $description = $type->description();
-
-            if ($description !== null) {
-                yield '';
-                foreach (explode(PHP_EOL, $description) as $line) {
-                    yield sprintf('// %s', $line);
-                }
-            }
-
-            yield '';
-
-            if ($this->config->addSymfonyExcludeAttribute) {
-                yield $generator->dumpAttribute('Symfony\Component\DependencyInjection\Attribute\Exclude');
-            }
-
-            yield sprintf('final readonly class %s implements %s', $type, $generator->import(JsonSerializable::class));
-            yield '{';
-            yield $generator->indent(function () use ($isOneOf, $type, $generator) {
-                $required = [];
-                $optional = [];
-
-                foreach ($type->getFields() as $fieldName => $field) {
-                    $fieldType = $this->mapGraphQLTypeToPHPType($field->getType());
-
-                    if ($field->isRequired()) {
-                        $required[$fieldName] = $fieldType;
-
-                        continue;
-                    }
-
-                    $optional[$fieldName] = $fieldType;
-                }
-
-                $fields = [...$required, ...$optional];
-
-                yield from $generator->maybeDump(
-                    '/**',
-                    function () use ($generator, $fields) {
-                        foreach ($fields as $fieldName => $fieldType) {
-                            if ( ! $fieldType instanceof SymfonyType\CollectionType) {
-                                continue;
-                            }
-
-                            yield sprintf(' * @param %s $%s', $this->dumpPHPDocType($fieldType, $generator->import(...)), $fieldName);
-                        }
-                    },
-                    ' */',
-                );
-
-                yield sprintf('%s function __construct(', $isOneOf ? 'private' : 'public');
-                yield $generator->indent(function () use ($generator, $type) {
-                    foreach ($type->getFields() as $fieldName => $field) {
-                        $fieldType = $this->mapGraphQLTypeToPHPType($field->getType());
-
-                        yield sprintf(
-                            'public %s $%s%s,',
-                            $this->dumpPHPType($fieldType, $generator->import(...)),
-                            $fieldName,
-                            ! $field->isRequired() ? ' = null' : '',
-                        );
-                    }
-                });
-                yield ') {}';
-
-                if ($isOneOf) {
-                    foreach ($type->getFields() as $fieldName => $field) {
-                        $fieldType = $field->getType();
-
-                        if ($fieldType instanceof NullableType) {
-                            $fieldType = Type::nonNull($fieldType);
-                        }
-
-                        $fieldType = $this->mapGraphQLTypeToPHPType($fieldType);
-
-                        yield '';
-                        yield sprintf(
-                            'public static function create%s(%s $%s) : self',
-                            ucfirst($fieldName),
-                            $this->dumpPHPType($fieldType, $generator->import(...)),
-                            $fieldName,
-                        );
-                        yield '{';
-                        yield $generator->indent(function () use ($fieldName) {
-                            yield sprintf('return new self(%s: $%s);', $fieldName, $fieldName);
-                        });
-                        yield '}';
-                    }
-                }
-
-                yield '';
-                yield '/**';
-                yield from $this->prefix(' * ', sprintf('@return %s', $this->dumpPHPDocType(SymfonyType::arrayShape($fields), $generator->import(...))));
-                yield ' */';
-                yield $generator->dumpAttribute(Override::class);
-                yield 'public function jsonSerialize() : array';
-                yield '{';
-                yield $generator->indent(function () use ($generator, $fields) {
-                    yield 'return [';
-                    yield $generator->indent(function () use ($fields) {
-                        foreach ($fields as $fieldName => $fieldType) {
-                            yield sprintf(
-                                "'%s' => \$this->%s,",
-                                $fieldName,
-                                $fieldName,
-                            );
-                        }
-                    });
-                    yield '];';
-                });
-                yield '}';
-            });
-            yield '}';
-        });
-
-        $this->files['Input/' . $name . '.php'] = $inputClass;
-    }
-
-    /**
-     * @throws IOException
-     */
-    private function generateNodeNotFoundException() : void
-    {
-        $generator = new CodeGenerator($this->config->namespace);
-        $class = $generator->dumpFile(function () use ($generator) {
-            yield '// This file was automatically generated and should not be edited.';
-
-            yield '';
-            yield sprintf('final class NodeNotFoundException extends %s', $generator->import(Exception::class));
-            yield '{';
-            yield $generator->indent(function () use ($generator) {
-                yield 'public static function create(string $node, string $property) : self';
-                yield '{';
-                yield $generator->indent(function () {
-                    yield "return new self(sprintf('Field %s.%s is null', \$node, \$property));";
-                });
-                yield '}';
-            });
-            yield '}';
-        });
-
-        $this->files['NodeNotFoundException.php'] = $class;
-    }
-
-    /**
-     * @param callable(string): string $importer
-     */
-    private function dumpPHPType(SymfonyType $type, callable $importer) : string
-    {
-        if ($type instanceof SymfonyType\NullableType) {
-            if ($type->getWrappedType() instanceof SymfonyType\WrappingTypeInterface) {
-                return sprintf('null|%s', $this->dumpPHPType($type->getWrappedType(), $importer));
-            }
-
-            return sprintf('?%s', $this->dumpPHPType($type->getWrappedType(), $importer));
-        }
-
-        if ($type instanceof SymfonyType\CollectionType) {
-            return 'array';
-        }
-
-        if ($type instanceof SymfonyType\ObjectType) {
-            return $importer($type->getClassName());
-        }
-
-        if ($type instanceof SymfonyType\UnionType) {
-            return implode(
-                '|',
-                array_unique(
-                    array_map(
-                        fn(SymfonyType $type) => $this->dumpPHPType($type, $importer),
-                        $type->getTypes(),
-                    ),
-                ),
-            );
-        }
-
-        return (string) $type;
-    }
-
-    /**
-     * @param callable(string): string $importer
-     */
-    private function dumpPHPDocType(SymfonyType $type, callable $importer, int $indentation = 0) : string
-    {
-        if ($type instanceof SymfonyType\NullableType) {
-            return sprintf('null|%s', $this->dumpPHPDocType($type->getWrappedType(), $importer, $indentation));
-        }
-
-        if ($type instanceof ArrayShapeType) {
-            $items = [];
-
-            foreach ($type->getShape() as $key => ['type' => $itemType, 'optional' => $optional]) {
-                $itemKey = sprintf("'%s'", $key);
-
-                if ($optional) {
-                    $itemKey = sprintf('%s?', $itemKey);
-                }
-
-                $items[] = sprintf('%s: %s', $itemKey, $this->dumpPHPDocType($itemType, $importer, $indentation + 1));
-            }
-
-            if ($items === []) {
-                return 'array{}';
-            }
-
-            $pad = $indentation === 0 ? '' : str_repeat(' ', $indentation * 4);
-
-            return sprintf(
-                "array{\n%s    %s,\n%s}",
-                $pad,
-                implode(sprintf(",\n%s    ", $pad), $items),
-                $pad,
-            );
-        }
-
-        if ($type instanceof SymfonyType\CollectionType) {
-            if ($type->isList()) {
-                return sprintf('list<%s>', $this->dumpPHPDocType($type->getCollectionValueType(), $importer, $indentation));
-            }
-
-            return sprintf(
-                'array<%s,%s>',
-                $this->dumpPHPDocType($type->getCollectionKeyType(), $importer, $indentation),
-                $this->dumpPHPDocType($type->getCollectionValueType(), $importer, $indentation),
-            );
-        }
-
-        if ($type instanceof SymfonyType\UnionType) {
-            return implode(
-                '|',
-                array_unique(
-                    array_map(
-                        fn(SymfonyType $type) => $this->dumpPHPDocType($type, $importer, $indentation),
-                        $type->getTypes(),
-                    ),
-                ),
-            );
-        }
-
-        if ($type instanceof SymfonyType\ObjectType) {
-            return $importer($type->getClassName());
-        }
-
-        return (string) $type;
     }
 
     /**
@@ -1805,12 +832,12 @@ final class GraphQLCodeGenerator
                         }
                     }
 
-                    $this->generateDataClass(
+                    $relativePath = str_replace($this->config->outputDir . '/', '', $outputDirectory . '/' . $className . '.php');
+                    $this->files[$relativePath] = $this->dataClassGenerator->generate(
                         $nakedFieldType,
                         $subFields instanceof SymfonyType\CollectionType && $subFields->isList() ? $subFields->getCollectionValueType() : $subFields,
                         $subPayloadShape instanceof SymfonyType\CollectionType && $subPayloadShape->isList() ? $subPayloadShape->getCollectionValueType() : $subPayloadShape,
                         $this->getPossibleTypes($fieldType),
-                        $outputDirectory,
                         $fqcn . '\\' . $className,
                         false,
                         false,
@@ -1823,6 +850,8 @@ final class GraphQLCodeGenerator
                             'selectionSet' => $selection->selectionSet,
                         ]),
                         $nodesType,
+                        $this->typeInitializer,
+                        $this->inlineFragmentRequiredFields,
                     );
 
                     if ($this->hasIncludeOrSkipDirective($selection->directives)) {
@@ -1887,17 +916,19 @@ final class GraphQLCodeGenerator
 
             $this->inlineFragmentRequiredFields[$inlineFragmentKey] = $requiredFields;
 
-            $this->generateDataClass(
+            $relativePath = str_replace($this->config->outputDir . '/', '', $outputDirectory . '/' . $className . '.php');
+            $this->files[$relativePath] = $this->dataClassGenerator->generate(
                 $fieldType,
                 $subFields instanceof SymfonyType\CollectionType && $subFields->isList() ? $subFields->getCollectionValueType() : $subFields,
                 $subPayloadShape instanceof SymfonyType\CollectionType && $subPayloadShape->isList() ? $subPayloadShape->getCollectionValueType() : $subPayloadShape,
                 [$fieldType->name()],
-                $outputDirectory,
                 $this->fullyQualified($fqcn, $className),
                 false,
                 true,
                 $selection,
                 null,
+                $this->typeInitializer,
+                $this->inlineFragmentRequiredFields,
             );
 
             $fields[$fieldName] = new FragmentObjectType(
@@ -1967,27 +998,6 @@ final class GraphQLCodeGenerator
         ];
     }
 
-    // TODO MOVE TO Code Generator
-    /**
-     * Adds a prefix to every line of the iterable
-     * @param CodeLines $data
-     * @return Generator<string|Group>
-     */
-    public function prefix(string $prefix, array | Closure | Generator | string $data) : Generator
-    {
-        foreach (CodeGenerator::resolveIterable($data) as $line) {
-            if ($line instanceof Group) {
-                yield Group::indent($this->prefix($prefix, $line->lines), $line->indention);
-
-                continue;
-            }
-
-            foreach (explode(PHP_EOL, $line) as $singleLine) {
-                yield $prefix . $singleLine;
-            }
-        }
-    }
-
     private function isList(Type $fieldType) : bool
     {
         if ($fieldType instanceof NonNull) {
@@ -2004,15 +1014,6 @@ final class GraphQLCodeGenerator
         }
 
         return implode('\\', array_filter([$this->config->namespace, $part, ...$moreParts], fn($part) => $part !== ''));
-    }
-
-    private function getterMethod(string $name) : string
-    {
-        if (preg_match('/^(as|is)[A-Z]/', lcfirst($name)) === 1) {
-            return lcfirst($name);
-        }
-
-        return sprintf('get%s', ucfirst($name));
     }
 
     public function getNakedType(SymfonyType $type) : SymfonyType
