@@ -37,8 +37,8 @@ abstract class GraphQLTestCase extends TestCase
             schema: $this->directory . '/Schema.graphql',
             projectDir: dirname(__DIR__),
             queriesDir: $this->directory,
-            outputDir: $this->directory . '/Expected',
-            namespace: $this->namespace . '\\Expected',
+            outputDir: $this->directory . '/Generated',
+            namespace: $this->namespace . '\\Generated',
             client: TestClient::class,
             dumpMethods: false,
             dumpOrThrows: false,
@@ -69,7 +69,7 @@ abstract class GraphQLTestCase extends TestCase
 
         // Read expected files from disk
         $expected = [];
-        foreach (Finder::create()->files()->in($this->directory . '/Expected') as $file) {
+        foreach (Finder::create()->files()->in($this->directory . '/Generated') as $file) {
             $expected[$file->getRelativePathname()] = $file->getContents();
         }
 

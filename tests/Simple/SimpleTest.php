@@ -6,7 +6,7 @@ namespace Ruudk\GraphQLCodeGenerator\Simple;
 
 use Ruudk\GraphQLCodeGenerator\GraphQLCodeGenerator;
 use Ruudk\GraphQLCodeGenerator\GraphQLTestCase;
-use Ruudk\GraphQLCodeGenerator\Simple\Expected\Query\TestQuery;
+use Ruudk\GraphQLCodeGenerator\Simple\Generated\Query\TestQuery;
 
 final class SimpleTest extends GraphQLTestCase
 {

@@ -7,8 +7,8 @@ namespace Ruudk\GraphQLCodeGenerator\OneOfDirective;
 use Ruudk\GraphQLCodeGenerator\GraphQLCodeGenerator;
 use Ruudk\GraphQLCodeGenerator\GraphQLRequestMatcher;
 use Ruudk\GraphQLCodeGenerator\GraphQLTestCase;
-use Ruudk\GraphQLCodeGenerator\OneOfDirective\Expected\Input\UserByInput;
-use Ruudk\GraphQLCodeGenerator\OneOfDirective\Expected\Query\TestQuery;
+use Ruudk\GraphQLCodeGenerator\OneOfDirective\Generated\Input\UserByInput;
+use Ruudk\GraphQLCodeGenerator\OneOfDirective\Generated\Query\TestQuery;
 
 final class OneOfDirectiveTest extends GraphQLTestCase
 {

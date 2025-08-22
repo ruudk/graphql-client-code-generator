@@ -52,7 +52,7 @@ return [
                 ],
                 'paths' => [
                     __DIR__ . '/examples/Generated/*',
-                    __DIR__ . '/tests/*/Expected/*',
+                    __DIR__ . '/tests/*/Generated/*',
                 ],
             ],
             [

@@ -6,7 +6,7 @@ namespace Ruudk\GraphQLCodeGenerator\IndexByDirective;
 
 use Ruudk\GraphQLCodeGenerator\GraphQLCodeGenerator;
 use Ruudk\GraphQLCodeGenerator\GraphQLTestCase;
-use Ruudk\GraphQLCodeGenerator\IndexByDirective\Expected\Query\TestQuery;
+use Ruudk\GraphQLCodeGenerator\IndexByDirective\Generated\Query\TestQuery;
 
 final class IndexByDirectiveTest extends GraphQLTestCase
 {

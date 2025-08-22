@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Ruudk\GraphQLCodeGenerator\Enum;
 
-use Ruudk\GraphQLCodeGenerator\Enum\Expected\Enum\Role;
-use Ruudk\GraphQLCodeGenerator\Enum\Expected\Enum\State;
-use Ruudk\GraphQLCodeGenerator\Enum\Expected\Query\TestQuery;
+use Ruudk\GraphQLCodeGenerator\Enum\Generated\Enum\Role;
+use Ruudk\GraphQLCodeGenerator\Enum\Generated\Enum\State;
+use Ruudk\GraphQLCodeGenerator\Enum\Generated\Query\TestQuery;
 use Ruudk\GraphQLCodeGenerator\GraphQLCodeGenerator;
 use Ruudk\GraphQLCodeGenerator\GraphQLTestCase;
 

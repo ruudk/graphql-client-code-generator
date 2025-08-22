@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Ruudk\GraphQLCodeGenerator\Fragments;
 
-use Ruudk\GraphQLCodeGenerator\Fragments\Expected\Query\TestQuery;
+use Ruudk\GraphQLCodeGenerator\Fragments\Generated\Query\TestQuery;
 use Ruudk\GraphQLCodeGenerator\GraphQLCodeGenerator;
 use Ruudk\GraphQLCodeGenerator\GraphQLTestCase;
 

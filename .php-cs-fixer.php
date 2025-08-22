@@ -10,7 +10,7 @@ $finder = Finder::create()
     ->in(__DIR__ . '/examples')
     ->in(__DIR__ . '/src')
     ->in(__DIR__ . '/tests')
-    ->notPath(['Generated', 'Expected'])
+    ->notPath(['Generated'])
     ->append([
         __DIR__ . '/.php-cs-fixer.php',
         __DIR__ . '/bin/graphql-client-code-generator',
