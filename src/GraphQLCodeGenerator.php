@@ -6,7 +6,6 @@ namespace Ruudk\GraphQLCodeGenerator;
 
 use Exception;
 use GraphQL\Error\InvariantViolation;
-use GraphQL\Language\AST\DirectiveNode;
 use GraphQL\Language\AST\DocumentNode;
 use GraphQL\Language\AST\FieldNode;
 use GraphQL\Language\AST\FragmentSpreadNode;
@@ -16,7 +15,6 @@ use GraphQL\Language\AST\NameNode;
 use GraphQL\Language\AST\NodeList;
 use GraphQL\Language\AST\OperationDefinitionNode;
 use GraphQL\Language\AST\SelectionSetNode;
-use GraphQL\Language\AST\StringValueNode;
 use GraphQL\Language\Parser;
 use GraphQL\Language\Printer;
 use GraphQL\Type\Definition\EnumType;
@@ -143,6 +141,8 @@ final class GraphQLCodeGenerator
     private readonly DataClassGenerator $dataClassGenerator;
     private readonly InputTypeGenerator $inputTypeGenerator;
     private TypeMapper $typeMapper;
+    private DirectiveProcessor $directiveProcessor;
+    private VariableParser $variableParser;
 
     /**
      * @var array<string, SymfonyType>
@@ -323,6 +323,10 @@ final class GraphQLCodeGenerator
             $this->objectTypes,
         );
 
+        // Initialize helper classes
+        $this->directiveProcessor = new DirectiveProcessor();
+        $this->variableParser = new VariableParser($this->typeMapper);
+
         foreach ($this->schema->getTypeMap() as $typeName => $type) {
             if (str_starts_with($typeName, '__')) {
                 continue;
@@ -451,7 +455,7 @@ final class GraphQLCodeGenerator
         $queryDir = $this->config->outputDir . '/' . $operationType;
         $operationDir = $queryDir . '/' . $operationName;
 
-        $variables = $this->parseVariables($operation);
+        $variables = $this->variableParser->parseVariables($operation);
 
         $relativePath = str_replace($this->config->outputDir . '/', '', $queryDir . '/' . $queryClassName . $operationType . '.php');
         $this->files[$relativePath] = $this->operationClassGenerator->generate(
@@ -507,33 +511,6 @@ final class GraphQLCodeGenerator
             $operationName,
             $queryClassName . $operationType . 'FailedException',
         );
-    }
-
-    /**
-     * @return array<string, SymfonyType>
-     */
-    private function parseVariables(OperationDefinitionNode $operation) : array
-    {
-        $required = [];
-        $optional = [];
-
-        foreach ($operation->variableDefinitions as $varDef) {
-            $name = $varDef->variable->name->value;
-            $type = $this->typeMapper->mapGraphQLASTTypeToPHPType($varDef->type);
-
-            if ($type instanceof SymfonyType\NullableType) {
-                $optional[$name] = $type;
-
-                continue;
-            }
-
-            $required[$name] = $type;
-        }
-
-        return [
-            ...$required,
-            ...$optional,
-        ];
     }
 
     /**
@@ -668,7 +645,7 @@ final class GraphQLCodeGenerator
                     $indexBy = [];
 
                     if ($this->config->indexByDirective) {
-                        $indexBy = $this->getIndexByDirective($selection->directives);
+                        $indexBy = $this->directiveProcessor->getIndexByDirective($selection->directives);
 
                         if ($indexBy !== []) {
                             $indexByType = $this->typeMapper->mapGraphQLTypeToPHPType(RecursiveTypeFinder::find($nakedFieldType, $indexBy));
@@ -734,7 +711,7 @@ final class GraphQLCodeGenerator
                         $this->inlineFragmentRequiredFields,
                     );
 
-                    if ($this->hasIncludeOrSkipDirective($selection->directives)) {
+                    if ($this->directiveProcessor->hasIncludeOrSkipDirective($selection->directives)) {
                         $subType = SymfonyType::nullable($subType);
                         $subPayloadShape = SymfonyType::nullable($subPayloadShape);
                     }
@@ -927,41 +904,6 @@ final class GraphQLCodeGenerator
         // if ($type instanceof ObjectType) {
         //    return [$type->name];
         // }
-
-        return [];
-    }
-
-    /**
-     * @param NodeList<DirectiveNode> $directives
-     */
-    private function hasIncludeOrSkipDirective(NodeList $directives) : bool
-    {
-        foreach ($directives as $directive) {
-            if (in_array($directive->name->value, ['include', 'skip'], true)) {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    /**
-     * @param NodeList<DirectiveNode> $directives
-     * @return list<string>
-     */
-    private function getIndexByDirective(NodeList $directives) : array
-    {
-        foreach ($directives as $directive) {
-            if ($directive->name->value !== 'indexBy') {
-                continue;
-            }
-
-            if ( ! $directive->arguments[0]->value instanceof StringValueNode) {
-                continue;
-            }
-
-            return explode('.', $directive->arguments[0]->value->value);
-        }
 
         return [];
     }
