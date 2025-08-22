@@ -105,11 +105,4 @@ abstract class GraphQLTestCase extends TestCase
 
         return new TestClient($this->client);
     }
-
-    public function testGenerate() : void
-    {
-        new GraphQLCodeGenerator($this->getConfig())->generate();
-
-        $this->assertActualMatchesExpected();
-    }
 }

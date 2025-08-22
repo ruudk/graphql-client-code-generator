@@ -4,11 +4,19 @@ declare(strict_types=1);
 
 namespace Ruudk\GraphQLCodeGenerator\Simple;
 
+use Ruudk\GraphQLCodeGenerator\GraphQLCodeGenerator;
 use Ruudk\GraphQLCodeGenerator\GraphQLTestCase;
 use Ruudk\GraphQLCodeGenerator\Simple\Expected\Query\TestQuery;
 
 final class SimpleTest extends GraphQLTestCase
 {
+    public function testGenerate() : void
+    {
+        new GraphQLCodeGenerator($this->getConfig())->generate();
+
+        $this->assertActualMatchesExpected();
+    }
+
     public function testQuery() : void
     {
         $result = new TestQuery($this->getClient([

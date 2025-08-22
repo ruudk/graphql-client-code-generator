@@ -4,11 +4,19 @@ declare(strict_types=1);
 
 namespace Ruudk\GraphQLCodeGenerator\IndexByDirective;
 
+use Ruudk\GraphQLCodeGenerator\GraphQLCodeGenerator;
 use Ruudk\GraphQLCodeGenerator\GraphQLTestCase;
 use Ruudk\GraphQLCodeGenerator\IndexByDirective\Expected\Query\TestQuery;
 
 final class IndexByDirectiveTest extends GraphQLTestCase
 {
+    public function testGenerate() : void
+    {
+        new GraphQLCodeGenerator($this->getConfig())->generate();
+
+        $this->assertActualMatchesExpected();
+    }
+
     public function testQuery() : void
     {
         $result = new TestQuery($this->getClient([
