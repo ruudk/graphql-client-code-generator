@@ -32,9 +32,6 @@ use GraphQL\Type\Definition\Type;
 use GraphQL\Type\Definition\UnionType;
 use GraphQL\Type\Definition\WrappingType;
 use GraphQL\Type\Schema;
-use GraphQL\Utils\BuildClientSchema;
-use GraphQL\Utils\BuildSchema;
-use GraphQL\Utils\SchemaExtender;
 use GraphQL\Validator\DocumentValidator;
 use GraphQL\Validator\Rules\ExecutableDefinitions;
 use GraphQL\Validator\Rules\FieldsOnCorrectType;
@@ -42,13 +39,11 @@ use GraphQL\Validator\Rules\FragmentsOnCompositeTypes;
 use GraphQL\Validator\Rules\KnownArgumentNames;
 use GraphQL\Validator\Rules\KnownArgumentNamesOnDirectives;
 use GraphQL\Validator\Rules\KnownDirectives;
-use GraphQL\Validator\Rules\KnownFragmentNames;
 use GraphQL\Validator\Rules\KnownTypeNames;
 use GraphQL\Validator\Rules\LoneAnonymousOperation;
 use GraphQL\Validator\Rules\LoneSchemaDefinition;
 use GraphQL\Validator\Rules\NoFragmentCycles;
 use GraphQL\Validator\Rules\NoUndefinedVariables;
-use GraphQL\Validator\Rules\NoUnusedFragments;
 use GraphQL\Validator\Rules\NoUnusedVariables;
 use GraphQL\Validator\Rules\OneOfInputObjectsRule;
 use GraphQL\Validator\Rules\OverlappingFieldsCanBeMerged;
@@ -137,8 +132,8 @@ final class GraphQLCodeGenerator
      */
     private array $scalars;
     private DelegatingTypeInitializer $typeInitializer;
-    private ?string $schemaPath = null;
     private Optimizer $optimizer;
+    private readonly SchemaLoader $schemaLoader;
     private readonly Config $config;
     private readonly NodeNotFoundExceptionGenerator $nodeNotFoundExceptionGenerator;
     private readonly ErrorClassGenerator $errorClassGenerator;
@@ -192,40 +187,6 @@ final class GraphQLCodeGenerator
             ...$config->typeInitializers,
         );
 
-        $schema = $config->schema;
-
-        $filesystem = new Filesystem();
-
-        if (is_string($schema) && str_ends_with($schema, '.graphql')) {
-            $this->schemaPath = $schema;
-            $schema = BuildSchema::build($filesystem->readFile($schema));
-        } elseif (is_string($schema) && str_ends_with($schema, '.json')) {
-            $this->schemaPath = $schema;
-            $introspection = json_decode($filesystem->readFile($schema), true, flags: JSON_THROW_ON_ERROR);
-
-            Assert::isArray($introspection, 'Expected introspection to be an array');
-            Assert::keyExists($introspection, 'data', 'Expected introspection to have a "data" key');
-            Assert::isArray($introspection['data'], 'Expected introspection data to be an array');
-
-            // @phpstan-ignore argument.type (expects array<string, mixed>, array<mixed, mixed> given)
-            $schema = BuildClientSchema::build($introspection['data']);
-        }
-
-        Assert::isInstanceOf($schema, Schema::class, 'Invalid schema given, expected .graphql or .json file or Schema instance');
-
-        if ($config->indexByDirective) {
-            $schema = SchemaExtender::extend(
-                $schema,
-                Parser::parse(
-                    <<<'GRAPHQL'
-                        directive @indexBy(field: String!) on FIELD
-                        GRAPHQL
-                ),
-            );
-        }
-
-        $this->schema = $schema;
-
         $this->scalars = [
             'ID' => SymfonyType::string(),
             'String' => SymfonyType::string(),
@@ -236,16 +197,9 @@ final class GraphQLCodeGenerator
             ...$config->scalars,
         ];
 
+        $this->schemaLoader = new SchemaLoader(new Filesystem());
+        $this->schema = $this->schemaLoader->load($config->schema, $config->indexByDirective);
         $this->optimizer = new Optimizer($this->schema);
-
-        // Initialize generators
-        $this->nodeNotFoundExceptionGenerator = new NodeNotFoundExceptionGenerator($config);
-        $this->errorClassGenerator = new ErrorClassGenerator($config);
-        $this->exceptionClassGenerator = new ExceptionClassGenerator($config);
-        $this->enumTypeGenerator = new EnumTypeGenerator($config);
-        $this->operationClassGenerator = new OperationClassGenerator($config);
-        $this->dataClassGenerator = new DataClassGenerator($config);
-        $this->inputTypeGenerator = new InputTypeGenerator($config);
 
         $this->validatorRules = [
             ExecutableDefinitions::class => new ExecutableDefinitions(),
@@ -290,6 +244,15 @@ final class GraphQLCodeGenerator
         if ($config->indexByDirective) {
             $this->validatorRules[IndexByValidator::class] = new IndexByValidator($this->scalars);
         }
+
+        // Initialize generators
+        $this->nodeNotFoundExceptionGenerator = new NodeNotFoundExceptionGenerator($config);
+        $this->errorClassGenerator = new ErrorClassGenerator($config);
+        $this->exceptionClassGenerator = new ExceptionClassGenerator($config);
+        $this->enumTypeGenerator = new EnumTypeGenerator($config);
+        $this->operationClassGenerator = new OperationClassGenerator($config);
+        $this->dataClassGenerator = new DataClassGenerator($config);
+        $this->inputTypeGenerator = new InputTypeGenerator($config);
     }
 
     /**
@@ -312,8 +275,8 @@ final class GraphQLCodeGenerator
             ->name('*.graphql')
             ->sortByName();
 
-        if ($this->schemaPath !== null) {
-            $finder->notPath(Path::makeRelative($this->schemaPath, $this->config->queriesDir));
+        if ($this->schemaLoader->schemaPath !== null) {
+            $finder->notPath(Path::makeRelative($this->schemaLoader->schemaPath, $this->config->queriesDir));
         }
 
         $operations = [];
@@ -385,7 +348,7 @@ final class GraphQLCodeGenerator
                 $this->files['Input/' . $typeName . '.php'] = $this->inputTypeGenerator->generate(
                     $type,
                     $type->isOneOf(),
-                    fn($t) => $this->typeMapper->mapGraphQLTypeToPHPType($t),
+                    $this->typeMapper->mapGraphQLTypeToPHPType(...),
                 );
 
                 continue;
