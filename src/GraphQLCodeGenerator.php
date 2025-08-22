@@ -11,15 +11,12 @@ use GraphQL\Language\AST\DocumentNode;
 use GraphQL\Language\AST\FieldNode;
 use GraphQL\Language\AST\FragmentSpreadNode;
 use GraphQL\Language\AST\InlineFragmentNode;
-use GraphQL\Language\AST\ListTypeNode;
 use GraphQL\Language\AST\NamedTypeNode;
 use GraphQL\Language\AST\NameNode;
 use GraphQL\Language\AST\NodeList;
-use GraphQL\Language\AST\NonNullTypeNode;
 use GraphQL\Language\AST\OperationDefinitionNode;
 use GraphQL\Language\AST\SelectionSetNode;
 use GraphQL\Language\AST\StringValueNode;
-use GraphQL\Language\AST\TypeNode;
 use GraphQL\Language\Parser;
 use GraphQL\Language\Printer;
 use GraphQL\Type\Definition\EnumType;
@@ -31,7 +28,6 @@ use GraphQL\Type\Definition\NamedType;
 use GraphQL\Type\Definition\NonNull;
 use GraphQL\Type\Definition\NullableType;
 use GraphQL\Type\Definition\ObjectType;
-use GraphQL\Type\Definition\ScalarType;
 use GraphQL\Type\Definition\Type;
 use GraphQL\Type\Definition\UnionType;
 use GraphQL\Type\Definition\WrappingType;
@@ -151,6 +147,7 @@ final class GraphQLCodeGenerator
     private readonly OperationClassGenerator $operationClassGenerator;
     private readonly DataClassGenerator $dataClassGenerator;
     private readonly InputTypeGenerator $inputTypeGenerator;
+    private TypeMapper $typeMapper;
 
     /**
      * @var array<string, SymfonyType>
@@ -355,6 +352,14 @@ final class GraphQLCodeGenerator
             }
         }
 
+        // Initialize the TypeMapper with the discovered types
+        $this->typeMapper = new TypeMapper(
+            $this->scalars,
+            $this->enumTypes,
+            $this->inputObjectTypes,
+            $this->objectTypes,
+        );
+
         foreach ($this->schema->getTypeMap() as $typeName => $type) {
             if (str_starts_with($typeName, '__')) {
                 continue;
@@ -380,7 +385,7 @@ final class GraphQLCodeGenerator
                 $this->files['Input/' . $typeName . '.php'] = $this->inputTypeGenerator->generate(
                     $type,
                     $type->isOneOf(),
-                    fn($t) => $this->mapGraphQLTypeToPHPType($t),
+                    fn($t) => $this->typeMapper->mapGraphQLTypeToPHPType($t),
                 );
 
                 continue;
@@ -551,7 +556,7 @@ final class GraphQLCodeGenerator
 
         foreach ($operation->variableDefinitions as $varDef) {
             $name = $varDef->variable->name->value;
-            $type = $this->mapGraphQLASTTypeToPHPType($varDef->type);
+            $type = $this->typeMapper->mapGraphQLASTTypeToPHPType($varDef->type);
 
             if ($type instanceof SymfonyType\NullableType) {
                 $optional[$name] = $type;
@@ -566,94 +571,6 @@ final class GraphQLCodeGenerator
             ...$required,
             ...$optional,
         ];
-    }
-
-    private function mapGraphQLASTTypeToPHPType(TypeNode $type, ?bool $nullable = null) : SymfonyType
-    {
-        if ($type instanceof NonNullTypeNode) {
-            return $this->mapGraphQLASTTypeToPHPType($type->type, false);
-        }
-
-        if ($nullable === null) {
-            return SymfonyType::nullable($this->mapGraphQLASTTypeToPHPType($type, true));
-        }
-
-        if ($type instanceof ListTypeNode) {
-            return SymfonyType::list($this->mapGraphQLASTTypeToPHPType($type->type));
-        }
-
-        if ($type instanceof NamedTypeNode) {
-            if (isset($this->scalars[$type->name->value])) {
-                $scalar = $this->scalars[$type->name->value];
-
-                if ($scalar instanceof SymfonyType) {
-                    return $scalar;
-                }
-
-                return $scalar[1];
-            }
-
-            if (isset($this->enumTypes[$type->name->value])) {
-                return $this->enumTypes[$type->name->value];
-            }
-
-            if (isset($this->inputObjectTypes[$type->name->value])) {
-                return $this->inputObjectTypes[$type->name->value];
-            }
-
-            if (isset($this->objectTypes[$type->name->value])) {
-                return $this->objectTypes[$type->name->value][1];
-            }
-        }
-
-        return SymfonyType::mixed();
-    }
-
-    private function mapGraphQLTypeToPHPType(Type $type, ?bool $nullable = null, bool $builtInOnly = false) : SymfonyType
-    {
-        if ($type instanceof NonNull) {
-            return $this->mapGraphQLTypeToPHPType($type->getWrappedType(), false, $builtInOnly);
-        }
-
-        if ($nullable === null) {
-            return SymfonyType::nullable($this->mapGraphQLTypeToPHPType($type, true, $builtInOnly));
-        }
-
-        if ($type instanceof ListOfType) {
-            return SymfonyType::list($this->mapGraphQLTypeToPHPType($type->getWrappedType(), $builtInOnly));
-        }
-
-        if ($type instanceof ScalarType) {
-            if (isset($this->scalars[$type->name()])) {
-                $scalar = $this->scalars[$type->name()];
-
-                if ($scalar instanceof SymfonyType) {
-                    return $scalar;
-                }
-
-                return $builtInOnly ? $scalar[0] : $scalar[1];
-            }
-        }
-
-        if ($type instanceof EnumType && $builtInOnly) {
-            return SymfonyType::string();
-        }
-
-        if ( ! $builtInOnly && $type instanceof NamedType) {
-            if (isset($this->enumTypes[$type->name()])) {
-                return $this->enumTypes[$type->name()];
-            }
-
-            if (isset($this->inputObjectTypes[$type->name()])) {
-                return $this->inputObjectTypes[$type->name()];
-            }
-
-            if (isset($this->objectTypes[$type->name()])) {
-                return $this->objectTypes[$type->name()][1];
-            }
-        }
-
-        return SymfonyType::mixed();
     }
 
     /**
@@ -791,7 +708,7 @@ final class GraphQLCodeGenerator
                         $indexBy = $this->getIndexByDirective($selection->directives);
 
                         if ($indexBy !== []) {
-                            $indexByType = $this->mapGraphQLTypeToPHPType(RecursiveTypeFinder::find($nakedFieldType, $indexBy));
+                            $indexByType = $this->typeMapper->mapGraphQLTypeToPHPType(RecursiveTypeFinder::find($nakedFieldType, $indexBy));
                         }
                     }
 
@@ -867,9 +784,9 @@ final class GraphQLCodeGenerator
                     continue;
                 }
 
-                $fields[$fieldName] = $this->mapGraphQLTypeToPHPType($fieldType);
-                $fields2[$path . '.' . $fieldName] = $this->mapGraphQLTypeToPHPType($fieldType);
-                $payloadShape[$fieldName] = $this->mapGraphQLTypeToPHPType($fieldType, builtInOnly: true);
+                $fields[$fieldName] = $this->typeMapper->mapGraphQLTypeToPHPType($fieldType);
+                $fields2[$path . '.' . $fieldName] = $this->typeMapper->mapGraphQLTypeToPHPType($fieldType);
+                $payloadShape[$fieldName] = $this->typeMapper->mapGraphQLTypeToPHPType($fieldType, builtInOnly: true);
 
                 continue;
             }
@@ -901,8 +818,8 @@ final class GraphQLCodeGenerator
                 $path . '.' . $fieldName,
             );
 
-            $subFields = $this->mergeArrayShape(SymfonyType::arrayShape($fieldsBeforeInlineFragments), $subFields);
-            $subPayloadShape = $this->mergeArrayShape(SymfonyType::arrayShape($payloadShapeBeforeInlineFragments), $subPayloadShape);
+            $subFields = $this->typeMapper->mergeArrayShape(SymfonyType::arrayShape($fieldsBeforeInlineFragments), $subFields);
+            $subPayloadShape = $this->typeMapper->mergeArrayShape(SymfonyType::arrayShape($payloadShapeBeforeInlineFragments), $subPayloadShape);
 
             // Store the required fields for this inline fragment
             // Extract field names directly from the inline fragment's selection set
@@ -945,7 +862,7 @@ final class GraphQLCodeGenerator
             }
 
             // Merge inline fragment payload fields into parent as optional
-            $nakedSubPayloadShape = $this->getNakedType($subPayloadShape);
+            $nakedSubPayloadShape = $this->typeMapper->getNakedType($subPayloadShape);
             Assert::isInstanceOf($nakedSubPayloadShape, ArrayShapeType::class, 'Payload shape must be an array shape');
 
             foreach ($nakedSubPayloadShape->getShape() as $key => ['type' => $type]) {
@@ -980,12 +897,12 @@ final class GraphQLCodeGenerator
                 $fields2[$path . '.' . $fieldName] = SymfonyType::nullable($fields2[$path . '.' . $fieldName]);
             }
 
-            $nakedFragmentPayloadShape = $this->getNakedType($this->fragmentPayloadShapes[$selection->name->value]);
+            $nakedFragmentPayloadShape = $this->typeMapper->getNakedType($this->fragmentPayloadShapes[$selection->name->value]);
             Assert::isInstanceOf($nakedFragmentPayloadShape, ArrayShapeType::class, 'Fragment shape must be an array shape');
 
             // Merge fragment spread fields properly
             $currentPayloadShape = SymfonyType::arrayShape($payloadShape);
-            $mergedPayloadShape = $this->mergeArrayShape($currentPayloadShape, $nakedFragmentPayloadShape);
+            $mergedPayloadShape = $this->typeMapper->mergeArrayShape($currentPayloadShape, $nakedFragmentPayloadShape);
             Assert::isInstanceOf($mergedPayloadShape, ArrayShapeType::class);
             $payloadShape = $mergedPayloadShape->getShape();
         }
@@ -1014,15 +931,6 @@ final class GraphQLCodeGenerator
         }
 
         return implode('\\', array_filter([$this->config->namespace, $part, ...$moreParts], fn($part) => $part !== ''));
-    }
-
-    public function getNakedType(SymfonyType $type) : SymfonyType
-    {
-        if ($type instanceof SymfonyType\NullableType) {
-            return $type->getWrappedType();
-        }
-
-        return $type;
     }
 
     /**
@@ -1058,66 +966,6 @@ final class GraphQLCodeGenerator
         // }
 
         return [];
-    }
-
-    /**
-     * @throws InvalidArgumentException
-     */
-    private function mergeArrayShape(SymfonyType $left, SymfonyType $right) : SymfonyType
-    {
-        if ($right instanceof SymfonyType\NullableType) {
-            $right = $right->getWrappedType();
-        }
-
-        if ($right instanceof SymfonyType\UnionType) {
-            return SymfonyType::union($left, ...$right->getTypes());
-        }
-
-        Assert::isInstanceOf($left, ArrayShapeType::class, 'Left type must be an array shape, %s given');
-        Assert::isInstanceOf($right, ArrayShapeType::class, 'Right type must be an array shape, %s given');
-
-        $leftShape = $left->getShape();
-        $rightShape = $right->getShape();
-        $mergedShape = [];
-
-        // Copy all fields from left shape
-        foreach ($leftShape as $key => $value) {
-            $mergedShape[$key] = $value;
-        }
-
-        // Merge fields from right shape
-        foreach ($rightShape as $key => $value) {
-            if (isset($mergedShape[$key])) {
-                // Field exists in both shapes - need to merge
-                $leftValue = $mergedShape[$key];
-
-                // Extract the actual types from the array shape format
-                $leftType = $leftValue['type'];
-                $rightType = $value['type'];
-
-                // If both are array shapes, merge them recursively
-                if ($leftType instanceof ArrayShapeType && $rightType instanceof ArrayShapeType) {
-                    $mergedType = $this->mergeArrayShape($leftType, $rightType);
-
-                    $mergedShape[$key] = [
-                        'type' => $mergedType,
-                        'optional' => $leftValue['optional'],
-                    ];
-
-                    continue;
-                }
-
-                // For non-array shapes, just overwrite
-                $mergedShape[$key] = $value;
-
-                continue;
-            }
-
-            // Field only exists in right shape
-            $mergedShape[$key] = $value;
-        }
-
-        return SymfonyType::arrayShape($mergedShape);
     }
 
     /**
