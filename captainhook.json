@@ -19,6 +19,9 @@
                 "action": "composer normalize --diff --dry-run"
             },
             {
+                "action": "vendor/bin/composer-dependency-analyser"
+            },
+            {
                 "action": "\\CaptainHook\\App\\Hook\\PHP\\Action\\Linting"
             },
             {

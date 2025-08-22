@@ -42,6 +42,9 @@ jobs:
       - name: Check composer.json normalization
         run: composer normalize --diff --dry-run
 
+      - name: Check dependencies
+        run: vendor/bin/composer-dependency-analyser
+
       - name: Run PHP CS Fixer
         run: vendor/bin/php-cs-fixer check --diff
 
