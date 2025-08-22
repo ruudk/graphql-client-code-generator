@@ -31,40 +31,34 @@ abstract class GraphQLTestCase extends TestCase
         $this->client = new Client();
     }
 
-    public function generateExpected() : void
+    public function getConfig(string $target = 'Actual') : Config
     {
-        $this->setUp();
-        $this->generate('Expected');
-    }
-
-    protected function generate(string $target = 'Actual') : void
-    {
-        new GraphQLCodeGenerator(
-            $this->directory . '/Schema.graphql',
-            dirname(__DIR__),
-            $this->directory,
-            $this->directory . '/' . $target,
-            $this->namespace . '\\' . $target,
-            TestClient::class,
-            false,
-            false,
-            true,
-            true,
-            [
+        return new Config(
+            schema: $this->directory . '/Schema.graphql',
+            projectDir: dirname(__DIR__),
+            queriesDir: $this->directory,
+            outputDir: $this->directory . '/' . $target,
+            namespace: $this->namespace . '\\' . $target,
+            client: TestClient::class,
+            dumpMethods: false,
+            dumpOrThrows: false,
+            dumpDefinition: true,
+            useNodeNameForEdgeNodes: true,
+            scalars: [
                 'IssueId' => [Type::int(), Type::int()],
             ],
-            [],
-            [],
-            [],
-            [],
-            [],
-            true,
-            true,
-            true,
-            false,
-            true,
-            true,
-        )->generate();
+            inputObjectTypes: [],
+            objectTypes: [],
+            enumTypes: [],
+            ignoreTypes: [],
+            typeInitializers: [],
+            useConnectionNameForConnections: true,
+            useEdgeNameForEdges: true,
+            addNodesOnConnections: true,
+            addSymfonyExcludeAttribute: false,
+            indexByDirective: true,
+            addUnknownCaseToEnums: true,
+        );
     }
 
     protected function assertActualMatchesExpected() : void
@@ -114,7 +108,8 @@ abstract class GraphQLTestCase extends TestCase
 
     public function testGenerate() : void
     {
-        $this->generate();
+        new GraphQLCodeGenerator($this->getConfig())->generate();
+
         $this->assertActualMatchesExpected();
     }
 }

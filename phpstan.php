@@ -1,4 +1,6 @@
-<?php declare(strict_types=1);
+<?php
+
+declare(strict_types=1);
 
 return [
     'includes' => [
@@ -22,6 +24,7 @@ return [
 
         // Analysis settings
         'paths' => [
+            __DIR__ . '/bin',
             __DIR__ . '/examples',
             __DIR__ . '/src',
             __DIR__ . '/tests',
@@ -39,7 +42,7 @@ return [
             'ticket' => [
                 'enabled' => true,
                 'tracker' => 'github',
-            ]
+            ],
         ],
         'shipmonkDeadCode' => [
             'detect' => [
@@ -59,13 +62,13 @@ return [
             ],
             [
                 'identifiers' => [
-                    'missingType.checkedException'
+                    'missingType.checkedException',
                 ],
                 'paths' => [
                     __DIR__ . '/examples/Generated/*',
                     __DIR__ . '/tests/*',
-                ]
-            ]
+                ],
+            ],
         ],
 
         // Developer experience

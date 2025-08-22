@@ -2,12 +2,14 @@
 
 declare(strict_types=1);
 
-include __DIR__ . '/../../vendor/autoload.php';
+include __DIR__ . '/../vendor/autoload.php';
 
 use Ruudk\GraphQLCodeGenerator\GraphQLTestCase;
 use Symfony\Component\Finder\Finder;
 
-foreach (Finder::create()->files()->in(dirname(__DIR__))->name('*Test.php') as $file) {
+$config = [];
+
+foreach (Finder::create()->files()->depth(1)->in(__DIR__)->name('*Test.php') as $file) {
     $class = 'Ruudk\\GraphQLCodeGenerator\\' . $file->getRelativePath() . '\\' . $file->getFilenameWithoutExtension();
 
     if ( ! class_exists($class)) {
@@ -18,11 +20,12 @@ foreach (Finder::create()->files()->in(dirname(__DIR__))->name('*Test.php') as $
         continue;
     }
 
-    echo sprintf('Regenerating expected output for %s ', $class);
+    $test = new $class($file->getFilenameWithoutExtension());
 
-    $instance = new $class($file->getFilenameWithoutExtension());
+    $reflector = new ReflectionClass($test);
+    $reflector->getMethod('setUp')->invoke($test);
 
-    $instance->generateExpected();
-
-    echo "✅\n";
+    $config[] = $test->getConfig();
 }
+
+return $config;

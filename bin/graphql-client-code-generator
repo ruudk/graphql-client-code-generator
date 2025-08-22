@@ -1,0 +1,41 @@
+#!/usr/bin/env php
+<?php
+
+declare(strict_types=1);
+
+use Ruudk\GraphQLCodeGenerator\Console\GenerateCommand;
+use Symfony\Component\Console\Application;
+use Symfony\Component\Console\Command\Command;
+use Symfony\Component\Console\Input\ArgvInput;
+
+$autoloaderPaths = [
+    __DIR__ . '/../vendor/autoload.php', // When in development
+    __DIR__ . '/../../../autoload.php',   // When installed as a dependency
+];
+
+$autoloaderFound = false;
+foreach ($autoloaderPaths as $autoloaderPath) {
+    if (file_exists($autoloaderPath)) {
+        require_once $autoloaderPath;
+        $autoloaderFound = true;
+
+        break;
+    }
+}
+
+if ( ! $autoloaderFound) {
+    fwrite(STDERR, "Autoloader not found. Please run 'composer install'.\n");
+    exit(1);
+}
+
+$input = new ArgvInput();
+
+if ($input->getFirstArgument() === null) {
+    $input = new ArgvInput([$argv[0], 'generate', ...array_slice($argv, 1)]);
+}
+
+$application = new Application('graphql-client-code-generator', '1.0.0');
+
+// TODO symfony/console:7.4 Remove `new Command()->setCode` wrapping everywhere
+$application->add(new Command('generate')->setCode(new GenerateCommand()));
+$application->run($input);

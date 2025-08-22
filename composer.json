@@ -6,6 +6,7 @@
     "require": {
         "php": "^8.4",
         "ruudk/code-generator": "^0.3.0",
+        "symfony/console": "^7.3",
         "symfony/filesystem": "^7.3",
         "symfony/finder": "^7.3",
         "symfony/string": "^7.3",
@@ -17,8 +18,10 @@
         "captainhook/captainhook-phar": "^5.25",
         "ergebnis/composer-normalize": "^2.47",
         "friendsofphp/php-cs-fixer": "^3.85",
+        "guzzlehttp/psr7": "^2.7",
         "php-http/discovery": "^1.20",
         "php-http/guzzle7-adapter": "^1.1",
+        "php-http/message": "^1.16",
         "php-http/mock-client": "^1.6",
         "phpstan/extension-installer": "^1.4",
         "phpstan/phpstan": "^2.1",
@@ -27,17 +30,15 @@
         "phpstan/phpstan-strict-rules": "^2.0",
         "phpstan/phpstan-webmozart-assert": "^2.0",
         "phpunit/phpunit": "^12.3",
+        "psr/http-client": "^1.0",
+        "psr/http-message": "^2.0",
+        "shipmonk/composer-dependency-analyser": "^1.8",
         "shipmonk/dead-code-detector": "^0.13.2",
         "staabm/phpstan-todo-by": "^0.3.0",
         "symfony/dotenv": "^7.3",
         "symfony/var-dumper": "^7.3",
         "ticketswap/php-cs-fixer-config": "^1.0",
-        "ticketswap/phpstan-error-formatter": "^1.1",
-        "shipmonk/composer-dependency-analyser": "^1.8",
-        "guzzlehttp/psr7": "^2.7",
-        "php-http/message": "^1.16",
-        "psr/http-client": "^1.0",
-        "psr/http-message": "^2.0"
+        "ticketswap/phpstan-error-formatter": "^1.1"
     },
     "autoload": {
         "psr-4": {
@@ -50,6 +51,9 @@
             "Ruudk\\GraphQLCodeGenerator\\Examples\\": "examples/"
         }
     },
+    "bin": [
+        "bin/graphql-client-code-generator"
+    ],
     "config": {
         "allow-plugins": {
             "captainhook/captainhook-phar": true,

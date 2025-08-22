@@ -94,7 +94,6 @@ use Ruudk\GraphQLCodeGenerator\TypeInitializer\CollectionTypeInitializer;
 use Ruudk\GraphQLCodeGenerator\TypeInitializer\DelegatingTypeInitializer;
 use Ruudk\GraphQLCodeGenerator\TypeInitializer\NullableTypeInitializer;
 use Ruudk\GraphQLCodeGenerator\TypeInitializer\ObjectTypeInitializer;
-use Ruudk\GraphQLCodeGenerator\TypeInitializer\TypeInitializer;
 use Ruudk\GraphQLCodeGenerator\Validator\IndexByValidator;
 use Ruudk\GraphQLCodeGenerator\Visitor\IndexByRemover;
 use Symfony\Component\Filesystem\Exception\IOException;
@@ -133,6 +132,22 @@ final class GraphQLCodeGenerator
     private DelegatingTypeInitializer $typeInitializer;
     private ?string $schemaPath = null;
     private Optimizer $optimizer;
+    private readonly Config $config;
+
+    /**
+     * @var array<string, SymfonyType>
+     */
+    private array $inputObjectTypes;
+
+    /**
+     * @var array<string, array{SymfonyType, SymfonyType}>
+     */
+    private array $objectTypes;
+
+    /**
+     * @var array<string, SymfonyType>
+     */
+    private array $enumTypes;
 
     /**
      * @var array<class-string<ValidationRule>, ValidationRule>
@@ -140,13 +155,6 @@ final class GraphQLCodeGenerator
     public private(set) array $validatorRules;
 
     /**
-     * @param array<string, SymfonyType|array{SymfonyType, SymfonyType}> $scalars
-     * @param array<string, SymfonyType> $inputObjectTypes
-     * @param array<string, array{SymfonyType, SymfonyType}> $objectTypes
-     * @param array<string, SymfonyType> $enumTypes
-     * @param list<string> $ignoreTypes
-     * @param list<TypeInitializer> $typeInitializers
-     *
      * @throws \GraphQL\Error\Error
      * @throws \GraphQL\Error\SyntaxError
      * @throws JsonException
@@ -154,38 +162,23 @@ final class GraphQLCodeGenerator
      * @throws Exception
      */
     public function __construct(
-        Schema | string $schema,
-        private readonly string $projectDir,
-        private readonly string $queriesDir,
-        private readonly string $outputDir,
-        private readonly string $namespace,
-        private readonly string $client,
-        private readonly bool $dumpMethods,
-        private readonly bool $dumpOrThrows,
-        private readonly bool $dumpDefinition,
-        private readonly bool $useNodeNameForEdgeNodes,
-        array $scalars = [],
-        private array $inputObjectTypes = [],
-        private array $objectTypes = [],
-        private array $enumTypes = [],
-        private readonly array $ignoreTypes = [],
-        array $typeInitializers = [],
-        private readonly bool $useConnectionNameForConnections = false,
-        private readonly bool $useEdgeNameForEdges = false,
-        private readonly bool $addNodesOnConnections = false,
-        private readonly bool $addSymfonyExcludeAttribute = false,
-        private readonly bool $indexByDirective = true,
-        private readonly bool $addUnknownCaseToEnums = true,
+        Config $config,
         private readonly Filesystem $filesystem = new Filesystem(),
         private readonly EnglishInflector $inflector = new EnglishInflector(),
     ) {
+        $this->config = $config;
+        $this->inputObjectTypes = $config->inputObjectTypes;
+        $this->objectTypes = $config->objectTypes;
+        $this->enumTypes = $config->enumTypes;
         $this->typeInitializer = new DelegatingTypeInitializer(
             new NullableTypeInitializer(),
             new CollectionTypeInitializer(),
-            new BackedEnumTypeInitializer($addUnknownCaseToEnums, $namespace),
+            new BackedEnumTypeInitializer($config->addUnknownCaseToEnums, $config->namespace),
             new ObjectTypeInitializer(),
-            ...$typeInitializers,
+            ...$config->typeInitializers,
         );
+
+        $schema = $config->schema;
 
         if (is_string($schema) && str_ends_with($schema, '.graphql')) {
             $this->schemaPath = $schema;
@@ -204,7 +197,7 @@ final class GraphQLCodeGenerator
 
         Assert::isInstanceOf($schema, Schema::class, 'Invalid schema given, expected .graphql or .json file or Schema instance');
 
-        if ($this->indexByDirective) {
+        if ($config->indexByDirective) {
             $schema = SchemaExtender::extend(
                 $schema,
                 Parser::parse(
@@ -224,7 +217,7 @@ final class GraphQLCodeGenerator
             'Float' => SymfonyType::float(),
             'Boolean' => SymfonyType::bool(),
 
-            ...$scalars,
+            ...$config->scalars,
         ];
 
         $this->optimizer = new Optimizer($this->schema);
@@ -269,7 +262,7 @@ final class GraphQLCodeGenerator
             ProvidedRequiredArgumentsOnDirectives::class => new ProvidedRequiredArgumentsOnDirectives(),
         ];
 
-        if ($this->indexByDirective) {
+        if ($config->indexByDirective) {
             $this->validatorRules[IndexByValidator::class] = new IndexByValidator($this->scalars);
         }
     }
@@ -284,18 +277,18 @@ final class GraphQLCodeGenerator
      */
     public function generate() : void
     {
-        $this->filesystem->remove($this->outputDir);
+        $this->filesystem->remove($this->config->outputDir);
 
-        $this->ensureDirectoryExists($this->outputDir);
+        $this->ensureDirectoryExists($this->config->outputDir);
 
         $finder = new Finder();
         $finder->files()
-            ->in($this->queriesDir)
+            ->in($this->config->queriesDir)
             ->name('*.graphql')
             ->sortByName();
 
         if ($this->schemaPath !== null) {
-            $finder->notPath(Path::makeRelative($this->schemaPath, $this->queriesDir));
+            $finder->notPath(Path::makeRelative($this->schemaPath, $this->config->queriesDir));
         }
 
         $operations = [];
@@ -307,7 +300,7 @@ final class GraphQLCodeGenerator
 
             $usedTypesCollector->analyze($document);
 
-            $operations[Path::makeRelative($file->getPathname(), $this->projectDir)] = $document;
+            $operations[Path::makeRelative($file->getPathname(), $this->config->projectDir)] = $document;
         }
 
         $usedTypes = $usedTypesCollector->usedTypes;
@@ -384,7 +377,7 @@ final class GraphQLCodeGenerator
 
             $fqcn = $this->fullyQualified('Fragment', $name);
             [$fields, $fields2, $payloadShape] = $this->parseSelectionSet(
-                $this->outputDir . '/Fragment/' . $name,
+                $this->config->outputDir . '/Fragment/' . $name,
                 $fragment->selectionSet,
                 $type,
                 $fqcn,
@@ -398,7 +391,7 @@ final class GraphQLCodeGenerator
                 $fields,
                 $payloadShape,
                 $this->getPossibleTypes($type),
-                $this->outputDir . '/Fragment',
+                $this->config->outputDir . '/Fragment',
                 $fqcn,
                 false,
                 true,
@@ -449,7 +442,7 @@ final class GraphQLCodeGenerator
         $operationDefinition = Printer::doPrint($document);
 
         $queryClassName = $operationName;
-        $queryDir = $this->outputDir . '/' . $operationType;
+        $queryDir = $this->config->outputDir . '/' . $operationType;
         $operationDir = $queryDir . '/' . $operationName;
 
         $this->ensureDirectoryExists($operationDir);
@@ -646,7 +639,7 @@ final class GraphQLCodeGenerator
                 yield '';
                 yield 'public function __construct(';
                 yield $generator->indent([
-                    sprintf('private %s $client,', $generator->import($this->client)),
+                    sprintf('private %s $client,', $generator->import($this->config->client)),
                 ]);
                 yield ') {}';
 
@@ -713,7 +706,7 @@ final class GraphQLCodeGenerator
                 });
                 yield '}';
 
-                if ($this->dumpOrThrows) {
+                if ($this->config->dumpOrThrows) {
                     yield '';
                     yield from $generator->maybeDump(
                         '/**',
@@ -804,7 +797,7 @@ final class GraphQLCodeGenerator
             yield '// This file was automatically generated and should not be edited.';
             yield '';
 
-            if ($this->dumpDefinition && $definitionNode !== null) {
+            if ($this->config->dumpDefinition && $definitionNode !== null) {
                 yield from $generator->maybeDump(
                     '/**',
                     $this->prefix(' * ', Printer::doPrint($definitionNode)),
@@ -812,7 +805,7 @@ final class GraphQLCodeGenerator
                 );
             }
 
-            if ($this->addSymfonyExcludeAttribute) {
+            if ($this->config->addSymfonyExcludeAttribute) {
                 yield $generator->dumpAttribute('Symfony\Component\DependencyInjection\Attribute\Exclude');
             }
 
@@ -935,7 +928,7 @@ final class GraphQLCodeGenerator
                                 yield '}';
                             }
 
-                            if ($this->dumpOrThrows && $fieldType instanceof SymfonyType\NullableType) {
+                            if ($this->config->dumpOrThrows && $fieldType instanceof SymfonyType\NullableType) {
                                 $fieldType = $fieldType->getWrappedType();
 
                                 yield '';
@@ -1048,7 +1041,7 @@ final class GraphQLCodeGenerator
                         yield ') {}';
                     }
 
-                    if ($this->dumpMethods && $fields instanceof ArrayShapeType) {
+                    if ($this->config->dumpMethods && $fields instanceof ArrayShapeType) {
                         foreach ($fields->getShape() as $fieldName => ['type' => $fieldType]) {
                             Assert::string($fieldName);
 
@@ -1078,7 +1071,7 @@ final class GraphQLCodeGenerator
                             });
                             yield '}';
 
-                            if ($this->dumpOrThrows && $fieldType instanceof SymfonyType\NullableType) {
+                            if ($this->config->dumpOrThrows && $fieldType instanceof SymfonyType\NullableType) {
                                 $fieldType = $fieldType->getWrappedType();
 
                                 yield '';
@@ -1110,7 +1103,7 @@ final class GraphQLCodeGenerator
                         }
                     }
 
-                    if ($isData && $this->dumpMethods) {
+                    if ($isData && $this->config->dumpMethods) {
                         yield '';
                         yield '/**';
                         yield ' * @return list<Error>';
@@ -1123,7 +1116,7 @@ final class GraphQLCodeGenerator
                         yield '}';
                     }
 
-                    if ($nodesType !== null && $this->dumpMethods) {
+                    if ($nodesType !== null && $this->config->dumpMethods) {
                         yield '';
                         yield from $generator->maybeDump(
                             '/**',
@@ -1159,7 +1152,7 @@ final class GraphQLCodeGenerator
 
             yield '';
 
-            if ($this->addSymfonyExcludeAttribute) {
+            if ($this->config->addSymfonyExcludeAttribute) {
                 yield $generator->dumpAttribute('Symfony\Component\DependencyInjection\Attribute\Exclude');
             }
 
@@ -1235,7 +1228,7 @@ final class GraphQLCodeGenerator
      */
     private function generateEnumType(string $name, EnumType $type) : void
     {
-        if (in_array($name, $this->ignoreTypes, true)) {
+        if (in_array($name, $this->config->ignoreTypes, true)) {
             return;
         }
 
@@ -1247,7 +1240,7 @@ final class GraphQLCodeGenerator
             yield ' * @api';
             yield ' */';
 
-            if ($this->addSymfonyExcludeAttribute) {
+            if ($this->config->addSymfonyExcludeAttribute) {
                 yield $generator->dumpAttribute('Symfony\Component\DependencyInjection\Attribute\Exclude');
             }
 
@@ -1270,13 +1263,13 @@ final class GraphQLCodeGenerator
                     }
                 }
 
-                if ($this->addUnknownCaseToEnums) {
+                if ($this->config->addUnknownCaseToEnums) {
                     yield '';
                     yield '// When the server returns an unknown enum value, this is the value that will be used.';
                     yield 'case Unknown__ = \'unknown__\';';
                 }
 
-                if ($this->dumpMethods) {
+                if ($this->config->dumpMethods) {
                     $numberOfValues = count($type->getValues());
                     foreach ($type->getValues() as $value) {
                         Assert::string($value->value, 'Enum value must be a string');
@@ -1312,7 +1305,7 @@ final class GraphQLCodeGenerator
             yield '}';
         });
 
-        $this->filesystem->dumpFile($this->outputDir . '/Enum/' . $name . '.php', $enumClass);
+        $this->filesystem->dumpFile($this->config->outputDir . '/Enum/' . $name . '.php', $enumClass);
     }
 
     /**
@@ -1320,7 +1313,7 @@ final class GraphQLCodeGenerator
      */
     private function generateInputType(string $name, InputObjectType $type, bool $isOneOf) : void
     {
-        if (in_array($name, $this->ignoreTypes, true)) {
+        if (in_array($name, $this->config->ignoreTypes, true)) {
             return;
         }
 
@@ -1339,7 +1332,7 @@ final class GraphQLCodeGenerator
 
             yield '';
 
-            if ($this->addSymfonyExcludeAttribute) {
+            if ($this->config->addSymfonyExcludeAttribute) {
                 yield $generator->dumpAttribute('Symfony\Component\DependencyInjection\Attribute\Exclude');
             }
 
@@ -1442,7 +1435,7 @@ final class GraphQLCodeGenerator
             yield '}';
         });
 
-        $this->filesystem->dumpFile($this->outputDir . '/Input/' . $name . '.php', $inputClass);
+        $this->filesystem->dumpFile($this->config->outputDir . '/Input/' . $name . '.php', $inputClass);
     }
 
     /**
@@ -1450,7 +1443,7 @@ final class GraphQLCodeGenerator
      */
     private function generateNodeNotFoundException() : void
     {
-        $generator = new CodeGenerator($this->namespace);
+        $generator = new CodeGenerator($this->config->namespace);
         $class = $generator->dumpFile(function () use ($generator) {
             yield '// This file was automatically generated and should not be edited.';
 
@@ -1468,7 +1461,7 @@ final class GraphQLCodeGenerator
             yield '}';
         });
 
-        $this->filesystem->dumpFile($this->outputDir . '/NodeNotFoundException.php', $class);
+        $this->filesystem->dumpFile($this->config->outputDir . '/NodeNotFoundException.php', $class);
     }
 
     /**
@@ -1694,7 +1687,7 @@ final class GraphQLCodeGenerator
                     $indexByType = null;
                     $indexBy = [];
 
-                    if ($this->indexByDirective) {
+                    if ($this->config->indexByDirective) {
                         $indexBy = $this->getIndexByDirective($selection->directives);
 
                         if ($indexBy !== []) {
@@ -1706,11 +1699,11 @@ final class GraphQLCodeGenerator
 
                     Assert::isInstanceOf($nakedFieldType, NamedType::class, 'Field type must be a named type');
 
-                    if ($this->useNodeNameForEdgeNodes && $fieldName === 'node' && str_ends_with($parent->name(), 'Edge')) {
+                    if ($this->config->useNodeNameForEdgeNodes && $fieldName === 'node' && str_ends_with($parent->name(), 'Edge')) {
                         $className = ucfirst($nakedFieldType->name());
-                    } elseif ($this->useConnectionNameForConnections && str_ends_with($nakedFieldType->name(), 'Connection')) {
+                    } elseif ($this->config->useConnectionNameForConnections && str_ends_with($nakedFieldType->name(), 'Connection')) {
                         $className = ucfirst($nakedFieldType->name());
-                    } elseif ($this->useEdgeNameForEdges && str_ends_with($nakedFieldType->name(), 'Edge')) {
+                    } elseif ($this->config->useEdgeNameForEdges && str_ends_with($nakedFieldType->name(), 'Edge')) {
                         $className = ucfirst($nakedFieldType->name());
                     }
 
@@ -1726,7 +1719,7 @@ final class GraphQLCodeGenerator
 
                     $nodesType = null;
 
-                    if ($this->addNodesOnConnections && str_ends_with($nakedFieldType->name(), 'Connection')) {
+                    if ($this->config->addNodesOnConnections && str_ends_with($nakedFieldType->name(), 'Connection')) {
                         $edges = $subFields2[$path . '.' . $fieldName . '.edges'];
 
                         if ($edges instanceof IndexByCollectionType) {
@@ -1907,11 +1900,11 @@ final class GraphQLCodeGenerator
 
     private function fullyQualified(string $part, string ...$moreParts) : string
     {
-        if (str_starts_with($part, $this->namespace . '\\')) {
-            $part = substr($part, strlen($this->namespace) + 1);
+        if (str_starts_with($part, $this->config->namespace . '\\')) {
+            $part = substr($part, strlen($this->config->namespace) + 1);
         }
 
-        return implode('\\', array_filter([$this->namespace, $part, ...$moreParts], fn($part) => $part !== ''));
+        return implode('\\', array_filter([$this->config->namespace, $part, ...$moreParts], fn($part) => $part !== ''));
     }
 
     private function getterMethod(string $name) : string
