@@ -30,11 +30,6 @@ return [
             __DIR__ . '/tests',
             __DIR__ . '/phpstan.php',
         ],
-        'excludePaths' => [
-            'analyseAndScan' => [
-                __DIR__ . '/tests/*/Actual/*',
-            ],
-        ],
         'tips' => [
             'treatPhpDocTypesAsCertain' => false,
         ],

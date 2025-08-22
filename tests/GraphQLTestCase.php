@@ -31,14 +31,14 @@ abstract class GraphQLTestCase extends TestCase
         $this->client = new Client();
     }
 
-    public function getConfig(string $target = 'Actual') : Config
+    public function getConfig() : Config
     {
         return new Config(
             schema: $this->directory . '/Schema.graphql',
             projectDir: dirname(__DIR__),
             queriesDir: $this->directory,
-            outputDir: $this->directory . '/' . $target,
-            namespace: $this->namespace . '\\' . $target,
+            outputDir: $this->directory . '/Expected',
+            namespace: $this->namespace . '\\Expected',
             client: TestClient::class,
             dumpMethods: false,
             dumpOrThrows: false,
@@ -63,33 +63,25 @@ abstract class GraphQLTestCase extends TestCase
 
     protected function assertActualMatchesExpected() : void
     {
+        // Generate files in memory
+        $generator = new GraphQLCodeGenerator($this->getConfig());
+        $actual = $generator->generate();
+
+        // Read expected files from disk
         $expected = [];
         foreach (Finder::create()->files()->in($this->directory . '/Expected') as $file) {
-            $expected[$file->getRelativePathname()] = str_replace(
-                [
-                    'namespace ' . $this->namespace . '\\Expected',
-                    'use ' . $this->namespace . '\\Expected',
-                ],
-                [
-                    'namespace ' . $this->namespace . '\\Actual',
-                    'use ' . $this->namespace . '\\Actual',
-                ],
-                $file->getContents(),
-            );
+            $expected[$file->getRelativePathname()] = $file->getContents();
         }
 
-        $actual = [];
-        foreach (Finder::create()->files()->in($this->directory . '/Actual') as $file) {
-            $actual[$file->getRelativePathname()] = $file->getContents();
-        }
-
-        foreach ($expected as $path => $contents) {
-            if (isset($actual[$path]) && $contents === $actual[$path]) {
+        // Compare - first remove matching files
+        foreach ($expected as $path => $content) {
+            if (isset($actual[$path]) && $content === $actual[$path]) {
                 unset($expected[$path]);
                 unset($actual[$path]);
             }
         }
 
+        // Assert remaining are empty
         self::assertSame($expected, $actual);
     }
 

@@ -117,6 +117,11 @@ final class GraphQLCodeGenerator
     private readonly Schema $schema;
 
     /**
+     * @var array<string, string> Map of relative path to file content
+     */
+    private array $files = [];
+
+    /**
      * @var array<string, SymfonyType>
      */
     private array $fragmentPayloadShapes = [];
@@ -169,7 +174,6 @@ final class GraphQLCodeGenerator
      */
     public function __construct(
         Config $config,
-        private readonly Filesystem $filesystem = new Filesystem(),
         private readonly EnglishInflector $inflector = new EnglishInflector(),
     ) {
         $this->config = $config;
@@ -185,6 +189,8 @@ final class GraphQLCodeGenerator
         );
 
         $schema = $config->schema;
+
+        $filesystem = new Filesystem();
 
         if (is_string($schema) && str_ends_with($schema, '.graphql')) {
             $this->schemaPath = $schema;
@@ -280,12 +286,12 @@ final class GraphQLCodeGenerator
      * @throws IOException
      * @throws Exception
      * @throws InvalidArgumentException
+     * @return array<string, string> Map of relative path to file content
      */
-    public function generate() : void
+    public function generate() : array
     {
-        $this->filesystem->remove($this->config->outputDir);
-
-        $this->ensureDirectoryExists($this->config->outputDir);
+        // Reset files at the start
+        $this->files = [];
 
         $finder = new Finder();
         $finder->files()
@@ -409,6 +415,8 @@ final class GraphQLCodeGenerator
         foreach ($operations as $relativeFilePath => $document) {
             $this->processOperation($document, $relativeFilePath);
         }
+
+        return $this->files;
     }
 
     /**
@@ -450,8 +458,6 @@ final class GraphQLCodeGenerator
         $queryClassName = $operationName;
         $queryDir = $this->config->outputDir . '/' . $operationType;
         $operationDir = $queryDir . '/' . $operationName;
-
-        $this->ensureDirectoryExists($operationDir);
 
         $variables = $this->parseVariables($operation);
 
@@ -767,7 +773,8 @@ final class GraphQLCodeGenerator
             }),
             '}',
         ]);
-        $this->filesystem->dumpFile($outputDirectory . '/' . $className . '.php', $class);
+        $relativePath = str_replace($this->config->outputDir . '/', '', $outputDirectory . '/' . $className . '.php');
+        $this->files[$relativePath] = $class;
     }
 
     /**
@@ -1190,7 +1197,8 @@ final class GraphQLCodeGenerator
             yield '}';
         });
 
-        $this->filesystem->dumpFile($outputDirectory . '/' . $className . '.php', $class);
+        $relativePath = str_replace($this->config->outputDir . '/', '', $outputDirectory . '/' . $className . '.php');
+        $this->files[$relativePath] = $class;
     }
 
     /**
@@ -1240,7 +1248,8 @@ final class GraphQLCodeGenerator
             yield '}';
         });
 
-        $this->filesystem->dumpFile($operationDir . '/Error.php', $class);
+        $relativePath = str_replace($this->config->outputDir . '/', '', $operationDir . '/Error.php');
+        $this->files[$relativePath] = $class;
     }
 
     /**
@@ -1272,7 +1281,8 @@ final class GraphQLCodeGenerator
             yield '}';
         });
 
-        $this->filesystem->dumpFile($outputDir . '/' . $className . '.php', $class);
+        $relativePath = str_replace($this->config->outputDir . '/', '', $outputDir . '/' . $className . '.php');
+        $this->files[$relativePath] = $class;
     }
 
     /**
@@ -1357,7 +1367,7 @@ final class GraphQLCodeGenerator
             yield '}';
         });
 
-        $this->filesystem->dumpFile($this->config->outputDir . '/Enum/' . $name . '.php', $enumClass);
+        $this->files['Enum/' . $name . '.php'] = $enumClass;
     }
 
     /**
@@ -1487,7 +1497,7 @@ final class GraphQLCodeGenerator
             yield '}';
         });
 
-        $this->filesystem->dumpFile($this->config->outputDir . '/Input/' . $name . '.php', $inputClass);
+        $this->files['Input/' . $name . '.php'] = $inputClass;
     }
 
     /**
@@ -1513,15 +1523,7 @@ final class GraphQLCodeGenerator
             yield '}';
         });
 
-        $this->filesystem->dumpFile($this->config->outputDir . '/NodeNotFoundException.php', $class);
-    }
-
-    /**
-     * @throws IOException
-     */
-    private function ensureDirectoryExists(string $dir) : void
-    {
-        $this->filesystem->mkdir($dir);
+        $this->files['NodeNotFoundException.php'] = $class;
     }
 
     /**

@@ -10,6 +10,7 @@ use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Attribute\Option;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Style\SymfonyStyle;
+use Symfony\Component\Filesystem\Filesystem;
 use Throwable;
 
 #[AsCommand(
@@ -88,6 +89,8 @@ final class GenerateCommand
             return Command::FAILURE;
         }
 
+        $filesystem = new Filesystem();
+
         foreach ($allConfigs as $index => $configItem) {
             if ($configCount > 1) {
                 $io->section(sprintf('Configuration %d of %d', $index + 1, $configCount));
@@ -97,7 +100,17 @@ final class GenerateCommand
 
             try {
                 $generator = new GraphQLCodeGenerator($configItem);
-                $generator->generate();
+                $files = $generator->generate();
+
+                // Clear output directory
+                $filesystem->remove($configItem->outputDir);
+
+                // Write all files to disk
+                foreach ($files as $relativePath => $content) {
+                    $fullPath = $configItem->outputDir . '/' . $relativePath;
+                    $filesystem->dumpFile($fullPath, $content);
+                }
+
                 $io->writeln('✅');
             } catch (Throwable $error) {
                 $io->writeln('❌');
