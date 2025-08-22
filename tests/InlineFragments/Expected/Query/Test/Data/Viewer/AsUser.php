@@ -32,7 +32,7 @@ final class AsUser
 
     /**
      * @param array{
-     *     '__typename': string,
+     *     '__typename': 'User',
      *     'login': string,
      *     'name': string,
      * } $data

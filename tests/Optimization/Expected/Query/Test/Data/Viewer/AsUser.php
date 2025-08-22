@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace Ruudk\GraphQLCodeGenerator\Optimization\Expected\Query\Test\Data\Viewer;
 
-use Ruudk\GraphQLCodeGenerator\Optimization\Expected\Fragment\AppUrl;
-
 // This file was automatically generated and should not be edited.
 
 /**
@@ -23,17 +21,6 @@ final class AsUser
 
     public string $__typename {
         get => $this->__typename ??= $this->data['__typename'];
-    }
-
-    public ?AppUrl $appUrl {
-        get => $this->appUrl ??= new AppUrl($this->data);
-    }
-
-    /**
-     * @phpstan-assert-if-true !null $this->appUrl
-     */
-    public bool $isAppUrl {
-        get => $this->isAppUrl ??= $this->data['__typename'] === 'Application';
     }
 
     public string $id {
@@ -54,12 +41,11 @@ final class AsUser
 
     /**
      * @param array{
-     *     '__typename': string,
+     *     '__typename': 'User',
      *     'id': string,
      *     'idAlias': string,
      *     'login': string,
      *     'name': string,
-     *     'url': string,
      * } $data
      */
     public function __construct(

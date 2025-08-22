@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace Ruudk\GraphQLCodeGenerator\Examples\Generated\Query\Search\Data\SearchResultItemConnection\Nod;
 
-use Ruudk\GraphQLCodeGenerator\Examples\Generated\Fragment\PullRequestInfo;
-
 // This file was automatically generated and should not be edited.
 
 /**
@@ -29,25 +27,13 @@ final class AsIssue
         get => $this->number ??= $this->data['number'];
     }
 
-    public ?PullRequestInfo $pullRequestInfo {
-        get => $this->pullRequestInfo ??= new PullRequestInfo($this->data);
-    }
-
-    /**
-     * @phpstan-assert-if-true !null $this->pullRequestInfo
-     */
-    public bool $isPullRequestInfo {
-        get => $this->isPullRequestInfo ??= $this->data['__typename'] === 'PullRequest';
-    }
-
     public string $title {
         get => $this->title ??= $this->data['title'];
     }
 
     /**
      * @param array{
-     *     '__typename': string,
-     *     'merged': bool,
+     *     '__typename': 'Issue',
      *     'number': int,
      *     'title': string,
      * } $data

@@ -45,7 +45,25 @@ final class Viewer
     }
 
     public ?AsUser $asUser {
-        get => $this->asUser ??= $this->data['__typename'] === 'User' ? new AsUser($this->data) : null;
+        get {
+            if (isset($this->asUser)) {
+                return $this->asUser;
+            }
+
+            if ($this->data['__typename'] !== 'User') {
+                return $this->asUser = null;
+            }
+
+            if (! array_key_exists('login', $this->data)) {
+                return $this->asUser = null;
+            }
+
+            if (! array_key_exists('name', $this->data)) {
+                return $this->asUser = null;
+            }
+
+            return $this->asUser = new AsUser($this->data);
+        }
     }
 
     /**
@@ -72,7 +90,7 @@ final class Viewer
      *     '__typename': string,
      *     'id': string,
      *     'idAlias': string,
-     *     'login': string,
+     *     'login'?: string,
      *     'name': string,
      *     'url': string,
      * } $data

@@ -23,17 +23,6 @@ final class AsAdmin
         get => $this->__typename ??= $this->data['__typename'];
     }
 
-    public ?AsUser $asUser {
-        get => $this->asUser ??= new AsUser($this->data);
-    }
-
-    /**
-     * @phpstan-assert-if-true !null $this->asUser
-     */
-    public bool $isUser {
-        get => $this->isUser ??= $this->data['__typename'] === 'User';
-    }
-
     public string $name {
         get => $this->name ??= $this->data['name'];
     }
@@ -44,7 +33,7 @@ final class AsAdmin
 
     /**
      * @param array{
-     *     '__typename': string,
+     *     '__typename': 'Admin',
      *     'name': string,
      *     'role': string,
      * } $data

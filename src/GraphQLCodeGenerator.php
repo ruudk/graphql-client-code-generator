@@ -89,6 +89,7 @@ use Ruudk\CodeGenerator\CodeGenerator;
 use Ruudk\CodeGenerator\Group;
 use Ruudk\GraphQLCodeGenerator\Type\FragmentObjectType;
 use Ruudk\GraphQLCodeGenerator\Type\IndexByCollectionType;
+use Ruudk\GraphQLCodeGenerator\Type\StringLiteralType;
 use Ruudk\GraphQLCodeGenerator\TypeInitializer\BackedEnumTypeInitializer;
 use Ruudk\GraphQLCodeGenerator\TypeInitializer\CollectionTypeInitializer;
 use Ruudk\GraphQLCodeGenerator\TypeInitializer\DelegatingTypeInitializer;
@@ -124,6 +125,11 @@ final class GraphQLCodeGenerator
      * @var array<string, Type&NamedType>
      */
     private array $fragmentTypes = [];
+
+    /**
+     * @var array<string, list<string>>
+     */
+    private array $inlineFragmentRequiredFields = [];
 
     /**
      * @var array<string, SymfonyType|array{SymfonyType, SymfonyType}>
@@ -792,6 +798,17 @@ final class GraphQLCodeGenerator
         $className = array_pop($parts);
         $namespace = implode('\\', $parts);
 
+        // For inline fragments with a single possible type, use literal type for __typename
+        if ($isFragment && count($possibleTypes) === 1 && $payloadShape instanceof ArrayShapeType) {
+            $shape = $payloadShape->getShape();
+
+            if (isset($shape['__typename'])) {
+                // Use a StringLiteralType for the __typename
+                $shape['__typename'] = new StringLiteralType($possibleTypes[0]);
+                $payloadShape = SymfonyType::arrayShape($shape);
+            }
+        }
+
         $generator = new CodeGenerator($namespace);
         $class = $generator->dumpFile(function () use ($parentType, $nodesType, $fqcn, $definitionNode, $payloadShape, $isData, $fields, $possibleTypes, $generator, $className) {
             yield '// This file was automatically generated and should not be edited.';
@@ -864,12 +881,47 @@ final class GraphQLCodeGenerator
                                 }
 
                                 if ($nakedFieldType instanceof FragmentObjectType && ! $parentType instanceof ObjectType) {
-                                    yield sprintf(
-                                        'get => $this->%s ??= $this->data[\'__typename\'] === %s ? new %s($this->data) : null;',
-                                        $fieldName,
-                                        var_export($nakedFieldType->fragmentType->name(), true),
-                                        $generator->import($nakedFieldType->getClassName()),
-                                    );
+                                    // Check if we have required fields for this inline fragment
+                                    $requiredFields = $this->inlineFragmentRequiredFields[$nakedFieldType->getClassName()] ?? [];
+
+                                    if (count($requiredFields) > 0) {
+                                        yield 'get {';
+                                        yield $generator->indent(function () use ($fieldName, $nakedFieldType, $requiredFields, $generator) {
+                                            yield sprintf('if (isset($this->%s)) {', $fieldName);
+                                            yield $generator->indent(sprintf('return $this->%s;', $fieldName));
+                                            yield '}';
+
+                                            yield '';
+                                            yield sprintf(
+                                                'if ($this->data[\'__typename\'] !== %s) {',
+                                                var_export($nakedFieldType->fragmentType->name(), true),
+                                            );
+                                            yield $generator->indent(sprintf('return $this->%s = null;', $fieldName));
+                                            yield '}';
+
+                                            foreach ($requiredFields as $requiredField) {
+                                                yield '';
+                                                yield sprintf('if (! array_key_exists(%s, $this->data)) {', var_export($requiredField, true));
+                                                yield $generator->indent(sprintf('return $this->%s = null;', $fieldName));
+                                                yield '}';
+                                            }
+
+                                            yield '';
+                                            yield sprintf(
+                                                'return $this->%s = new %s($this->data);',
+                                                $fieldName,
+                                                $generator->import($nakedFieldType->getClassName()),
+                                            );
+                                        });
+                                        yield '}';
+                                    } else {
+                                        yield sprintf(
+                                            'get => $this->%s ??= $this->data[\'__typename\'] === %s ? new %s($this->data) : null;',
+                                            $fieldName,
+                                            var_export($nakedFieldType->fragmentType->name(), true),
+                                            $generator->import($nakedFieldType->getClassName()),
+                                        );
+                                    }
 
                                     return;
                                 }
@@ -1647,6 +1699,25 @@ final class GraphQLCodeGenerator
         $fields = [];
         $fields2 = [];
         $payloadShape = [];
+
+        // Check if we need to implicitly add __typename
+        // Only add it if there are inline fragments in this selection set
+        $hasInlineFragments = false;
+        foreach ($selectionSet->selections as $selection) {
+            if ($selection instanceof InlineFragmentNode) {
+                $hasInlineFragments = true;
+
+                break;
+            }
+        }
+
+        // Implicitly add __typename for interfaces and unions when there are inline fragments
+        if (($parent instanceof InterfaceType || $parent instanceof UnionType) && $hasInlineFragments) {
+            $fields['__typename'] = SymfonyType::string();
+            $fields2['__typename'] = SymfonyType::string();
+            $payloadShape['__typename'] = SymfonyType::string();
+        }
+
         foreach ($selectionSet->selections as $selection) {
             if ($selection instanceof FieldNode) {
                 $fieldName = $selection->alias->value ?? $selection->name->value;
@@ -1771,35 +1842,10 @@ final class GraphQLCodeGenerator
 
                 continue;
             }
-
-            if ($selection instanceof FragmentSpreadNode) {
-                $fragmentType = $this->fragmentTypes[$selection->name->value];
-
-                $fieldName = lcfirst($selection->name->value);
-                $fields[$fieldName] = new FragmentObjectType(
-                    $this->fullyQualified('Fragment', $selection->name->value),
-                    $selection->name->value,
-                    $fragmentType,
-                );
-                $fields2[$path . '.' . $fieldName] = $fields[$fieldName];
-
-                if ($parent instanceof InterfaceType || $parent instanceof UnionType) {
-                    $fields[$fieldName] = SymfonyType::nullable($fields[$fieldName]);
-                    $fields2[$path . '.' . $fieldName] = SymfonyType::nullable($fields2[$path . '.' . $fieldName]);
-                }
-
-                $nakedFragmentPayloadShape = $this->getNakedType($this->fragmentPayloadShapes[$selection->name->value]);
-                Assert::isInstanceOf($nakedFragmentPayloadShape, ArrayShapeType::class, 'Fragment shape must be an array shape');
-
-                foreach ($nakedFragmentPayloadShape->getShape() as $key => ['type' => $value]) {
-                    if (isset($payloadShape[$key]) && $payloadShape[$key] instanceof SymfonyType\CollectionType) {
-                        $value = $this->mergeArrayShape($payloadShape[$key], $value);
-                    }
-
-                    $payloadShape[$key] = $value;
-                }
-            }
         }
+
+        $fieldsBeforeInlineFragments = $fields;
+        $payloadShapeBeforeInlineFragments = $payloadShape;
 
         foreach ($selectionSet->selections as $selection) {
             if ( ! $selection instanceof InlineFragmentNode) {
@@ -1824,8 +1870,20 @@ final class GraphQLCodeGenerator
                 $path . '.' . $fieldName,
             );
 
-            $subFields = $this->mergeArrayShape(SymfonyType::arrayShape($fields), $subFields);
-            $subPayloadShape = $this->mergeArrayShape(SymfonyType::arrayShape($payloadShape), $subPayloadShape);
+            $subFields = $this->mergeArrayShape(SymfonyType::arrayShape($fieldsBeforeInlineFragments), $subFields);
+            $subPayloadShape = $this->mergeArrayShape(SymfonyType::arrayShape($payloadShapeBeforeInlineFragments), $subPayloadShape);
+
+            // Store the required fields for this inline fragment
+            // Extract field names directly from the inline fragment's selection set
+            $inlineFragmentKey = $this->fullyQualified($fqcn, $className);
+            $requiredFields = [];
+            foreach ($selection->selectionSet->selections as $fieldSelection) {
+                if ($fieldSelection instanceof FieldNode && $fieldSelection->name->value !== '__typename') {
+                    $requiredFields[] = $fieldSelection->name->value;
+                }
+            }
+
+            $this->inlineFragmentRequiredFields[$inlineFragmentKey] = $requiredFields;
 
             $this->generateDataClass(
                 $fieldType,
@@ -1853,11 +1911,50 @@ final class GraphQLCodeGenerator
                 $fields2[$path . '.' . $fieldName] = SymfonyType::nullable($fields2[$path . '.' . $fieldName]);
             }
 
+            // Merge inline fragment payload fields into parent as optional
             $nakedSubPayloadShape = $this->getNakedType($subPayloadShape);
             Assert::isInstanceOf($nakedSubPayloadShape, ArrayShapeType::class, 'Payload shape must be an array shape');
-            foreach ($nakedSubPayloadShape->getShape() as $key => $value) {
-                $payloadShape[$key] = $value;
+
+            foreach ($nakedSubPayloadShape->getShape() as $key => ['type' => $type]) {
+                if (isset($payloadShape[$key])) {
+                    continue;
+                }
+
+                $payloadShape[$key] = [
+                    'type' => $type,
+                    'optional' => true,
+                ];
             }
+        }
+
+        foreach ($selectionSet->selections as $selection) {
+            if ( ! $selection instanceof FragmentSpreadNode) {
+                continue;
+            }
+
+            $fragmentType = $this->fragmentTypes[$selection->name->value];
+
+            $fieldName = lcfirst($selection->name->value);
+            $fields[$fieldName] = new FragmentObjectType(
+                $this->fullyQualified('Fragment', $selection->name->value),
+                $selection->name->value,
+                $fragmentType,
+            );
+            $fields2[$path . '.' . $fieldName] = $fields[$fieldName];
+
+            if ($parent instanceof InterfaceType || $parent instanceof UnionType) {
+                $fields[$fieldName] = SymfonyType::nullable($fields[$fieldName]);
+                $fields2[$path . '.' . $fieldName] = SymfonyType::nullable($fields2[$path . '.' . $fieldName]);
+            }
+
+            $nakedFragmentPayloadShape = $this->getNakedType($this->fragmentPayloadShapes[$selection->name->value]);
+            Assert::isInstanceOf($nakedFragmentPayloadShape, ArrayShapeType::class, 'Fragment shape must be an array shape');
+
+            // Merge fragment spread fields properly
+            $currentPayloadShape = SymfonyType::arrayShape($payloadShape);
+            $mergedPayloadShape = $this->mergeArrayShape($currentPayloadShape, $nakedFragmentPayloadShape);
+            Assert::isInstanceOf($mergedPayloadShape, ArrayShapeType::class);
+            $payloadShape = $mergedPayloadShape->getShape();
         }
 
         return [
@@ -1979,11 +2076,41 @@ final class GraphQLCodeGenerator
         $leftShape = $left->getShape();
         $rightShape = $right->getShape();
         $mergedShape = [];
+
+        // Copy all fields from left shape
         foreach ($leftShape as $key => $value) {
             $mergedShape[$key] = $value;
         }
 
+        // Merge fields from right shape
         foreach ($rightShape as $key => $value) {
+            if (isset($mergedShape[$key])) {
+                // Field exists in both shapes - need to merge
+                $leftValue = $mergedShape[$key];
+
+                // Extract the actual types from the array shape format
+                $leftType = $leftValue['type'];
+                $rightType = $value['type'];
+
+                // If both are array shapes, merge them recursively
+                if ($leftType instanceof ArrayShapeType && $rightType instanceof ArrayShapeType) {
+                    $mergedType = $this->mergeArrayShape($leftType, $rightType);
+
+                    $mergedShape[$key] = [
+                        'type' => $mergedType,
+                        'optional' => $leftValue['optional'],
+                    ];
+
+                    continue;
+                }
+
+                // For non-array shapes, just overwrite
+                $mergedShape[$key] = $value;
+
+                continue;
+            }
+
+            // Field only exists in right shape
             $mergedShape[$key] = $value;
         }
 

@@ -55,9 +55,9 @@ final class Data
      *     }>,
      *     'viewer': array{
      *         '__typename': string,
-     *         'login': string,
+     *         'login'?: string,
      *         'name': string,
-     *         'url': string,
+     *         'url'?: string,
      *     },
      * } $data
      * @param list<array{

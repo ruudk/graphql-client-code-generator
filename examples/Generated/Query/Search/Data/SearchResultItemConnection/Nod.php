@@ -26,7 +26,25 @@ final class Nod
     }
 
     public ?AsIssue $asIssue {
-        get => $this->asIssue ??= $this->data['__typename'] === 'Issue' ? new AsIssue($this->data) : null;
+        get {
+            if (isset($this->asIssue)) {
+                return $this->asIssue;
+            }
+
+            if ($this->data['__typename'] !== 'Issue') {
+                return $this->asIssue = null;
+            }
+
+            if (! array_key_exists('number', $this->data)) {
+                return $this->asIssue = null;
+            }
+
+            if (! array_key_exists('title', $this->data)) {
+                return $this->asIssue = null;
+            }
+
+            return $this->asIssue = new AsIssue($this->data);
+        }
     }
 
     /**

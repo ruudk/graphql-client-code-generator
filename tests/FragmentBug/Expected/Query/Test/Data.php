@@ -35,8 +35,8 @@ final class Data
      *         'creator': array{
      *             '__typename': string,
      *             'id': string,
-     *             'name': string,
-     *             'role': string,
+     *             'name'?: string,
+     *             'role'?: string,
      *         },
      *         'name': string,
      *     }>,

@@ -33,7 +33,25 @@ final class Creator
     }
 
     public ?AsAdmin $asAdmin {
-        get => $this->asAdmin ??= $this->data['__typename'] === 'Admin' ? new AsAdmin($this->data) : null;
+        get {
+            if (isset($this->asAdmin)) {
+                return $this->asAdmin;
+            }
+
+            if ($this->data['__typename'] !== 'Admin') {
+                return $this->asAdmin = null;
+            }
+
+            if (! array_key_exists('name', $this->data)) {
+                return $this->asAdmin = null;
+            }
+
+            if (! array_key_exists('role', $this->data)) {
+                return $this->asAdmin = null;
+            }
+
+            return $this->asAdmin = new AsAdmin($this->data);
+        }
     }
 
     /**
@@ -44,7 +62,21 @@ final class Creator
     }
 
     public ?AsUser $asUser {
-        get => $this->asUser ??= $this->data['__typename'] === 'User' ? new AsUser($this->data) : null;
+        get {
+            if (isset($this->asUser)) {
+                return $this->asUser;
+            }
+
+            if ($this->data['__typename'] !== 'User') {
+                return $this->asUser = null;
+            }
+
+            if (! array_key_exists('name', $this->data)) {
+                return $this->asUser = null;
+            }
+
+            return $this->asUser = new AsUser($this->data);
+        }
     }
 
     /**
@@ -57,8 +89,8 @@ final class Creator
     /**
      * @param array{
      *     '__typename': string,
-     *     'name': string,
-     *     'role': string,
+     *     'name'?: string,
+     *     'role'?: string,
      * } $data
      */
     public function __construct(

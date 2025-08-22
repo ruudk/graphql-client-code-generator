@@ -58,7 +58,7 @@ final class Data
      *         '__typename': string,
      *         'id': string,
      *         'idAlias': string,
-     *         'login': string,
+     *         'login'?: string,
      *         'name': string,
      *         'url': string,
      *     },
