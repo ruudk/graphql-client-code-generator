@@ -4,15 +4,17 @@ declare(strict_types=1);
 
 namespace Ruudk\GraphQLCodeGenerator\Generator;
 
-use GraphQL\Type\Definition\EnumType;
 use Ruudk\CodeGenerator\CodeGenerator;
+use Ruudk\GraphQLCodeGenerator\Planner\Plan\EnumClassPlan;
 use function Symfony\Component\String\u;
 use Webmozart\Assert\Assert;
 
 final class EnumTypeGenerator extends AbstractGenerator
 {
-    public function generate(string $name, EnumType $type) : string
+    public function generate(EnumClassPlan $plan) : string
     {
+        $name = $plan->typeName;
+        $type = $plan->enumType;
         $generator = new CodeGenerator($this->fullyQualified('Enum'));
 
         return $generator->dumpFile(function () use ($type, $name, $generator) {

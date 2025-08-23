@@ -7,15 +7,12 @@ namespace Ruudk\GraphQLCodeGenerator\Enum;
 use Ruudk\GraphQLCodeGenerator\Enum\Generated\Enum\Role;
 use Ruudk\GraphQLCodeGenerator\Enum\Generated\Enum\State;
 use Ruudk\GraphQLCodeGenerator\Enum\Generated\Query\TestQuery;
-use Ruudk\GraphQLCodeGenerator\GraphQLCodeGenerator;
 use Ruudk\GraphQLCodeGenerator\GraphQLTestCase;
 
 final class EnumTest extends GraphQLTestCase
 {
     public function testGenerate() : void
     {
-        new GraphQLCodeGenerator($this->getConfig())->generate();
-
         $this->assertActualMatchesExpected();
     }
 

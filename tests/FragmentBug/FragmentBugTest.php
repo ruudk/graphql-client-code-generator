@@ -5,15 +5,12 @@ declare(strict_types=1);
 namespace Ruudk\GraphQLCodeGenerator\FragmentBug;
 
 use Ruudk\GraphQLCodeGenerator\FragmentBug\Generated\Query\TestQuery;
-use Ruudk\GraphQLCodeGenerator\GraphQLCodeGenerator;
 use Ruudk\GraphQLCodeGenerator\GraphQLTestCase;
 
 final class FragmentBugTest extends GraphQLTestCase
 {
     public function testGenerate() : void
     {
-        new GraphQLCodeGenerator($this->getConfig())->generate();
-
         $this->assertActualMatchesExpected();
     }
 

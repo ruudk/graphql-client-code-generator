@@ -6,11 +6,15 @@ namespace Ruudk\GraphQLCodeGenerator\Generator;
 
 use Exception;
 use Ruudk\CodeGenerator\CodeGenerator;
+use Ruudk\GraphQLCodeGenerator\Planner\Plan\ExceptionClassPlan;
 
 final class ExceptionClassGenerator extends AbstractGenerator
 {
-    public function generate(string $operationType, string $operationName, string $className) : string
+    public function generate(ExceptionClassPlan $plan) : string
     {
+        $operationType = $plan->operationType;
+        $operationName = $plan->operationName;
+        $className = $plan->exceptionClassName;
         $generator = new CodeGenerator($this->fullyQualified($operationType, $operationName));
 
         return $generator->dumpFile(function () use ($className, $generator) {

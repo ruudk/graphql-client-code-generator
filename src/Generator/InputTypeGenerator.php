@@ -4,24 +4,31 @@ declare(strict_types=1);
 
 namespace Ruudk\GraphQLCodeGenerator\Generator;
 
-use GraphQL\Type\Definition\InputObjectType;
 use GraphQL\Type\Definition\NullableType;
-use GraphQL\Type\Definition\Type;
 use JsonSerializable;
 use Override;
 use Ruudk\CodeGenerator\CodeGenerator;
+use Ruudk\GraphQLCodeGenerator\Config;
+use Ruudk\GraphQLCodeGenerator\Planner\Plan\InputClassPlan;
+use Ruudk\GraphQLCodeGenerator\TypeMapper;
 use Symfony\Component\TypeInfo\Type as SymfonyType;
 
 final class InputTypeGenerator extends AbstractGenerator
 {
-    /**
-     * @param callable(Type): SymfonyType $typeMapper
-     */
-    public function generate(InputObjectType $type, bool $isOneOf, callable $typeMapper) : string
+    public function __construct(
+        Config $config,
+        private readonly TypeMapper $typeMapper,
+    ) {
+        parent::__construct($config);
+    }
+
+    public function generate(InputClassPlan $plan) : string
     {
+        $type = $plan->inputType;
+        $isOneOf = $type->isOneOf();
         $generator = new CodeGenerator($this->fullyQualified('Input'));
 
-        return $generator->dumpFile(function () use ($isOneOf, $generator, $type, $typeMapper) {
+        return $generator->dumpFile(function () use ($isOneOf, $generator, $type) {
             yield $this->dumpHeader();
 
             $description = $type->description();
@@ -39,12 +46,12 @@ final class InputTypeGenerator extends AbstractGenerator
 
             yield sprintf('final readonly class %s implements %s', $type, $generator->import(JsonSerializable::class));
             yield '{';
-            yield $generator->indent(function () use ($isOneOf, $type, $generator, $typeMapper) {
+            yield $generator->indent(function () use ($isOneOf, $type, $generator) {
                 $required = [];
                 $optional = [];
 
                 foreach ($type->getFields() as $fieldName => $field) {
-                    $fieldType = $typeMapper($field->getType());
+                    $fieldType = $this->typeMapper->mapGraphQLTypeToPHPType($field->getType());
 
                     if ($field->isRequired()) {
                         $required[$fieldName] = $fieldType;
@@ -68,9 +75,9 @@ final class InputTypeGenerator extends AbstractGenerator
                 });
 
                 yield sprintf('%s function __construct(', $isOneOf ? 'private' : 'public');
-                yield $generator->indent(function () use ($generator, $type, $typeMapper) {
+                yield $generator->indent(function () use ($generator, $type) {
                     foreach ($type->getFields() as $fieldName => $field) {
-                        $fieldType = $typeMapper($field->getType());
+                        $fieldType = $this->typeMapper->mapGraphQLTypeToPHPType($field->getType());
 
                         yield sprintf(
                             'public %s $%s%s,',
@@ -87,10 +94,10 @@ final class InputTypeGenerator extends AbstractGenerator
                         $fieldType = $field->getType();
 
                         if ($fieldType instanceof NullableType) {
-                            $fieldType = Type::nonNull($fieldType);
+                            $fieldType = \GraphQL\Type\Definition\Type::nonNull($fieldType);
                         }
 
-                        $fieldType = $typeMapper($fieldType);
+                        $fieldType = $this->typeMapper->mapGraphQLTypeToPHPType($fieldType);
 
                         yield '';
                         yield sprintf(

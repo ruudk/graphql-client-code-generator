@@ -4,22 +4,30 @@ declare(strict_types=1);
 
 namespace Ruudk\GraphQLCodeGenerator\Generator;
 
+use JsonException;
 use Ruudk\CodeGenerator\CodeGenerator;
+use Ruudk\GraphQLCodeGenerator\Planner\Plan\OperationClassPlan;
 use Symfony\Component\TypeInfo\Type as SymfonyType;
 
 final class OperationClassGenerator extends AbstractGenerator
 {
     /**
-     * @param array<string, SymfonyType> $variables
+     * @throws JsonException
      */
-    public function generate(
-        string $operationName,
-        string $operationType,
-        string $queryClassName,
-        string $operationDefinition,
-        array $variables,
-        string $relativeFilePath,
-    ) : string {
+    public function generate(OperationClassPlan $plan) : string
+    {
+        $operationName = $plan->operationName;
+        $operationType = $plan->operationType;
+        $queryClassName = $plan->queryClassName;
+        $operationDefinition = $plan->operationDefinition;
+        $relativeFilePath = $plan->relativeFilePath;
+
+        // Extract just the types from the variables structure
+        $variables = [];
+        foreach ($plan->variables as $name => $variable) {
+            $variables[$name] = $variable['type'];
+        }
+
         $namespace = $this->fullyQualified($operationType);
         $className = $queryClassName . $operationType;
         $failedException = $this->fullyQualified($operationType, $queryClassName, $queryClassName . $operationType . 'FailedException');

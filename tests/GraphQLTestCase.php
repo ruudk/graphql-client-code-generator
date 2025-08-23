@@ -9,6 +9,7 @@ use Http\Mock\Client;
 use JsonException;
 use Override;
 use PHPUnit\Framework\TestCase;
+use Ruudk\GraphQLCodeGenerator\Executor\PlanExecutor;
 use Symfony\Component\Finder\Finder;
 use Symfony\Component\TypeInfo\Type;
 
@@ -63,15 +64,20 @@ abstract class GraphQLTestCase extends TestCase
 
     protected function assertActualMatchesExpected() : void
     {
-        // Generate files in memory
-        $generator = new GraphQLCodeGenerator($this->getConfig());
-        $actual = $generator->generate();
+        $config = $this->getConfig();
+
+        $plan = new Planner($config)->plan();
+        $actual = new PlanExecutor($config)->execute($plan);
 
         // Read expected files from disk
         $expected = [];
         foreach (Finder::create()->files()->in($this->directory . '/Generated') as $file) {
             $expected[$file->getRelativePathname()] = $file->getContents();
         }
+
+        // Sort both arrays by key to ensure consistent comparison
+        ksort($actual);
+        ksort($expected);
 
         // Compare - first remove matching files
         foreach ($expected as $path => $content) {

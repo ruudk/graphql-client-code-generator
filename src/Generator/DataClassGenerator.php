@@ -4,16 +4,13 @@ declare(strict_types=1);
 
 namespace Ruudk\GraphQLCodeGenerator\Generator;
 
-use GraphQL\Language\AST\FragmentDefinitionNode;
-use GraphQL\Language\AST\InlineFragmentNode;
-use GraphQL\Language\AST\OperationDefinitionNode;
 use GraphQL\Language\Printer;
 use GraphQL\Type\Definition\InterfaceType;
-use GraphQL\Type\Definition\NamedType;
 use GraphQL\Type\Definition\ObjectType;
-use GraphQL\Type\Definition\Type;
 use GraphQL\Type\Definition\UnionType;
 use Ruudk\CodeGenerator\CodeGenerator;
+use Ruudk\GraphQLCodeGenerator\Config;
+use Ruudk\GraphQLCodeGenerator\Planner\Plan\DataClassPlan;
 use Ruudk\GraphQLCodeGenerator\Type\FragmentObjectType;
 use Ruudk\GraphQLCodeGenerator\Type\StringLiteralType;
 use Ruudk\GraphQLCodeGenerator\TypeInitializer\DelegatingTypeInitializer;
@@ -23,23 +20,26 @@ use Webmozart\Assert\Assert;
 
 final class DataClassGenerator extends AbstractGenerator
 {
-    /**
-     * @param list<string> $possibleTypes
-     * @param array<string, list<string>> $inlineFragmentRequiredFields
-     */
-    public function generate(
-        NamedType & Type $parentType,
-        SymfonyType $fields,
-        SymfonyType $payloadShape,
-        array $possibleTypes,
-        string $fqcn,
-        bool $isData,
-        bool $isFragment,
-        null | FragmentDefinitionNode | InlineFragmentNode | OperationDefinitionNode $definitionNode,
-        ?SymfonyType $nodesType,
-        DelegatingTypeInitializer $typeInitializer,
-        array $inlineFragmentRequiredFields,
-    ) : string {
+    public function __construct(
+        Config $config,
+        private readonly DelegatingTypeInitializer $typeInitializer,
+    ) {
+        parent::__construct($config);
+    }
+
+    public function generate(DataClassPlan $plan) : string
+    {
+        $parentType = $plan->parentType;
+        $fields = $plan->fields;
+        $payloadShape = $plan->payloadShape;
+        $possibleTypes = $plan->possibleTypes;
+        $fqcn = $plan->fqcn;
+        $isData = $plan->isData;
+        $isFragment = $plan->isFragment;
+        $definitionNode = $plan->definitionNode;
+        $nodesType = $plan->nodesType;
+        $inlineFragmentRequiredFields = $plan->inlineFragmentRequiredFields;
+
         if ($fields instanceof SymfonyType\NullableType) {
             $fields = $fields->getWrappedType();
         }
@@ -65,7 +65,7 @@ final class DataClassGenerator extends AbstractGenerator
 
         $generator = new CodeGenerator($namespace);
 
-        return $generator->dumpFile(function () use ($parentType, $nodesType, $fqcn, $definitionNode, $payloadShape, $isData, $fields, $possibleTypes, $generator, $className, $typeInitializer, $inlineFragmentRequiredFields) {
+        return $generator->dumpFile(function () use ($parentType, $nodesType, $fqcn, $definitionNode, $payloadShape, $isData, $fields, $possibleTypes, $generator, $className, $inlineFragmentRequiredFields) {
             yield $this->dumpHeader();
             yield '';
 
@@ -80,7 +80,7 @@ final class DataClassGenerator extends AbstractGenerator
             yield sprintf('final class %s', $generator->import($fqcn));
             yield '{';
             yield $generator->indent(
-                function () use ($parentType, $nodesType, $possibleTypes, $className, $fields, $isData, $payloadShape, $generator, $typeInitializer, $inlineFragmentRequiredFields) {
+                function () use ($parentType, $nodesType, $possibleTypes, $className, $fields, $isData, $payloadShape, $generator, $inlineFragmentRequiredFields) {
                     if ($possibleTypes !== []) {
                         yield from $generator->docComment('@var list<string>');
                         yield sprintf(
@@ -113,7 +113,7 @@ final class DataClassGenerator extends AbstractGenerator
                                 $this->dumpPHPType($fieldType, $generator->import(...)),
                                 $fieldName,
                             );
-                            yield $generator->indent(function () use ($parentType, $nakedFieldType, $fieldType, $generator, $fieldName, $typeInitializer, $inlineFragmentRequiredFields) {
+                            yield $generator->indent(function () use ($parentType, $nakedFieldType, $fieldType, $generator, $fieldName, $inlineFragmentRequiredFields) {
                                 if ($nakedFieldType instanceof FragmentObjectType && ($nakedFieldType->fragmentType instanceof InterfaceType || $nakedFieldType->fragmentType instanceof UnionType)) {
                                     yield sprintf(
                                         'get => $this->%s ??= in_array($this->data[\'__typename\'], %s::POSSIBLE_TYPES, true) ? new %s($this->data) : null;',
@@ -186,7 +186,7 @@ final class DataClassGenerator extends AbstractGenerator
                                         'get => $this->%s ??= ',
                                         $fieldName,
                                     ),
-                                    $typeInitializer->__invoke(
+                                    $this->typeInitializer->__invoke(
                                         $fieldType,
                                         $generator,
                                         sprintf('$this->data[%s]', var_export($fieldName, true)),

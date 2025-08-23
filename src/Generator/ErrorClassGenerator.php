@@ -5,12 +5,15 @@ declare(strict_types=1);
 namespace Ruudk\GraphQLCodeGenerator\Generator;
 
 use Ruudk\CodeGenerator\CodeGenerator;
+use Ruudk\GraphQLCodeGenerator\Planner\Plan\ErrorClassPlan;
 use Symfony\Component\TypeInfo\Type;
 
 final class ErrorClassGenerator extends AbstractGenerator
 {
-    public function generate(string $operationType, string $operationName) : string
+    public function generate(ErrorClassPlan $plan) : string
     {
+        $operationType = $plan->operationType;
+        $operationName = $plan->operationName;
         $generator = new CodeGenerator($this->fullyQualified($operationType, $operationName));
 
         return $generator->dumpFile(function () use ($generator) {

@@ -5,7 +5,8 @@ declare(strict_types=1);
 namespace Ruudk\GraphQLCodeGenerator\Console;
 
 use Ruudk\GraphQLCodeGenerator\Config;
-use Ruudk\GraphQLCodeGenerator\GraphQLCodeGenerator;
+use Ruudk\GraphQLCodeGenerator\Executor\PlanExecutor;
+use Ruudk\GraphQLCodeGenerator\Planner;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Attribute\Option;
 use Symfony\Component\Console\Command\Command;
@@ -99,8 +100,8 @@ final class GenerateCommand
             $io->write(sprintf('Generating code for <info>%s</info>... ', $configItem->namespace));
 
             try {
-                $generator = new GraphQLCodeGenerator($configItem);
-                $files = $generator->generate();
+                $plan = new Planner($configItem)->plan();
+                $files = new PlanExecutor($configItem)->execute($plan);
 
                 // Clear output directory
                 $filesystem->remove($configItem->outputDir);
