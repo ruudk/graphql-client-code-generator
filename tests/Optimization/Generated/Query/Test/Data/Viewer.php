@@ -9,19 +9,6 @@ use Ruudk\GraphQLCodeGenerator\Optimization\Generated\Query\Test\Data\Viewer\AsU
 
 // This file was automatically generated and should not be edited.
 
-/**
- * ... on Viewer {
- *   __typename
- *   id
- *   idAlias: id
- *   name
- *   ... on User {
- *     login
- *     name
- *   }
- *   ...AppUrl
- * }
- */
 final class Viewer
 {
     /**

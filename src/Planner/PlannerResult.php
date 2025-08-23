@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Ruudk\GraphQLCodeGenerator\Planner;
 
+use Symfony\Component\TypeInfo\Type as SymfonyType;
+
 /**
  * Contains all planned classes and their dependencies
  */
@@ -20,6 +22,16 @@ final class PlannerResult
     public private(set) array $operations = [];
 
     /**
+     * @var array<string, SymfonyType>
+     */
+    public private(set) array $discoveredEnumTypes = [];
+
+    /**
+     * @var array<string, SymfonyType>
+     */
+    public private(set) array $discoveredInputObjectTypes = [];
+
+    /**
      * @param object $class A plan object with a relativePath property
      */
     public function addClass(object $class) : void
@@ -31,5 +43,21 @@ final class PlannerResult
     public function addOperation(OperationPlan $operation) : void
     {
         $this->operations[$operation->operationName] = $operation;
+    }
+
+    /**
+     * @param array<string, SymfonyType> $enumTypes
+     */
+    public function setDiscoveredEnumTypes(array $enumTypes) : void
+    {
+        $this->discoveredEnumTypes = $enumTypes;
+    }
+
+    /**
+     * @param array<string, SymfonyType> $inputObjectTypes
+     */
+    public function setDiscoveredInputObjectTypes(array $inputObjectTypes) : void
+    {
+        $this->discoveredInputObjectTypes = $inputObjectTypes;
     }
 }

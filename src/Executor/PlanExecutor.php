@@ -25,8 +25,6 @@ use Ruudk\GraphQLCodeGenerator\TypeInitializer\CollectionTypeInitializer;
 use Ruudk\GraphQLCodeGenerator\TypeInitializer\DelegatingTypeInitializer;
 use Ruudk\GraphQLCodeGenerator\TypeInitializer\NullableTypeInitializer;
 use Ruudk\GraphQLCodeGenerator\TypeInitializer\ObjectTypeInitializer;
-use Ruudk\GraphQLCodeGenerator\TypeMapper;
-use Symfony\Component\TypeInfo\Type as SymfonyType;
 
 final class PlanExecutor
 {
@@ -50,40 +48,13 @@ final class PlanExecutor
             ...$config->typeInitializers,
         );
 
-        // Initialize scalars
-        $scalars = [
-            'ID' => SymfonyType::string(),
-            'String' => SymfonyType::string(),
-            'Int' => SymfonyType::int(),
-            'Float' => SymfonyType::float(),
-            'Boolean' => SymfonyType::bool(),
-            ...$config->scalars,
-        ];
-
-        // Initialize enum types
-        $enumTypes = $config->enumTypes;
-
-        // Initialize input object types
-        $inputObjectTypes = $config->inputObjectTypes;
-
-        // Initialize object types
-        $objectTypes = $config->objectTypes;
-
-        // Create TypeMapper
-        $typeMapper = new TypeMapper(
-            $scalars,
-            $enumTypes,
-            $inputObjectTypes,
-            $objectTypes,
-        );
-
         // Initialize all generators
         $this->dataClassGenerator = new DataClassGenerator($config, $typeInitializer);
         $this->enumTypeGenerator = new EnumTypeGenerator($config);
         $this->operationClassGenerator = new OperationClassGenerator($config);
         $this->errorClassGenerator = new ErrorClassGenerator($config);
         $this->exceptionClassGenerator = new ExceptionClassGenerator($config);
-        $this->inputTypeGenerator = new InputTypeGenerator($config, $typeMapper);
+        $this->inputTypeGenerator = new InputTypeGenerator($config);
         $this->nodeNotFoundExceptionGenerator = new NodeNotFoundExceptionGenerator($config);
     }
 
@@ -143,10 +114,12 @@ final class PlanExecutor
             $operation->errorClass,
         );
 
-        // Generate exception class
-        $files[$operation->exceptionClass->relativePath] = $this->exceptionClassGenerator->generate(
-            $operation->exceptionClass,
-        );
+        // Generate exception class only if it exists
+        if ($operation->exceptionClass !== null) {
+            $files[$operation->exceptionClass->relativePath] = $this->exceptionClassGenerator->generate(
+                $operation->exceptionClass,
+            );
+        }
 
         return $files;
     }

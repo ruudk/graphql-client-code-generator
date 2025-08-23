@@ -6,11 +6,6 @@ namespace Ruudk\GraphQLCodeGenerator\InlineFragments\Generated\Query\Test\Data\V
 
 // This file was automatically generated and should not be edited.
 
-/**
- * ... on Application {
- *   url
- * }
- */
 final class AsApplication
 {
     /**

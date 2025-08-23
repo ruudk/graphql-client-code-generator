@@ -1,0 +1,6 @@
+query ConvertMoney($amount: MoneyInput!, $targetCurrency: Currency!) {
+    convertMoney(amount: $amount, targetCurrency: $targetCurrency) {
+        amount
+        currency
+    }
+}

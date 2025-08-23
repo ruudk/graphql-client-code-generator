@@ -25,7 +25,4 @@ enum SearchType: string
 
     // Returns results matching users and organizations on GitHub.
     case User = 'USER';
-
-    // When the server returns an unknown enum value, this is the value that will be used.
-    case Unknown__ = 'unknown__';
 }

@@ -6,13 +6,6 @@ namespace Ruudk\GraphQLCodeGenerator\Fragments\Generated\Fragment;
 
 // This file was automatically generated and should not be edited.
 
-/**
- * fragment ProjectView on Project {
- *   name
- *   description
- *   ...ProjectStateView
- * }
- */
 final class ProjectView
 {
     public ?string $description {

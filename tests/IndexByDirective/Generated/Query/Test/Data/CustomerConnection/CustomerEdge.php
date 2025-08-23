@@ -8,14 +8,6 @@ use Ruudk\GraphQLCodeGenerator\IndexByDirective\Generated\Query\Test\Data\Custom
 
 // This file was automatically generated and should not be edited.
 
-/**
- * ... on CustomerEdge {
- *   node {
- *     id
- *     name
- *   }
- * }
- */
 final class CustomerEdge
 {
     public Customer $node {

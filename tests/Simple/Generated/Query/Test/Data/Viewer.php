@@ -8,15 +8,6 @@ use Ruudk\GraphQLCodeGenerator\Simple\Generated\Query\Test\Data\Viewer\Project;
 
 // This file was automatically generated and should not be edited.
 
-/**
- * ... on Viewer {
- *   login
- *   projects {
- *     name
- *     description
- *   }
- * }
- */
 final class Viewer
 {
     public string $login {

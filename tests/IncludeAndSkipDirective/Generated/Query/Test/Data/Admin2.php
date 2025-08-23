@@ -6,11 +6,6 @@ namespace Ruudk\GraphQLCodeGenerator\IncludeAndSkipDirective\Generated\Query\Tes
 
 // This file was automatically generated and should not be edited.
 
-/**
- * ... on User {
- *   name
- * }
- */
 final class Admin2
 {
     public string $name {

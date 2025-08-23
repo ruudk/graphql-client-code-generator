@@ -6,11 +6,6 @@ namespace Ruudk\GraphQLCodeGenerator\Fragments\Generated\Fragment;
 
 // This file was automatically generated and should not be edited.
 
-/**
- * fragment ViewerName on Viewer {
- *   name
- * }
- */
 final class ViewerName
 {
     /**

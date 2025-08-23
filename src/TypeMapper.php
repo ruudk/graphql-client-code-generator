@@ -21,7 +21,7 @@ use Webmozart\Assert\Assert;
 final class TypeMapper
 {
     /**
-     * @param array<string, SymfonyType|array{SymfonyType, SymfonyType}> $scalars
+     * @param array<string, array{SymfonyType, SymfonyType}> $scalars
      * @param array<string, SymfonyType> $enumTypes
      * @param array<string, SymfonyType> $inputObjectTypes
      * @param array<string, array{SymfonyType, SymfonyType}> $objectTypes
@@ -49,13 +49,7 @@ final class TypeMapper
 
         if ($type instanceof NamedTypeNode) {
             if (isset($this->scalars[$type->name->value])) {
-                $scalar = $this->scalars[$type->name->value];
-
-                if ($scalar instanceof SymfonyType) {
-                    return $scalar;
-                }
-
-                return $scalar[1];
+                return $this->scalars[$type->name->value][1];
             }
 
             if (isset($this->enumTypes[$type->name->value])) {
@@ -90,13 +84,7 @@ final class TypeMapper
 
         if ($type instanceof ScalarType) {
             if (isset($this->scalars[$type->name()])) {
-                $scalar = $this->scalars[$type->name()];
-
-                if ($scalar instanceof SymfonyType) {
-                    return $scalar;
-                }
-
-                return $builtInOnly ? $scalar[0] : $scalar[1];
+                return $builtInOnly ? $this->scalars[$type->name()][0] : $this->scalars[$type->name()][1];
             }
         }
 

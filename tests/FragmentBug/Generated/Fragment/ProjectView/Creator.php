@@ -9,18 +9,6 @@ use Ruudk\GraphQLCodeGenerator\FragmentBug\Generated\Fragment\ProjectView\Creato
 
 // This file was automatically generated and should not be edited.
 
-/**
- * ... on Creator {
- *   __typename
- *   ... on User {
- *     name
- *   }
- *   ... on Admin {
- *     name
- *     role
- *   }
- * }
- */
 final class Creator
 {
     /**

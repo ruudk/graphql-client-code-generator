@@ -6,12 +6,6 @@ namespace Ruudk\GraphQLCodeGenerator\FragmentBug\Generated\Fragment\ProjectView\
 
 // This file was automatically generated and should not be edited.
 
-/**
- * ... on Admin {
- *   name
- *   role
- * }
- */
 final class AsAdmin
 {
     /**

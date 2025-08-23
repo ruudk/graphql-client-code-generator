@@ -6,11 +6,6 @@ namespace Ruudk\GraphQLCodeGenerator\FragmentBug\Generated\Fragment\ProjectState
 
 // This file was automatically generated and should not be edited.
 
-/**
- * ... on Creator {
- *   id
- * }
- */
 final class Creator
 {
     /**

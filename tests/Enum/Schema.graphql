@@ -1,6 +1,7 @@
 type Query {
     accountStatus: State
     role: Role
+    priority: Priority
 }
 
 enum State {
@@ -10,4 +11,11 @@ enum State {
 enum Role {
     USER
     ADMIN
+}
+
+enum Priority {
+    LOW
+    MEDIUM
+    HIGH
+    URGENT
 }

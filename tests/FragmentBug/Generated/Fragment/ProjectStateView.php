@@ -8,13 +8,6 @@ use Ruudk\GraphQLCodeGenerator\FragmentBug\Generated\Fragment\ProjectStateView\C
 
 // This file was automatically generated and should not be edited.
 
-/**
- * fragment ProjectStateView on Project {
- *   creator {
- *     id
- *   }
- * }
- */
 final class ProjectStateView
 {
     public Creator $creator {

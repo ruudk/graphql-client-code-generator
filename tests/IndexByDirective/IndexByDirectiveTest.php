@@ -4,11 +4,26 @@ declare(strict_types=1);
 
 namespace Ruudk\GraphQLCodeGenerator\IndexByDirective;
 
+use Override;
+use Ruudk\GraphQLCodeGenerator\Config;
 use Ruudk\GraphQLCodeGenerator\GraphQLTestCase;
 use Ruudk\GraphQLCodeGenerator\IndexByDirective\Generated\Query\TestQuery;
+use Symfony\Component\TypeInfo\Type;
 
 final class IndexByDirectiveTest extends GraphQLTestCase
 {
+    #[Override]
+    public function getConfig() : Config
+    {
+        return parent::getConfig()
+            ->enableIndexByDirective()
+            ->enableAddNodesOnConnections()
+            ->withScalar('IssueId', Type::int())
+            ->enableUseNodeNameForEdgeNodes()
+            ->enableUseConnectionNameForConnections()
+            ->enableUseEdgeNameForEdges();
+    }
+
     public function testGenerate() : void
     {
         $this->assertActualMatchesExpected();

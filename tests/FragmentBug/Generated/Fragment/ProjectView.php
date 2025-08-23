@@ -8,22 +8,6 @@ use Ruudk\GraphQLCodeGenerator\FragmentBug\Generated\Fragment\ProjectView\Creato
 
 // This file was automatically generated and should not be edited.
 
-/**
- * fragment ProjectView on Project {
- *   name
- *   creator {
- *     __typename
- *     ... on User {
- *       name
- *     }
- *     ... on Admin {
- *       name
- *       role
- *     }
- *   }
- *   ...ProjectStateView
- * }
- */
 final class ProjectView
 {
     public Creator $creator {

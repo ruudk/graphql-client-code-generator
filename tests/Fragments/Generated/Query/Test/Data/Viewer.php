@@ -10,14 +10,6 @@ use Ruudk\GraphQLCodeGenerator\Fragments\Generated\Fragment\ViewerName;
 
 // This file was automatically generated and should not be edited.
 
-/**
- * ... on Viewer {
- *   __typename
- *   ...ViewerName
- *   ...UserDetails
- *   ...ApplicationDetails
- * }
- */
 final class Viewer
 {
     /**

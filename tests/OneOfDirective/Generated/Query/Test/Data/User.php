@@ -6,12 +6,6 @@ namespace Ruudk\GraphQLCodeGenerator\OneOfDirective\Generated\Query\Test\Data;
 
 // This file was automatically generated and should not be edited.
 
-/**
- * ... on User {
- *   id
- *   email
- * }
- */
 final class User
 {
     public string $email {

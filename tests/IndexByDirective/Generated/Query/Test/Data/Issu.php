@@ -6,12 +6,6 @@ namespace Ruudk\GraphQLCodeGenerator\IndexByDirective\Generated\Query\Test\Data;
 
 // This file was automatically generated and should not be edited.
 
-/**
- * ... on Issue {
- *   id
- *   name
- * }
- */
 final class Issu
 {
     public int $id {

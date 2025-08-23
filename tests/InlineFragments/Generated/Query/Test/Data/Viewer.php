@@ -9,18 +9,6 @@ use Ruudk\GraphQLCodeGenerator\InlineFragments\Generated\Query\Test\Data\Viewer\
 
 // This file was automatically generated and should not be edited.
 
-/**
- * ... on Viewer {
- *   __typename
- *   name
- *   ... on User {
- *     login
- *   }
- *   ... on Application {
- *     url
- *   }
- * }
- */
 final class Viewer
 {
     /**

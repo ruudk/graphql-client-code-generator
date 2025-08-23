@@ -100,7 +100,10 @@ final class GenerateCommand
             $io->write(sprintf('Generating code for <info>%s</info>... ', $configItem->namespace));
 
             try {
+                // Planning phase - discovers types
                 $plan = new Planner($configItem)->plan();
+
+                // Execution phase - uses discovered types from plan
                 $files = new PlanExecutor($configItem)->execute($plan);
 
                 // Clear output directory

@@ -6,12 +6,6 @@ namespace Ruudk\GraphQLCodeGenerator\Optimization\Generated\Query\Test\Data\View
 
 // This file was automatically generated and should not be edited.
 
-/**
- * ... on User {
- *   login
- *   name
- * }
- */
 final class AsUser
 {
     /**

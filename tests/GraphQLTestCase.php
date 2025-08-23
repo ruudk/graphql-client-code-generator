@@ -11,7 +11,6 @@ use Override;
 use PHPUnit\Framework\TestCase;
 use Ruudk\GraphQLCodeGenerator\Executor\PlanExecutor;
 use Symfony\Component\Finder\Finder;
-use Symfony\Component\TypeInfo\Type;
 
 abstract class GraphQLTestCase extends TestCase
 {
@@ -34,31 +33,13 @@ abstract class GraphQLTestCase extends TestCase
 
     public function getConfig() : Config
     {
-        return new Config(
+        return Config::create(
             schema: $this->directory . '/Schema.graphql',
             projectDir: dirname(__DIR__),
             queriesDir: $this->directory,
             outputDir: $this->directory . '/Generated',
             namespace: $this->namespace . '\\Generated',
             client: TestClient::class,
-            dumpMethods: false,
-            dumpOrThrows: false,
-            dumpDefinition: true,
-            useNodeNameForEdgeNodes: true,
-            scalars: [
-                'IssueId' => [Type::int(), Type::int()],
-            ],
-            inputObjectTypes: [],
-            objectTypes: [],
-            enumTypes: [],
-            ignoreTypes: [],
-            typeInitializers: [],
-            useConnectionNameForConnections: true,
-            useEdgeNameForEdges: true,
-            addNodesOnConnections: true,
-            addSymfonyExcludeAttribute: false,
-            indexByDirective: true,
-            addUnknownCaseToEnums: true,
         );
     }
 

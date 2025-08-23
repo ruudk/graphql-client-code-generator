@@ -8,13 +8,6 @@ use Ruudk\GraphQLCodeGenerator\FragmentBug\Generated\Query\Test\Data\Project;
 
 // This file was automatically generated and should not be edited.
 
-/**
- * query Test {
- *   projects {
- *     ...ProjectView
- *   }
- * }
- */
 final class Data
 {
     /**

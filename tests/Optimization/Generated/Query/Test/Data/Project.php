@@ -6,13 +6,6 @@ namespace Ruudk\GraphQLCodeGenerator\Optimization\Generated\Query\Test\Data;
 
 // This file was automatically generated and should not be edited.
 
-/**
- * ... on Project {
- *   name
- *   description
- *   state
- * }
- */
 final class Project
 {
     public ?string $description {

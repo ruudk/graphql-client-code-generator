@@ -4,18 +4,12 @@ declare(strict_types=1);
 
 namespace Ruudk\GraphQLCodeGenerator\Enum\Generated\Query\Test;
 
+use Ruudk\GraphQLCodeGenerator\Enum\CustomPriority;
 use Ruudk\GraphQLCodeGenerator\Enum\Generated\Enum\Role;
 use Ruudk\GraphQLCodeGenerator\Enum\Generated\Enum\State;
 
 // This file was automatically generated and should not be edited.
 
-/**
- * query Test {
- *   accountStatus
- *   role
- *   otherRole: role
- * }
- */
 final class Data
 {
     public ?State $accountStatus {
@@ -24,6 +18,10 @@ final class Data
 
     public ?Role $otherRole {
         get => $this->otherRole ??= $this->data['otherRole'] !== null ? Role::tryFrom($this->data['otherRole']) ?? Role::Unknown__ : null;
+    }
+
+    public ?CustomPriority $priority {
+        get => $this->priority ??= $this->data['priority'] !== null ? CustomPriority::from($this->data['priority']) : null;
     }
 
     public ?Role $role {
@@ -39,6 +37,7 @@ final class Data
      * @param array{
      *     'accountStatus': null|string,
      *     'otherRole': null|string,
+     *     'priority': null|string,
      *     'role': null|string,
      * } $data
      * @param list<array{

@@ -11,22 +11,6 @@ use Ruudk\GraphQLCodeGenerator\IncludeAndSkipDirective\Generated\Query\Test\Data
 
 // This file was automatically generated and should not be edited.
 
-/**
- * query Test($includeAdmin: Boolean!, $skipAdmin: Boolean!) {
- *   viewer {
- *     name
- *   }
- *   user2: user {
- *     name
- *   }
- *   admin @include(if: $includeAdmin) {
- *     name
- *   }
- *   admin2: admin @skip(if: $skipAdmin) {
- *     name
- *   }
- * }
- */
 final class Data
 {
     public ?Admin $admin {

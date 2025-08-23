@@ -8,14 +8,6 @@ use Ruudk\GraphQLCodeGenerator\OneOfDirective\Generated\Query\Test\Data\User;
 
 // This file was automatically generated and should not be edited.
 
-/**
- * query Test($by: UserByInput!) {
- *   user(by: $by) {
- *     id
- *     email
- *   }
- * }
- */
 final class Data
 {
     public ?User $user {

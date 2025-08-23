@@ -6,12 +6,6 @@ namespace Ruudk\GraphQLCodeGenerator\Optimization\Generated\Fragment;
 
 // This file was automatically generated and should not be edited.
 
-/**
- * fragment AppUrl on Application {
- *   url
- *   ...AppName
- * }
- */
 final class AppUrl
 {
     public AppName $appName {

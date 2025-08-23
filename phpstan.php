@@ -51,8 +51,15 @@ return [
                     'shipmonk.deadMethod',
                 ],
                 'paths' => [
-                    __DIR__ . '/examples/Generated/*',
                     __DIR__ . '/tests/*/Generated/*',
+                ],
+            ],
+            [
+                'identifiers' => [
+                    'shipmonk.deadConstant',
+                ],
+                'paths' => [
+                    __DIR__ . '/examples/Generated/*',
                 ],
             ],
             [

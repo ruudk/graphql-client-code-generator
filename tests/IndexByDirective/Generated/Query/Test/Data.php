@@ -10,26 +10,6 @@ use Ruudk\GraphQLCodeGenerator\IndexByDirective\Generated\Query\Test\Data\Projec
 
 // This file was automatically generated and should not be edited.
 
-/**
- * query Test {
- *   projects @indexBy(field: "id") {
- *     id
- *     name
- *   }
- *   issues @indexBy(field: "id") {
- *     id
- *     name
- *   }
- *   customers {
- *     edges @indexBy(field: "node.id") {
- *       node {
- *         id
- *         name
- *       }
- *     }
- *   }
- * }
- */
 final class Data
 {
     public CustomerConnection $customers {

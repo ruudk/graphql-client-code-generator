@@ -28,6 +28,6 @@ final readonly class OperationPlan
         public DataClassPlan $dataClass,
         public OperationClassPlan $operationClass,
         public ErrorClassPlan $errorClass,
-        public ExceptionClassPlan $exceptionClass,
+        public ?ExceptionClassPlan $exceptionClass,
     ) {}
 }

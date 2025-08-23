@@ -82,7 +82,7 @@ final class Planner
     private readonly Schema $schema;
 
     /**
-     * @var array<string, SymfonyType|array{SymfonyType, SymfonyType}>
+     * @var array<string, array{SymfonyType, SymfonyType}>
      */
     private array $scalars;
 
@@ -126,11 +126,11 @@ final class Planner
         $this->enumTypes = $config->enumTypes;
 
         $this->scalars = [
-            'ID' => SymfonyType::string(),
-            'String' => SymfonyType::string(),
-            'Int' => SymfonyType::int(),
-            'Float' => SymfonyType::float(),
-            'Boolean' => SymfonyType::bool(),
+            'ID' => [SymfonyType::string(), SymfonyType::string()],
+            'String' => [SymfonyType::string(), SymfonyType::string()],
+            'Int' => [SymfonyType::int(), SymfonyType::int()],
+            'Float' => [SymfonyType::float(), SymfonyType::float()],
+            'Boolean' => [SymfonyType::bool(), SymfonyType::bool()],
             ...$config->scalars,
         ];
 
@@ -272,10 +272,20 @@ final class Planner
                 }
 
                 if ( ! in_array($typeName, $this->config->ignoreTypes, true)) {
+                    $values = [];
+                    foreach ($type->getValues() as $value) {
+                        Assert::string($value->value, 'Enum value must be a string');
+                        $values[$value->name] = [
+                            'value' => $value->value,
+                            'description' => $value->description,
+                        ];
+                    }
+
                     $result->addClass(new EnumClassPlan(
                         relativePath: 'Enum/' . $typeName . '.php',
                         typeName: $typeName,
-                        enumType: $type,
+                        description: $type->description(),
+                        values: $values,
                     ));
                 }
 
@@ -287,21 +297,39 @@ final class Planner
                     continue;
                 }
 
+                if (in_array($typeName, $this->config->ignoreTypes, true)) {
+                    continue;
+                }
+
+                $fields = [];
+                foreach ($type->getFields() as $fieldName => $field) {
+                    $fields[$fieldName] = [
+                        'type' => $this->typeMapper->mapGraphQLTypeToPHPType($field->getType()),
+                        'required' => $field->isRequired(),
+                        'description' => $field->description,
+                    ];
+                }
+
                 $result->addClass(new InputClassPlan(
                     relativePath: 'Input/' . $typeName . '.php',
-                    inputType: $type,
+                    typeName: $typeName,
+                    description: $type->description(),
+                    isOneOf: $type->isOneOf(),
+                    fields: $fields,
                 ));
 
                 continue;
             }
         }
 
-        // Plan NodeNotFoundException
-        $queryType = $this->schema->getQueryType();
-        Assert::notNull($queryType);
-        $result->addClass(new NodeNotFoundExceptionPlan(
-            relativePath: 'NodeNotFoundException.php',
-        ));
+        // Plan NodeNotFoundException only if dumpOrThrows is enabled
+        if ($this->config->dumpOrThrows) {
+            $queryType = $this->schema->getQueryType();
+            Assert::notNull($queryType);
+            $result->addClass(new NodeNotFoundExceptionPlan(
+                relativePath: 'NodeNotFoundException.php',
+            ));
+        }
 
         // Plan fragments
         $ordered = FragmentOrderer::orderFragments($operations);
@@ -361,6 +389,10 @@ final class Planner
         foreach ($operations as $relativeFilePath => $document) {
             $this->planOperation($document, $relativeFilePath, $result, $planner);
         }
+
+        // Set the discovered types in the result
+        $result->setDiscoveredEnumTypes($this->enumTypes);
+        $result->setDiscoveredInputObjectTypes($this->inputObjectTypes);
 
         return $result;
     }
@@ -477,17 +509,21 @@ final class Planner
             operationName: $operationName,
         );
 
-        // Create the exception class plan
-        $exceptionClassPlan = new ExceptionClassPlan(
-            relativePath: str_replace(
-                $this->config->outputDir . '/',
-                '',
-                $operationDir . '/' . $queryClassName . $operationType . 'FailedException.php',
-            ),
-            operationType: $operationType,
-            operationName: $operationName,
-            exceptionClassName: $queryClassName . $operationType . 'FailedException',
-        );
+        // Create the exception class plan only if dumpOrThrows is enabled
+        $exceptionClassPlan = null;
+
+        if ($this->config->dumpOrThrows) {
+            $exceptionClassPlan = new ExceptionClassPlan(
+                relativePath: str_replace(
+                    $this->config->outputDir . '/',
+                    '',
+                    $operationDir . '/' . $queryClassName . $operationType . 'FailedException.php',
+                ),
+                operationType: $operationType,
+                operationName: $operationName,
+                exceptionClassName: $queryClassName . $operationType . 'FailedException',
+            );
+        }
 
         // Add the operation plan
         $result->addOperation(new OperationPlan(

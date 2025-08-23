@@ -9,19 +9,6 @@ use Ruudk\GraphQLCodeGenerator\Fragments\Generated\Query\Test\Data\Viewer;
 
 // This file was automatically generated and should not be edited.
 
-/**
- * query Test {
- *   viewer {
- *     __typename
- *     ...ViewerName
- *     ...UserDetails
- *     ...ApplicationDetails
- *   }
- *   projects {
- *     ...ProjectView
- *   }
- * }
- */
 final class Data
 {
     /**

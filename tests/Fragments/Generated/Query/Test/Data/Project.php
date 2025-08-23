@@ -8,11 +8,6 @@ use Ruudk\GraphQLCodeGenerator\Fragments\Generated\Fragment\ProjectView;
 
 // This file was automatically generated and should not be edited.
 
-/**
- * ... on Project {
- *   ...ProjectView
- * }
- */
 final class Project
 {
     public ProjectView $projectView {

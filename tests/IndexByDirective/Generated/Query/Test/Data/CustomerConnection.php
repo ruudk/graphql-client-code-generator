@@ -9,16 +9,6 @@ use Ruudk\GraphQLCodeGenerator\IndexByDirective\Generated\Query\Test\Data\Custom
 
 // This file was automatically generated and should not be edited.
 
-/**
- * ... on CustomerConnection {
- *   edges @indexBy(field: "node.id") {
- *     node {
- *       id
- *       name
- *     }
- *   }
- * }
- */
 final class CustomerConnection
 {
     /**

@@ -7,17 +7,14 @@ namespace Ruudk\GraphQLCodeGenerator\Generator;
 use Ruudk\CodeGenerator\CodeGenerator;
 use Ruudk\GraphQLCodeGenerator\Planner\Plan\EnumClassPlan;
 use function Symfony\Component\String\u;
-use Webmozart\Assert\Assert;
 
 final class EnumTypeGenerator extends AbstractGenerator
 {
     public function generate(EnumClassPlan $plan) : string
     {
-        $name = $plan->typeName;
-        $type = $plan->enumType;
         $generator = new CodeGenerator($this->fullyQualified('Enum'));
 
-        return $generator->dumpFile(function () use ($type, $name, $generator) {
+        return $generator->dumpFile(function () use ($plan, $generator) {
             yield $this->dumpHeader();
             yield '';
             yield from $generator->docComment('@api');
@@ -26,19 +23,17 @@ final class EnumTypeGenerator extends AbstractGenerator
                 yield $generator->dumpAttribute('Symfony\Component\DependencyInjection\Attribute\Exclude');
             }
 
-            yield sprintf('enum %s: string', $name);
+            yield sprintf('enum %s: string', $plan->typeName);
             yield '{';
-            yield $generator->indent(function () use ($generator, $type) {
-                foreach ($type->getValues() as $value) {
-                    Assert::string($value->value, 'Enum value must be a string');
-
-                    if ($value->description !== null) {
-                        yield from $generator->comment($value->description);
+            yield $generator->indent(function () use ($generator, $plan) {
+                foreach ($plan->values as $name => $value) {
+                    if ($value['description'] !== null) {
+                        yield from $generator->comment($value['description']);
                     }
 
-                    yield sprintf("case %s = '%s';", u($value->value)->lower()->pascal()->toString(), $value->value);
+                    yield sprintf("case %s = '%s';", u($value['value'])->lower()->pascal()->toString(), $value['value']);
 
-                    if ($value->description !== null) {
+                    if ($value['description'] !== null) {
                         yield '';
                     }
                 }
@@ -50,12 +45,10 @@ final class EnumTypeGenerator extends AbstractGenerator
                 }
 
                 if ($this->config->dumpMethods) {
-                    $numberOfValues = count($type->getValues());
-                    foreach ($type->getValues() as $value) {
-                        Assert::string($value->value, 'Enum value must be a string');
-
+                    $numberOfValues = count($plan->values);
+                    foreach ($plan->values as $name => $value) {
                         yield '';
-                        yield sprintf('public function is%s() : bool', u($value->value)->lower()->pascal()->toString());
+                        yield sprintf('public function is%s() : bool', u($value['value'])->lower()->pascal()->toString());
                         yield '{';
                         yield $generator->indent(function () use ($generator, $numberOfValues, $value) {
                             if ($numberOfValues === 1) {
@@ -64,7 +57,7 @@ final class EnumTypeGenerator extends AbstractGenerator
 
                             yield sprintf(
                                 'return $this === self::%s;',
-                                u($value->value)->lower()->pascal()->toString(),
+                                u($value['value'])->lower()->pascal()->toString(),
                             );
                         });
                         yield '}';
@@ -72,11 +65,11 @@ final class EnumTypeGenerator extends AbstractGenerator
                         yield '';
                         yield sprintf(
                             'public static function create%s() : self',
-                            u($value->value)->lower()->pascal()->toString(),
+                            u($value['value'])->lower()->pascal()->toString(),
                         );
                         yield '{';
                         yield $generator->indent(function () use ($value) {
-                            yield sprintf('return self::%s;', u($value->value)->lower()->pascal()->toString());
+                            yield sprintf('return self::%s;', u($value['value'])->lower()->pascal()->toString());
                         });
                         yield '}';
                     }

@@ -17,6 +17,7 @@ final readonly class TestQuery {
           accountStatus
           role
           otherRole: role
+          priority
         }
         
         GRAPHQL;

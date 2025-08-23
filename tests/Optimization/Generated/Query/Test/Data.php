@@ -9,26 +9,6 @@ use Ruudk\GraphQLCodeGenerator\Optimization\Generated\Query\Test\Data\Viewer;
 
 // This file was automatically generated and should not be edited.
 
-/**
- * query Test {
- *   viewer {
- *     __typename
- *     id
- *     idAlias: id
- *     name
- *     ... on User {
- *       login
- *       name
- *     }
- *     ...AppUrl
- *   }
- *   projects {
- *     name
- *     description
- *     state
- *   }
- * }
- */
 final class Data
 {
     /**
