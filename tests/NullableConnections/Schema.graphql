@@ -1,0 +1,17 @@
+type Query {
+    projects: ProjectConnection
+}
+
+type ProjectConnection {
+    edges: [ProjectEdge]
+}
+
+type ProjectEdge {
+    cursor: String!
+    node: Project!
+}
+
+type Project {
+    id: ID!
+    name: String!
+}

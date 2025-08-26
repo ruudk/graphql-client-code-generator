@@ -1,0 +1,11 @@
+/.github export-ignore
+/examples export-ignore
+/tests export-ignore
+.* export-ignore
+/captainhook.json export-ignore
+/composer.json
+/composer.lock export-ignore
+/composer-dependency-analyser.php export-ignore
+/phpstan.neon export-ignore
+/phpstan.php export-ignore
+/phpunit.xml export-ignore

@@ -1,0 +1,39 @@
+type Query {
+  transaction: Transaction
+}
+
+type Transaction {
+  id: ID!
+  state: String!
+  transfers: [Transfer!]!
+}
+
+type Transfer {
+  id: ID!
+  state: String!
+  createdAt: String!
+  total: Money!
+  transferReversals: [TransferReversal!]!
+}
+
+type TransferReversal {
+  id: ID!
+  state: String!
+  createdAt: String!
+  total: Money!
+  returnedAt: String
+  returnMethod: String
+  resolutions: [Resolution!]
+  transfer: Transfer!
+}
+
+type Resolution {
+  id: ID!
+  createdAt: String!
+  total: Money!
+}
+
+type Money {
+  amount: String!
+  currency: String!
+}

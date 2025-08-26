@@ -1,0 +1,30 @@
+type Query {
+    transactions: TransactionConnection!
+}
+
+type TransactionConnection {
+    edges: [TransactionEdge!]!
+}
+
+type TransactionEdge {
+    node: Transaction!
+}
+
+type Transaction {
+    id: ID!
+    workflow: Workflow
+}
+
+type Workflow {
+    id: ID!
+    request: Request
+}
+
+type Request {
+    id: ID!
+    items: [RequestItem!]!
+}
+
+type RequestItem {
+    id: ID!
+}

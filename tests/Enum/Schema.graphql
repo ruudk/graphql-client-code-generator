@@ -1,0 +1,21 @@
+type Query {
+    accountStatus: State
+    role: Role
+    priority: Priority
+}
+
+enum State {
+    ACTIVE
+}
+
+enum Role {
+    USER
+    ADMIN
+}
+
+enum Priority {
+    LOW
+    MEDIUM
+    HIGH
+    URGENT
+}

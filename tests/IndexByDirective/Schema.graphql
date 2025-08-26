@@ -1,0 +1,30 @@
+type Query {
+    projects: [Project!]!
+    issues: [Issue!]!
+    customers: CustomerConnection!
+}
+
+type Project {
+    id: ID!
+    name: String!
+}
+
+scalar IssueId
+
+type Issue {
+    id: IssueId!
+    name: String!
+}
+
+type CustomerConnection {
+    edges: [CustomerEdge!]!
+}
+
+type CustomerEdge {
+    node: Customer!
+}
+
+type Customer {
+    id: Int!
+    name: String!
+}

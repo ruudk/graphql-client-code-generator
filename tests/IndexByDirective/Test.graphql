@@ -1,0 +1,18 @@
+query Test {
+    projects @indexBy(field: "id") {
+        id
+        name
+    }
+    issues @indexBy(field: "id") {
+        id
+        name
+    }
+    customers {
+        edges @indexBy(field: "node.id") {
+            node {
+                id
+                name
+            }
+        }
+    }
+}

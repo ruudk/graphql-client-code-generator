@@ -1,0 +1,26 @@
+scalar Currency
+
+type Query {
+    """
+    Convert money from one currency to another
+    """
+    convertMoney(amount: MoneyInput!, targetCurrency: Currency!): Money!
+
+    total: Money!
+}
+
+"""
+Represents a monetary amount with currency
+"""
+type Money {
+    amount: String!
+    currency: Currency!
+}
+
+"""
+Input type for monetary values
+"""
+input MoneyInput {
+    amount: String!
+    currency: Currency!
+}

@@ -1,0 +1,15 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Ruudk\GraphQLCodeGenerator\Planner\Plan;
+
+final readonly class ExceptionClassPlan
+{
+    public function __construct(
+        public string $relativePath,
+        public string $operationType,
+        public string $operationName,
+        public string $exceptionClassName,
+    ) {}
+}

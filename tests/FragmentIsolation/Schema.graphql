@@ -1,0 +1,37 @@
+type Query {
+    workflow(id: WorkflowId!): Workflow
+}
+
+type Workflow {
+    id: WorkflowId!
+    transaction: Transaction
+}
+
+type Transaction {
+    id: TransactionId!
+    transfers: [Transfer!]!
+}
+
+type Transfer {
+    id: TransferId!
+    customer: Customer!
+    canBeCollected: Boolean!
+    transferReversals: [TransferReversal!]!
+    metadata: Metadata!
+}
+
+type TransferReversal {
+    id: TransferReversalId!
+    transfer: Transfer!
+}
+
+type Customer {
+    id: CustomerId!
+}
+
+scalar WorkflowId
+scalar TransactionId
+scalar TransferId
+scalar TransferReversalId
+scalar CustomerId
+scalar Metadata

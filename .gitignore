@@ -1,0 +1,5 @@
+/examples/schema.docs.graphql
+/examples/.env.local
+/vendor/
+/.php-cs-fixer.cache
+/.phpunit.cache/

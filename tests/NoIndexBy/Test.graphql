@@ -1,0 +1,18 @@
+query Test {
+    transactions {
+        edges @indexBy(field: "node.id") {
+            node {
+                id
+                workflow {
+                    request {
+                        id
+                        items {
+                            __typename
+                            id
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

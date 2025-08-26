@@ -1,0 +1,25 @@
+query Test {
+    viewer {
+        name
+        ...on Viewer {
+            name
+        }
+        ...on User {
+            login
+        }
+        ...on Application {
+            url
+        }
+    }
+    projects {
+        ...on Project {
+            name
+            ...on Project {
+                description
+                ...on Project {
+                    state
+                }
+            }
+        }
+    }
+}

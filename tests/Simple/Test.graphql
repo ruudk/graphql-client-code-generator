@@ -1,0 +1,9 @@
+query Test {
+    viewer {
+        login
+        projects {
+            name
+            description
+        }
+    }
+}

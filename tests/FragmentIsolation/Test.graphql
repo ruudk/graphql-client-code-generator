@@ -1,0 +1,43 @@
+query GetWorkflowForAdmin($workflowId: WorkflowId!) {
+    workflow(id: $workflowId) {
+        transaction {
+            transfers {
+                id
+                customer {
+                    id
+                }
+            }
+        }
+        ...AdminViewSystemShowWorkflow
+    }
+}
+
+fragment AdminViewSystemShowWorkflow on Workflow {
+    id
+    transaction {
+        transfers {
+            id
+            ...AdminViewSystemTransferRow
+            transferReversals {
+                ...AdminViewSystemTransferReversalRow
+            }
+        }
+    }
+}
+
+fragment AdminViewSystemTransferRow on Transfer {
+    canBeCollected
+    ...AdminViewSystemTransferState
+}
+
+fragment AdminViewSystemTransferState on Transfer {
+    transferReversals {
+        id
+    }
+}
+
+fragment AdminViewSystemTransferReversalRow on TransferReversal {
+    transfer {
+        metadata
+    }
+}

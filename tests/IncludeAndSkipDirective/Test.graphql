@@ -1,0 +1,20 @@
+query Test($includeAdmin: Boolean!, $skipAdmin: Boolean!) {
+    viewer @include(if: true) {
+        name
+    }
+    viewer2: viewer @skip(if: true) {
+        name
+    }
+    user @include(if: false) {
+        name
+    }
+    user2: user @skip(if: false) {
+        name
+    }
+    admin @include(if: $includeAdmin) {
+        name
+    }
+    admin2: admin @skip(if: $skipAdmin) {
+        name
+    }
+}

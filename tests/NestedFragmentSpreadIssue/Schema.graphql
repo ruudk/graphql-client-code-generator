@@ -1,0 +1,20 @@
+type Query {
+    transaction: Transaction
+}
+
+type Transaction {
+    id: ID!
+    transfers: [Transfer!]!
+}
+
+type Transfer {
+    id: ID!
+    state: String!
+    transferReversals: [TransferReversal!]!
+}
+
+type TransferReversal {
+    id: ID!
+    state: String!
+    createdAt: String!
+}

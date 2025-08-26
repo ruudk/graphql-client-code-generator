@@ -1,0 +1,6 @@
+query Test($by: UserByInput!) {
+    user(by: $by) {
+        id
+        email
+    }
+}

@@ -1,0 +1,18 @@
+query ConvertMoney($amount: MoneyInput!, $targetCurrency: Currency!) {
+    convertMoney(amount: $amount, targetCurrency: $targetCurrency) {
+        amount
+        currency
+    }
+    ...Converter
+}
+
+fragment Converter on Query {
+    total {
+        amount
+        currency
+    }
+    subtotal: total {
+        amount
+        currency
+    }
+}
