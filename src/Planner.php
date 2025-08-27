@@ -378,9 +378,6 @@ final class Planner
                 $this->config->outputDir . '/Fragment/' . $name,
                 $fqcn,
                 'fragment',
-                nullable: null,
-                indexByType: null,
-                indexBy: [],
                 isGeneratingTopLevelFragment: true,
             );
 

@@ -4,21 +4,23 @@ declare(strict_types=1);
 
 namespace Ruudk\GraphQLCodeGenerator\Validator;
 
+use GraphQL\Error\Error;
 use GraphQL\Language\AST\FieldNode;
 use GraphQL\Language\AST\Node;
 use GraphQL\Language\AST\NodeKind;
 use GraphQL\Language\AST\StringValueNode;
+use GraphQL\Type\Definition\EnumType;
+use GraphQL\Type\Definition\InterfaceType;
 use GraphQL\Type\Definition\ListOfType;
 use GraphQL\Type\Definition\NonNull;
+use GraphQL\Type\Definition\ObjectType;
 use GraphQL\Type\Definition\Type;
 use GraphQL\Validator\QueryValidationContext;
 use GraphQL\Validator\Rules\ValidationRule;
-use InvalidArgumentException;
 use Override;
-use Ruudk\GraphQLCodeGenerator\RecursiveTypeFinder;
 use Symfony\Component\TypeInfo\Type as SymfonyType;
 use Symfony\Component\TypeInfo\TypeIdentifier;
-use Webmozart\Assert\Assert;
+use Throwable;
 
 final class IndexByValidator extends ValidationRule
 {
@@ -34,7 +36,9 @@ final class IndexByValidator extends ValidationRule
     {
         return [
             NodeKind::FIELD => function (Node $node) use ($context) : void {
-                Assert::isInstanceOf($node, FieldNode::class);
+                if ( ! $node instanceof FieldNode) {
+                    return;
+                }
 
                 if ($node->directives->count() === 0) {
                     return;
@@ -67,55 +71,131 @@ final class IndexByValidator extends ValidationRule
                     return;
                 }
 
-                $indexBy = explode('.', $indexBy);
-
                 $type = $context->getType();
 
                 if ($type instanceof NonNull) {
                     $type = $type->getWrappedType();
                 }
 
-                Assert::isInstanceOf($type, ListOfType::class, '@indexBy can only be used on lists');
+                if ( ! $type instanceof ListOfType) {
+                    $context->reportError(new Error(
+                        '@indexBy can only be used on lists',
+                        [$node],
+                    ));
 
-                $namedType = Type::getNamedType($type);
-
-                $listOfType = $context->getSchema()->getType($namedType->name());
-                Assert::notNull($listOfType);
-
-                $indexByType = RecursiveTypeFinder::find($listOfType, $indexBy);
-
-                $indexByType = Type::getNamedType($indexByType);
-
-                $possibleArrayKeyTypes = [];
-                foreach ($this->scalars as $name => $scalarType) {
-                    if (is_array($scalarType)) {
-                        [$scalarType] = $scalarType;
-                    }
-
-                    if ( ! $scalarType instanceof SymfonyType\BuiltinType) {
-                        continue;
-                    }
-
-                    if ( ! in_array($scalarType->getTypeIdentifier(), [TypeIdentifier::STRING, TypeIdentifier::INT], true)) {
-                        continue;
-                    }
-
-                    $possibleArrayKeyTypes[] = $name;
-                }
-
-                Assert::inArray(
-                    $indexByType->name(),
-                    $possibleArrayKeyTypes,
-                    sprintf('@indexBy(field: "%s") cannot be used because the field is not a valid array key type.', $indexByType->name()),
-                );
-
-                $found = $this->find($node, $indexBy);
-
-                if ($found !== null) {
                     return;
                 }
 
-                throw new InvalidArgumentException(sprintf('Field "%s" is not selected in the indexBy directive', implode('.', $indexBy)));
+                $namedType = Type::getNamedType($type);
+                $listOfType = $context->getSchema()->getType($namedType->name());
+
+                if ($listOfType === null) {
+                    return;
+                }
+
+                $indexByFields = explode(',', $indexBy);
+
+                foreach ($indexByFields as $fieldPath) {
+                    $fieldPath = trim($fieldPath);
+
+                    if ($fieldPath === '') {
+                        $context->reportError(new Error(
+                            sprintf('Empty field in @indexBy directive'),
+                            [$node],
+                        ));
+
+                        continue;
+                    }
+
+                    $fieldParts = explode('.', $fieldPath);
+
+                    try {
+                        $currentType = $listOfType;
+                        foreach ($fieldParts as $index => $fieldName) {
+                            $parentType = Type::getNamedType($currentType);
+
+                            if ($parentType instanceof ObjectType || $parentType instanceof InterfaceType) {
+                                if ( ! $parentType->hasField($fieldName)) {
+                                    $context->reportError(new Error(
+                                        sprintf('Field "%s" is not defined for type "%s"', $fieldName, $parentType->name()),
+                                        [$node],
+                                    ));
+
+                                    continue 2; // Skip to next fieldPath
+                                }
+
+                                $field = $parentType->getField($fieldName);
+                                $currentType = $field->getType();
+                            } else {
+                                $context->reportError(new Error(
+                                    sprintf('Cannot traverse field "%s" in path "%s" - parent is not an object or interface type', $fieldName, $fieldPath),
+                                    [$node],
+                                ));
+
+                                continue 2; // Skip to next fieldPath
+                            }
+
+                            if ( ! $currentType instanceof NonNull) {
+                                $pathSoFar = implode('.', array_slice($fieldParts, 0, $index + 1));
+                                $context->reportError(new Error(
+                                    sprintf('Field "%s" is nullable and cannot be used for @indexBy. All fields in the path must be non-null.', $pathSoFar),
+                                    [$node],
+                                ));
+
+                                continue 2; // Skip to next fieldPath
+                            }
+
+                            // Unwrap NonNull for next iteration
+                            $currentType = $currentType->getWrappedType();
+                        }
+
+                        $namedType = Type::getNamedType($currentType);
+
+                        $possibleArrayKeyTypes = [];
+                        foreach ($this->scalars as $name => $scalarType) {
+                            if (is_array($scalarType)) {
+                                [$scalarType] = $scalarType;
+                            }
+
+                            if ( ! $scalarType instanceof SymfonyType\BuiltinType) {
+                                continue;
+                            }
+
+                            if ( ! in_array($scalarType->getTypeIdentifier(), [TypeIdentifier::STRING, TypeIdentifier::INT], true)) {
+                                continue;
+                            }
+
+                            $possibleArrayKeyTypes[] = $name;
+                        }
+
+                        if ($namedType instanceof EnumType) {
+                            continue;
+                        }
+
+                        if ( ! in_array($namedType->name(), $possibleArrayKeyTypes, true)) {
+                            $context->reportError(new Error(
+                                sprintf('@indexBy(field: "%s") cannot be used because the field is not a valid array key type. Only String, Int, ID, and Enum types are allowed.', $fieldPath),
+                                [$node],
+                            ));
+
+                            continue;
+                        }
+
+                        $found = $this->find($node, $fieldParts);
+
+                        if ($found === null) {
+                            $context->reportError(new Error(
+                                sprintf('Field "%s" is not selected in the indexBy directive', $fieldPath),
+                                [$node],
+                            ));
+                        }
+                    } catch (Throwable $error) {
+                        $context->reportError(new Error(
+                            sprintf('Error processing @indexBy(field: "%s"): %s', $fieldPath, $error->getMessage()),
+                            [$node],
+                        ));
+                    }
+                }
             },
         ];
     }

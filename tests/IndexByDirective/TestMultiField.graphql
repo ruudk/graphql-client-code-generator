@@ -1,0 +1,18 @@
+query TestMultiField {
+    projects @indexBy(field: "id,name") {
+        id
+        name
+    }
+    issues @indexBy(field: "id") {
+        id
+        name
+    }
+    customers {
+        edges @indexBy(field: "node.id,node.name") {
+            node {
+                id
+                name
+            }
+        }
+    }
+}

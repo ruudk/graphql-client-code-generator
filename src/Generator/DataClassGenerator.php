@@ -12,6 +12,7 @@ use Ruudk\CodeGenerator\CodeGenerator;
 use Ruudk\GraphQLCodeGenerator\Config;
 use Ruudk\GraphQLCodeGenerator\Planner\Plan\DataClassPlan;
 use Ruudk\GraphQLCodeGenerator\Type\FragmentObjectType;
+use Ruudk\GraphQLCodeGenerator\Type\IndexByCollectionType;
 use Ruudk\GraphQLCodeGenerator\Type\StringLiteralType;
 use Ruudk\GraphQLCodeGenerator\TypeInitializer\DelegatingTypeInitializer;
 use Symfony\Component\TypeInfo\Type\ArrayShapeType;
@@ -291,18 +292,40 @@ final class DataClassGenerator extends AbstractGenerator
                                     return;
                                 }
 
-                                yield from $generator->wrap(
-                                    sprintf(
-                                        'get => $this->%s ??= ',
-                                        $fieldName,
-                                    ),
-                                    $this->typeInitializer->__invoke(
-                                        $propertyType,
-                                        $generator,
-                                        sprintf('$this->data[%s]', var_export($fieldName, true)),
-                                    ),
-                                    ';',
-                                );
+                                // Check if this is a multi-field IndexByCollectionType
+                                $isMultiFieldIndexBy = false;
+
+                                if ($propertyType instanceof IndexByCollectionType) {
+                                    $isMultiFieldIndexBy = $propertyType->value instanceof IndexByCollectionType;
+                                }
+
+                                if ($isMultiFieldIndexBy) {
+                                    yield from $generator->wrap(
+                                        sprintf(
+                                            'get => $this->%s ??= ',
+                                            $fieldName,
+                                        ),
+                                        $this->typeInitializer->__invoke(
+                                            $propertyType,
+                                            $generator,
+                                            sprintf('$this->data[%s]', var_export($fieldName, true)),
+                                        ),
+                                        ';',
+                                    );
+                                } else {
+                                    yield from $generator->wrap(
+                                        sprintf(
+                                            'get => $this->%s ??= ',
+                                            $fieldName,
+                                        ),
+                                        $this->typeInitializer->__invoke(
+                                            $propertyType,
+                                            $generator,
+                                            sprintf('$this->data[%s]', var_export($fieldName, true)),
+                                        ),
+                                        ';',
+                                    );
+                                }
                             });
                             yield '}';
 
@@ -376,9 +399,45 @@ final class DataClassGenerator extends AbstractGenerator
                             'public %s $nodes {',
                             $this->dumpPHPType($nodesType, $generator->import(...)),
                         );
-                        yield $generator->indent(sprintf(
-                            'get => array_map(fn($edge) => $edge->node, $this->edges);',
-                        ));
+
+                        // Check if edges field has multi-field indexing
+                        $isMultiFieldIndexedEdges = false;
+
+                        if ($fields instanceof ArrayShapeType) {
+                            $edgesFieldType = $fields->getShape()['edges']['type'] ?? null;
+
+                            if ($edgesFieldType instanceof IndexByCollectionType) {
+                                $isMultiFieldIndexedEdges = $edgesFieldType->value instanceof IndexByCollectionType;
+                            }
+                        }
+
+                        if ($isMultiFieldIndexedEdges) {
+                            // For multi-field indexed edges, we need nested loops
+                            yield $generator->indent(function () use ($generator) {
+                                yield 'get {';
+                                yield $generator->indent(function () use ($generator) {
+                                    yield '$nodes = [];';
+                                    yield 'foreach ($this->edges as $edgeGroup) {';
+                                    yield $generator->indent(function () use ($generator) {
+                                        yield 'foreach ($edgeGroup as $edge) {';
+                                        yield $generator->indent(function () {
+                                            yield '$nodes[] = $edge->node;';
+                                        });
+                                        yield '}';
+                                    });
+                                    yield '}';
+
+                                    yield '';
+                                    yield 'return $nodes;';
+                                });
+                                yield '}';
+                            });
+                        } else {
+                            yield $generator->indent(sprintf(
+                                'get => array_map(fn($edge) => $edge->node, $this->edges);',
+                            ));
+                        }
+
                         yield '}';
                     }
 

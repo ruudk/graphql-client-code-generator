@@ -14,7 +14,7 @@ final class DirectiveProcessor
      * Extract the @indexBy directive field path
      *
      * @param NodeList<DirectiveNode> $directives
-     * @return list<string>
+     * @return list<list<string>>
      */
     public function getIndexByDirective(NodeList $directives) : array
     {
@@ -27,7 +27,18 @@ final class DirectiveProcessor
                 continue;
             }
 
-            return explode('.', $directive->arguments[0]->value->value);
+            $value = $directive->arguments[0]->value->value;
+
+            // Split by comma for multi-field indexing
+            $fields = explode(',', $value);
+            $result = [];
+
+            foreach ($fields as $field) {
+                $field = trim($field);
+                $result[] = explode('.', $field);
+            }
+
+            return $result;
         }
 
         return [];

@@ -12,13 +12,14 @@ use Symfony\Component\TypeInfo\Type as SymfonyType;
 final readonly class PlanningContext
 {
     /**
-     * @param list<string> $indexBy
+     * @param null|list<SymfonyType> $indexByType
+     * @param list<list<string>> $indexBy
      */
     public function __construct(
         public string $outputDirectory,
         public string $fqcn,
         public string $path,
-        public ?SymfonyType $indexByType = null,
+        public ?array $indexByType = null,
         public array $indexBy = [],
         public bool $isGeneratingTopLevelFragment = false,
         public bool $isInsideFragmentContext = false,
@@ -51,9 +52,10 @@ final readonly class PlanningContext
     }
 
     /**
-     * @param list<string> $indexBy
+     * @param null|list<SymfonyType> $indexByType
+     * @param list<list<string>> $indexBy
      */
-    public function withIndexBy(?SymfonyType $indexByType, array $indexBy) : self
+    public function withIndexBy(?array $indexByType, array $indexBy) : self
     {
         return new self(
             $this->outputDirectory,
