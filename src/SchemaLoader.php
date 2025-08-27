@@ -5,11 +5,9 @@ declare(strict_types=1);
 namespace Ruudk\GraphQLCodeGenerator;
 
 use Exception;
-use GraphQL\Language\Parser;
 use GraphQL\Type\Schema;
 use GraphQL\Utils\BuildClientSchema;
 use GraphQL\Utils\BuildSchema;
-use GraphQL\Utils\SchemaExtender;
 use JsonException;
 use Symfony\Component\Filesystem\Filesystem;
 use Webmozart\Assert\Assert;
@@ -50,14 +48,7 @@ final class SchemaLoader
         Assert::isInstanceOf($schema, Schema::class, 'Invalid schema given, expected .graphql or .json file or Schema instance');
 
         if ($indexByDirective) {
-            $schema = SchemaExtender::extend(
-                $schema,
-                Parser::parse(
-                    <<<'GRAPHQL'
-                        directive @indexBy(field: String!) on FIELD
-                        GRAPHQL
-                ),
-            );
+            $schema = GraphQL\IndexByDirectiveSchemaExtender::extend($schema);
         }
 
         return $schema;
