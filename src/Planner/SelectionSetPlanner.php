@@ -28,6 +28,7 @@ use GraphQL\Type\Schema;
 use LogicException;
 use Ruudk\GraphQLCodeGenerator\Config;
 use Ruudk\GraphQLCodeGenerator\DirectiveProcessor;
+use Ruudk\GraphQLCodeGenerator\GraphQL\PossibleTypesFinder;
 use Ruudk\GraphQLCodeGenerator\Planner\Plan\DataClassPlan;
 use Ruudk\GraphQLCodeGenerator\RecursiveTypeFinder;
 use Ruudk\GraphQLCodeGenerator\Type\FragmentObjectType;
@@ -70,6 +71,7 @@ final class SelectionSetPlanner
      * @var array<string, FragmentDefinitionNode> Fragment name to definition mapping
      */
     public private(set) array $fragmentDefinitions = [];
+    private PossibleTypesFinder $possibleTypesFinder;
 
     public function __construct(
         public private(set) readonly Config $config,
@@ -79,6 +81,7 @@ final class SelectionSetPlanner
         private readonly EnglishInflector $inflector,
     ) {
         $this->result = new PlannerResult();
+        $this->possibleTypesFinder = new PossibleTypesFinder($this->schema);
     }
 
     /**
@@ -1013,7 +1016,7 @@ final class SelectionSetPlanner
             parentType: $parentType,
             fields: $fields,
             payloadShape: $payloadShape,
-            possibleTypes: $this->getPossibleTypes($fieldType),
+            possibleTypes: $this->possibleTypesFinder->find($fieldType),
             definitionNode: new InlineFragmentNode([
                 'typeCondition' => new NamedTypeNode([
                     'name' => new NameNode([
@@ -1127,37 +1130,6 @@ final class SelectionSetPlanner
         }
 
         return implode('\\', array_filter([$this->config->namespace, $part, ...$moreParts], fn($part) => $part !== ''));
-    }
-
-    /**
-     * @throws InvariantViolation
-     * @return list<string>
-     */
-    private function getPossibleTypes(Type $type) : array
-    {
-        if ($type instanceof NonNull) {
-            $type = $type->getWrappedType();
-        }
-
-        if ($type instanceof UnionType) {
-            $possible = [];
-            foreach ($type->getTypes() as $possibleType) {
-                $possible[] = $possibleType->name;
-            }
-
-            return $possible;
-        }
-
-        if ($type instanceof InterfaceType) {
-            $possible = [];
-            foreach ($this->schema->getImplementations($type)->objects() as $possibleType) {
-                $possible[] = $possibleType->name;
-            }
-
-            return $possible;
-        }
-
-        return [];
     }
 
     public function setFragmentPayloadShape(string $name, SymfonyType $shape) : void

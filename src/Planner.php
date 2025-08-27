@@ -13,10 +13,7 @@ use GraphQL\Language\Parser;
 use GraphQL\Language\Printer;
 use GraphQL\Type\Definition\EnumType;
 use GraphQL\Type\Definition\InputObjectType;
-use GraphQL\Type\Definition\InterfaceType;
-use GraphQL\Type\Definition\NonNull;
 use GraphQL\Type\Definition\Type;
-use GraphQL\Type\Definition\UnionType;
 use GraphQL\Type\Schema;
 use GraphQL\Validator\DocumentValidator;
 use GraphQL\Validator\Rules\ExecutableDefinitions;
@@ -56,6 +53,7 @@ use GraphQL\Validator\Rules\ValuesOfCorrectType;
 use GraphQL\Validator\Rules\VariablesAreInputTypes;
 use GraphQL\Validator\Rules\VariablesInAllowedPosition;
 use JsonException;
+use Ruudk\GraphQLCodeGenerator\GraphQL\PossibleTypesFinder;
 use Ruudk\GraphQLCodeGenerator\Planner\OperationPlan;
 use Ruudk\GraphQLCodeGenerator\Planner\Plan\DataClassPlan;
 use Ruudk\GraphQLCodeGenerator\Planner\Plan\EnumClassPlan;
@@ -110,6 +108,7 @@ final class Planner
     private TypeMapper $typeMapper;
     private DirectiveProcessor $directiveProcessor;
     private VariableParser $variableParser;
+    private PossibleTypesFinder $possibleTypesFinder;
 
     /**
      * @throws \GraphQL\Error\Error
@@ -137,6 +136,7 @@ final class Planner
         $this->schemaLoader = new SchemaLoader(new Filesystem());
         $this->schema = $this->schemaLoader->load($config->schema, $config->indexByDirective);
         $this->optimizer = new Optimizer($this->schema);
+        $this->possibleTypesFinder = new PossibleTypesFinder($this->schema);
 
         $this->validatorRules = [
             ExecutableDefinitions::class => new ExecutableDefinitions(),
@@ -396,7 +396,7 @@ final class Planner
                 parentType: $type,
                 fields: $planResult->fields,
                 payloadShape: $planResult->payloadShape,
-                possibleTypes: $this->getPossibleTypes($type),
+                possibleTypes: $this->possibleTypesFinder->find($type),
                 definitionNode: $fragment,
                 nodesType: null,
                 inlineFragmentRequiredFields: $planResult->inlineFragmentRequiredFields,
@@ -572,36 +572,5 @@ final class Planner
         }
 
         return implode('\\', array_filter([$this->config->namespace, $part, ...$moreParts], fn($part) => $part !== ''));
-    }
-
-    /**
-     * @throws InvariantViolation
-     * @return list<string>
-     */
-    private function getPossibleTypes(Type $type) : array
-    {
-        if ($type instanceof NonNull) {
-            $type = $type->getWrappedType();
-        }
-
-        if ($type instanceof UnionType) {
-            $possible = [];
-            foreach ($type->getTypes() as $possibleType) {
-                $possible[] = $possibleType->name;
-            }
-
-            return $possible;
-        }
-
-        if ($type instanceof InterfaceType) {
-            $possible = [];
-            foreach ($this->schema->getImplementations($type)->objects() as $possibleType) {
-                $possible[] = $possibleType->name;
-            }
-
-            return $possible;
-        }
-
-        return [];
     }
 }
