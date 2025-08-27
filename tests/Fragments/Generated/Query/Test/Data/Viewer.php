@@ -15,7 +15,7 @@ final class Viewer
     /**
      * @var list<string>
      */
-    public const array POSSIBLE_TYPES = ['User', 'Application'];
+    public const array POSSIBLE_TYPES = ['Application', 'User'];
 
     public string $__typename {
         get => $this->__typename ??= $this->data['__typename'];
