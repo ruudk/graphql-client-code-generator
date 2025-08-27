@@ -83,7 +83,8 @@ final class SelectionSetPlanner
 
     /**
      * Plan the selection set and return the result
-     * @param list<string> $indexBy
+     * @param null|list<SymfonyType> $indexByType
+     * @param list<list<string>> $indexBy
      * @throws InvariantViolation
      * @throws InvalidArgumentException
      * @throws LogicException
@@ -95,7 +96,7 @@ final class SelectionSetPlanner
         string $fqcn,
         string $path,
         ?bool $nullable = null,
-        ?SymfonyType $indexByType = null,
+        ?array $indexByType = null,
         array $indexBy = [],
         bool $isGeneratingTopLevelFragment = false,
     ) : SelectionSetPlanResult {
@@ -332,7 +333,7 @@ final class SelectionSetPlanner
 
         // Handle nested selection sets
         if ($selection->selectionSet !== null) {
-            $this->processNestedSelectionLegacy(
+            $this->processNestedSelection(
                 $selection,
                 $fieldName,
                 $fieldType,
@@ -361,7 +362,7 @@ final class SelectionSetPlanner
      * @throws InvariantViolation
      * @throws LogicException
      */
-    private function processNestedSelectionLegacy(
+    private function processNestedSelection(
         FieldNode $selection,
         string $fieldName,
         Type $fieldType,
@@ -386,8 +387,7 @@ final class SelectionSetPlanner
             ->withPath($context->path . '.' . $fieldName);
 
         if ($indexByContext !== null) {
-            /** @var array{type: SymfonyType, fields: list<string>} $indexByContext */
-            $nestedContext = $nestedContext->withIndexBy($indexByContext['type'], $indexByContext['fields']);
+            $nestedContext = $nestedContext->withIndexBy($indexByContext['types'], $indexByContext['fields']);
         }
 
         // Recursively plan the nested selection
@@ -816,15 +816,38 @@ final class SelectionSetPlanner
         return 'unknown:' . spl_object_id($selection);
     }
 
-    // Helper methods
+    /**
+     * @param list<SymfonyType> $indexByType
+     * @param list<list<string>> $indexBy
+     * @throws LogicException
+     */
+    private function createIndexByType(array $indexByType, SymfonyType $valueType, array $indexBy) : SymfonyType
+    {
+        $result = $valueType;
 
+        foreach (array_reverse($indexByType, true) as $i => $keyType) {
+            $fieldPath = $indexBy[$i];
+
+            if ($fieldPath === []) {
+                continue;
+            }
+
+            $result = new IndexByCollectionType($keyType, $result, $fieldPath);
+        }
+
+        return $result;
+    }
+
+    /**
+     * @throws LogicException
+     */
     private function wrapInList(SelectionSetResult $inner, PlanningContext $context) : SelectionSetResult
     {
         $listFields = SymfonyType::list($inner->getFieldsType());
         $listPayloadShape = SymfonyType::list($inner->getPayloadShapeType());
 
         $resultType = $context->indexByType !== null && $context->indexBy !== []
-            ? new IndexByCollectionType($context->indexByType, $inner->resultType, $context->indexBy)
+            ? $this->createIndexByType($context->indexByType, $inner->resultType, $context->indexBy)
             : SymfonyType::list($inner->resultType);
 
         // Return the inner fields and payload with wrapped types
@@ -894,7 +917,7 @@ final class SelectionSetPlanner
     /**
      * @throws InvariantViolation
      * @throws InvalidArgumentException
-     * @return null|array{type: SymfonyType, fields: list<string>}
+     * @return array{types: list<SymfonyType>, fields: list<list<string>>}
      */
     private function processIndexByDirective(FieldNode $selection, Type $nakedFieldType) : ?array
     {
@@ -902,15 +925,26 @@ final class SelectionSetPlanner
             return null;
         }
 
-        $indexBy = $this->directiveProcessor->getIndexByDirective($selection->directives);
+        $indexByFields = $this->directiveProcessor->getIndexByDirective($selection->directives);
 
-        if ($indexBy === []) {
+        if ($indexByFields === []) {
             return null;
         }
 
+        $validFields = array_filter($indexByFields, fn($fieldPath) => $fieldPath !== []);
+
+        if ($validFields === []) {
+            return null;
+        }
+
+        $types = array_map(
+            fn($fieldPath) => $this->typeMapper->mapGraphQLTypeToPHPType(RecursiveTypeFinder::find($nakedFieldType, $fieldPath)),
+            $validFields,
+        );
+
         return [
-            'type' => $this->typeMapper->mapGraphQLTypeToPHPType(RecursiveTypeFinder::find($nakedFieldType, $indexBy)),
-            'fields' => $indexBy,
+            'types' => array_values($types),
+            'fields' => array_values($validFields),
         ];
     }
 
@@ -936,6 +970,12 @@ final class SelectionSetPlanner
         }
 
         if ($edges instanceof IndexByCollectionType) {
+            // For multi-field indexing, nodes is still a list since we flatten the nested structure
+            if ($edges->value instanceof IndexByCollectionType) {
+                return SymfonyType::list($nodeType);
+            }
+
+            // For single-field indexing, nodes is an array with the same key as edges
             return SymfonyType::array($nodeType, $edges->key);
         }
 

@@ -14,12 +14,12 @@ use Symfony\Component\TypeInfo\Type;
  * @phpstan-import-type CodeLine from CodeGenerator
  * @implements TypeInitializer<Type\CollectionType<*>>
  */
-final readonly class CollectionTypeInitializer implements TypeInitializer
+final class CollectionTypeInitializer implements TypeInitializer
 {
     #[Override]
     public function supports(Type $type) : bool
     {
-        return $type instanceof Type\CollectionType;
+        return $type instanceof Type\CollectionType && ! $type instanceof IndexByCollectionType;
     }
 
     /**
@@ -32,37 +32,6 @@ final readonly class CollectionTypeInitializer implements TypeInitializer
         string $variable,
         DelegatingTypeInitializer $delegator,
     ) : Generator {
-        if ($type instanceof IndexByCollectionType) {
-            yield 'array_combine(';
-            yield $generator->indent(function () use ($generator, $type, $variable, $delegator) {
-                if (count($type->indexBy) > 1) {
-                    yield sprintf(
-                        'array_map(fn($item) => $item%s, %s),',
-                        join(array_map(
-                            fn($key) => sprintf('[%s]', var_export($key, true)),
-                            $type->indexBy,
-                        )),
-                        $variable,
-                    );
-                } else {
-                    yield sprintf(
-                        'array_column(%s, %s),',
-                        $variable,
-                        var_export($type->indexBy[0], true),
-                    );
-                }
-
-                yield from $generator->wrap(
-                    'array_map(fn($item) => ',
-                    $delegator($type->getCollectionValueType(), $generator, '$item'),
-                    sprintf(', %s),', $variable),
-                );
-            });
-            yield ')';
-
-            return;
-        }
-
         yield from $generator->wrap(
             'array_map(fn($item) => ',
             $delegator($type->getCollectionValueType(), $generator, '$item'),
