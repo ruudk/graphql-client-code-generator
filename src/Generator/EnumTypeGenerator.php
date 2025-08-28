@@ -44,7 +44,7 @@ final class EnumTypeGenerator extends AbstractGenerator
                     yield 'case Unknown__ = \'unknown__\';';
                 }
 
-                if ($this->config->dumpMethods || $this->config->dumpEnumIsMethods) {
+                if ($this->config->dumpEnumIsMethods) {
                     $numberOfValues = count($plan->values);
                     foreach ($plan->values as $value) {
                         yield '';
@@ -62,19 +62,6 @@ final class EnumTypeGenerator extends AbstractGenerator
                             );
                         });
                         yield '}';
-
-                        if ($this->config->dumpMethods) {
-                            yield '';
-                            yield sprintf(
-                                'public static function create%s() : self',
-                                u($value['value'])->lower()->pascal()->toString(),
-                            );
-                            yield '{';
-                            yield $generator->indent(function () use ($value) {
-                                yield sprintf('return self::%s;', u($value['value'])->lower()->pascal()->toString());
-                            });
-                            yield '}';
-                        }
                     }
                 }
             });

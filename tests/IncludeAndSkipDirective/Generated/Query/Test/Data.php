@@ -96,48 +96,4 @@ final class Data
     ) {
         $this->errors = array_map(fn(array $error) => new Error($error), $errors);
     }
-
-    public function getAdmin() : ?Admin
-    {
-        return $this->admin;
-    }
-
-    /**
-     * @throws NodeNotFoundException
-     */
-    public function getAdminOrThrow() : Admin
-    {
-        return $this->adminOrThrow;
-    }
-
-    public function getAdmin2() : ?Admin2
-    {
-        return $this->admin2;
-    }
-
-    /**
-     * @throws NodeNotFoundException
-     */
-    public function getAdmin2OrThrow() : Admin2
-    {
-        return $this->admin2OrThrow;
-    }
-
-    public function getUser2() : User2
-    {
-        return $this->user2;
-    }
-
-    public function getViewer() : Viewer
-    {
-        return $this->viewer;
-    }
-
-    /**
-     * @return list<Error>
-     */
-    public function getErrors() : array
-    {
-        return $this->errors;
-    }
 }

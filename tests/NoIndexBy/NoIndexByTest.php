@@ -17,7 +17,6 @@ final class NoIndexByTest extends GraphQLTestCase
         return parent::getConfig()
             ->enableAddSymfonyExcludeAttribute()
             ->enableIndexByDirective()
-            ->enableDumpMethods()
             ->enableAddNodesOnConnections();
     }
 

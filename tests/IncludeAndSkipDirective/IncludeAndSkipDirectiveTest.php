@@ -15,8 +15,7 @@ final class IncludeAndSkipDirectiveTest extends GraphQLTestCase
     public function getConfig() : Config
     {
         return parent::getConfig()
-            ->enableDumpOrThrows()
-            ->enableDumpMethods();
+            ->enableDumpOrThrows();
     }
 
     public function testGenerate() : void

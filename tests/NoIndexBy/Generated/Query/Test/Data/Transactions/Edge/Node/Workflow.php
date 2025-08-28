@@ -30,9 +30,4 @@ final class Workflow
     public function __construct(
         private readonly array $data,
     ) {}
-
-    public function getRequest() : ?Request
-    {
-        return $this->request;
-    }
 }

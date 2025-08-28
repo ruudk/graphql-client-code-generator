@@ -51,20 +51,4 @@ final class Transactions
     public function __construct(
         private readonly array $data,
     ) {}
-
-    /**
-     * @return array<string,Edge>
-     */
-    public function getEdges() : array
-    {
-        return $this->edges;
-    }
-
-    /**
-     * @return array<string,Node>
-     */
-    public function getNodes() : array
-    {
-        return $this->nodes;
-    }
 }

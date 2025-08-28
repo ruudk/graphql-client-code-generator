@@ -145,13 +145,4 @@ abstract class AbstractGenerator
 
         return $type;
     }
-
-    protected function getterMethod(string $name) : string
-    {
-        if (preg_match('/^(as|is)[A-Z]/', lcfirst($name)) === 1) {
-            return lcfirst($name);
-        }
-
-        return sprintf('get%s', ucfirst($name));
-    }
 }

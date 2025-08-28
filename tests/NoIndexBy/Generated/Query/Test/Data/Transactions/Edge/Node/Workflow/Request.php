@@ -35,17 +35,4 @@ final class Request
     public function __construct(
         private readonly array $data,
     ) {}
-
-    public function getId() : string
-    {
-        return $this->id;
-    }
-
-    /**
-     * @return list<Item>
-     */
-    public function getItems() : array
-    {
-        return $this->items;
-    }
 }
