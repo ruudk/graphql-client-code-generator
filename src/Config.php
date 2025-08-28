@@ -40,6 +40,7 @@ final readonly class Config
         public bool $addSymfonyExcludeAttribute = false,
         public bool $indexByDirective = false,
         public bool $addUnknownCaseToEnums = false,
+        public bool $dumpEnumIsMethods = false,
     ) {}
 
     public static function create(
@@ -86,6 +87,7 @@ final readonly class Config
             $this->addSymfonyExcludeAttribute,
             $this->indexByDirective,
             $this->addUnknownCaseToEnums,
+            $this->dumpEnumIsMethods,
         );
     }
 
@@ -114,6 +116,7 @@ final readonly class Config
             $this->addSymfonyExcludeAttribute,
             $this->indexByDirective,
             $this->addUnknownCaseToEnums,
+            $this->dumpEnumIsMethods,
         );
     }
 
@@ -142,6 +145,7 @@ final readonly class Config
             $this->addSymfonyExcludeAttribute,
             $this->indexByDirective,
             $this->addUnknownCaseToEnums,
+            $this->dumpEnumIsMethods,
         );
     }
 
@@ -170,6 +174,7 @@ final readonly class Config
             $this->addSymfonyExcludeAttribute,
             $this->indexByDirective,
             $this->addUnknownCaseToEnums,
+            $this->dumpEnumIsMethods,
         );
     }
 
@@ -198,6 +203,7 @@ final readonly class Config
             $this->addSymfonyExcludeAttribute,
             $this->indexByDirective,
             $this->addUnknownCaseToEnums,
+            $this->dumpEnumIsMethods,
         );
     }
 
@@ -226,6 +232,7 @@ final readonly class Config
             $this->addSymfonyExcludeAttribute,
             $this->indexByDirective,
             $this->addUnknownCaseToEnums,
+            $this->dumpEnumIsMethods,
         );
     }
 
@@ -254,6 +261,7 @@ final readonly class Config
             $this->addSymfonyExcludeAttribute,
             $this->indexByDirective,
             $this->addUnknownCaseToEnums,
+            $this->dumpEnumIsMethods,
         );
     }
 
@@ -310,6 +318,7 @@ final readonly class Config
             $this->addSymfonyExcludeAttribute,
             true,
             $this->addUnknownCaseToEnums,
+            $this->dumpEnumIsMethods,
         );
     }
 
@@ -337,6 +346,36 @@ final readonly class Config
             $this->addNodesOnConnections,
             $this->addSymfonyExcludeAttribute,
             $this->indexByDirective,
+            true,
+            $this->dumpEnumIsMethods,
+        );
+    }
+
+    public function dumpEnumIsMethods() : self
+    {
+        return new self(
+            $this->schema,
+            $this->projectDir,
+            $this->queriesDir,
+            $this->outputDir,
+            $this->namespace,
+            $this->client,
+            $this->dumpMethods,
+            $this->dumpOrThrows,
+            $this->dumpDefinition,
+            $this->useNodeNameForEdgeNodes,
+            $this->scalars,
+            $this->inputObjectTypes,
+            $this->objectTypes,
+            $this->enumTypes,
+            $this->ignoreTypes,
+            $this->typeInitializers,
+            $this->useConnectionNameForConnections,
+            $this->useEdgeNameForEdges,
+            $this->addNodesOnConnections,
+            $this->addSymfonyExcludeAttribute,
+            $this->indexByDirective,
+            $this->addUnknownCaseToEnums,
             true,
         );
     }
@@ -369,6 +408,7 @@ final readonly class Config
             $this->addSymfonyExcludeAttribute,
             $this->indexByDirective,
             $this->addUnknownCaseToEnums,
+            $this->dumpEnumIsMethods,
         );
     }
 
@@ -400,6 +440,7 @@ final readonly class Config
             $this->addSymfonyExcludeAttribute,
             $this->indexByDirective,
             $this->addUnknownCaseToEnums,
+            $this->dumpEnumIsMethods,
         );
     }
 
@@ -431,6 +472,7 @@ final readonly class Config
             $this->addSymfonyExcludeAttribute,
             $this->indexByDirective,
             $this->addUnknownCaseToEnums,
+            $this->dumpEnumIsMethods,
         );
     }
 
@@ -462,6 +504,7 @@ final readonly class Config
             $this->addSymfonyExcludeAttribute,
             $this->indexByDirective,
             $this->addUnknownCaseToEnums,
+            $this->dumpEnumIsMethods,
         );
     }
 
@@ -493,6 +536,7 @@ final readonly class Config
             $this->addSymfonyExcludeAttribute,
             $this->indexByDirective,
             $this->addUnknownCaseToEnums,
+            $this->dumpEnumIsMethods,
         );
     }
 
@@ -524,6 +568,7 @@ final readonly class Config
             $this->addSymfonyExcludeAttribute,
             $this->indexByDirective,
             $this->addUnknownCaseToEnums,
+            $this->dumpEnumIsMethods,
         );
     }
 }

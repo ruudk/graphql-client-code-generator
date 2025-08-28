@@ -44,14 +44,15 @@ final class EnumTypeGenerator extends AbstractGenerator
                     yield 'case Unknown__ = \'unknown__\';';
                 }
 
-                if ($this->config->dumpMethods) {
+                if ($this->config->dumpMethods || $this->config->dumpEnumIsMethods) {
                     $numberOfValues = count($plan->values);
-                    foreach ($plan->values as $name => $value) {
+                    foreach ($plan->values as $value) {
                         yield '';
                         yield sprintf('public function is%s() : bool', u($value['value'])->lower()->pascal()->toString());
                         yield '{';
                         yield $generator->indent(function () use ($generator, $numberOfValues, $value) {
-                            if ($numberOfValues === 1) {
+                            // Only add the phpstan-ignore if there's exactly one value and no Unknown__ case
+                            if ($numberOfValues === 1 && ! $this->config->addUnknownCaseToEnums) {
                                 yield from $generator->comment('@phpstan-ignore identical.alwaysTrue');
                             }
 
@@ -62,16 +63,18 @@ final class EnumTypeGenerator extends AbstractGenerator
                         });
                         yield '}';
 
-                        yield '';
-                        yield sprintf(
-                            'public static function create%s() : self',
-                            u($value['value'])->lower()->pascal()->toString(),
-                        );
-                        yield '{';
-                        yield $generator->indent(function () use ($value) {
-                            yield sprintf('return self::%s;', u($value['value'])->lower()->pascal()->toString());
-                        });
-                        yield '}';
+                        if ($this->config->dumpMethods) {
+                            yield '';
+                            yield sprintf(
+                                'public static function create%s() : self',
+                                u($value['value'])->lower()->pascal()->toString(),
+                            );
+                            yield '{';
+                            yield $generator->indent(function () use ($value) {
+                                yield sprintf('return self::%s;', u($value['value'])->lower()->pascal()->toString());
+                            });
+                            yield '}';
+                        }
                     }
                 }
             });
