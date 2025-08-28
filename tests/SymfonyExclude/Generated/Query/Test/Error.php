@@ -12,11 +12,9 @@ use Symfony\Component\DependencyInjection\Attribute\Exclude;
 final readonly class Error
 {
     public string $message;
-    public string $code;
 
     /**
      * @param array{
-     *     'code': string,
      *     'debugMessage'?: string,
      *     'message': string,
      * } $error
@@ -24,6 +22,5 @@ final readonly class Error
     public function __construct(array $error)
     {
         $this->message = $error['debugMessage'] ?? $error['message'];
-        $this->code = $error['code'];
     }
 }

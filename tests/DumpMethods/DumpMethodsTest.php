@@ -127,7 +127,6 @@ final class DumpMethodsTest extends GraphQLTestCase
             'errors' => [
                 [
                     'message' => 'Something went wrong',
-                    'code' => 'ERROR_CODE',
                 ],
             ],
         ]))->execute();
@@ -135,6 +134,5 @@ final class DumpMethodsTest extends GraphQLTestCase
         $errors = $result->getErrors();
         self::assertCount(1, $errors);
         self::assertSame('Something went wrong', $errors[0]->message);
-        self::assertSame('ERROR_CODE', $errors[0]->code);
     }
 }

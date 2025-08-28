@@ -29,12 +29,10 @@ final class ErrorClassGenerator extends AbstractGenerator
             yield '{';
             yield $generator->indent(function () use ($generator) {
                 yield 'public string $message;';
-                yield 'public string $code;';
 
                 yield '';
                 yield from $generator->docComment(sprintf('@param %s $error', $this->dumpPHPDocType(Type::arrayShape([
                     'message' => Type::string(),
-                    'code' => Type::string(),
                     'debugMessage' => [
                         'type' => Type::string(),
                         'optional' => true,
@@ -44,7 +42,6 @@ final class ErrorClassGenerator extends AbstractGenerator
                 yield '{';
                 yield $generator->indent(function () {
                     yield "\$this->message = \$error['debugMessage'] ?? \$error['message'];";
-                    yield "\$this->code = \$error['code'];";
                 });
                 yield '}';
             });
