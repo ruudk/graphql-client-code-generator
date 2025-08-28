@@ -19,7 +19,7 @@ final class EnumDumpIsMethodsTest extends GraphQLTestCase
     {
         return parent::getConfig()
             ->enableAddUnknownCaseToEnums()
-            ->dumpEnumIsMethods()
+            ->enableDumpEnumIsMethods()
             ->withEnumType('Priority', Type::enum(CustomPriority::class));
     }
 

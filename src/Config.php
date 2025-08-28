@@ -24,23 +24,23 @@ final readonly class Config
         public string $outputDir,
         public string $namespace,
         public string $client,
-        public bool $dumpMethods = false,
-        public bool $dumpOrThrows = false,
-        public bool $dumpDefinition = false,
-        public bool $useNodeNameForEdgeNodes = false,
-        public array $scalars = [],
-        public array $inputObjectTypes = [],
-        public array $objectTypes = [],
-        public array $enumTypes = [],
-        public array $ignoreTypes = [],
-        public array $typeInitializers = [],
-        public bool $useConnectionNameForConnections = false,
-        public bool $useEdgeNameForEdges = false,
-        public bool $addNodesOnConnections = false,
-        public bool $addSymfonyExcludeAttribute = false,
-        public bool $indexByDirective = false,
-        public bool $addUnknownCaseToEnums = false,
-        public bool $dumpEnumIsMethods = false,
+        public bool $dumpMethods,
+        public bool $dumpOrThrows,
+        public bool $dumpDefinition,
+        public bool $useNodeNameForEdgeNodes,
+        public array $scalars,
+        public array $inputObjectTypes,
+        public array $objectTypes,
+        public array $enumTypes,
+        public array $ignoreTypes,
+        public array $typeInitializers,
+        public bool $useConnectionNameForConnections,
+        public bool $useEdgeNameForEdges,
+        public bool $addNodesOnConnections,
+        public bool $addSymfonyExcludeAttribute,
+        public bool $indexByDirective,
+        public bool $addUnknownCaseToEnums,
+        public bool $dumpEnumIsMethods,
     ) {}
 
     public static function create(
@@ -52,12 +52,29 @@ final readonly class Config
         string $client,
     ) : self {
         return new self(
-            schema: $schema,
-            projectDir: $projectDir,
-            queriesDir: $queriesDir,
-            outputDir: $outputDir,
-            namespace: $namespace,
-            client: $client,
+            $schema,
+            $projectDir,
+            $queriesDir,
+            $outputDir,
+            $namespace,
+            $client,
+            false,
+            false,
+            false,
+            false,
+            [],
+            [],
+            [],
+            [],
+            [],
+            [],
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
         );
     }
 
@@ -290,6 +307,7 @@ final readonly class Config
             true,
             $this->indexByDirective,
             $this->addUnknownCaseToEnums,
+            $this->dumpEnumIsMethods,
         );
     }
 
@@ -351,7 +369,7 @@ final readonly class Config
         );
     }
 
-    public function dumpEnumIsMethods() : self
+    public function enableDumpEnumIsMethods() : self
     {
         return new self(
             $this->schema,
