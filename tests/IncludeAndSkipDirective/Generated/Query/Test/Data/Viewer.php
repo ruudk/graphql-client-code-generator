@@ -25,9 +25,4 @@ final class Viewer
     public function __construct(
         private readonly array $data,
     ) {}
-
-    public function getName() : string
-    {
-        return $this->name;
-    }
 }

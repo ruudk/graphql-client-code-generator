@@ -28,9 +28,4 @@ final class Item
     public function __construct(
         private readonly array $data,
     ) {}
-
-    public function getId() : string
-    {
-        return $this->id;
-    }
 }

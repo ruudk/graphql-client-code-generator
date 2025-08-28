@@ -52,17 +52,4 @@ final class Data
     ) {
         $this->errors = array_map(fn(array $error) => new Error($error), $errors);
     }
-
-    public function getTransactions() : Transactions
-    {
-        return $this->transactions;
-    }
-
-    /**
-     * @return list<Error>
-     */
-    public function getErrors() : array
-    {
-        return $this->errors;
-    }
 }

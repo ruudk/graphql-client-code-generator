@@ -20,9 +20,4 @@ final class User2
     public function __construct(
         private readonly array $data,
     ) {}
-
-    public function getName() : string
-    {
-        return $this->name;
-    }
 }

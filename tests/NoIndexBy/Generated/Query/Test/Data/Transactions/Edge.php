@@ -35,9 +35,4 @@ final class Edge
     public function __construct(
         private readonly array $data,
     ) {}
-
-    public function getNode() : Node
-    {
-        return $this->node;
-    }
 }

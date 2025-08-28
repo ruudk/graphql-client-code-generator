@@ -37,14 +37,4 @@ final class Node
     public function __construct(
         private readonly array $data,
     ) {}
-
-    public function getId() : string
-    {
-        return $this->id;
-    }
-
-    public function getWorkflow() : ?Workflow
-    {
-        return $this->workflow;
-    }
 }
