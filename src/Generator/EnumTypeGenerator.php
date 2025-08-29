@@ -6,7 +6,7 @@ namespace Ruudk\GraphQLCodeGenerator\Generator;
 
 use Ruudk\CodeGenerator\CodeGenerator;
 use Ruudk\GraphQLCodeGenerator\Planner\Plan\EnumClassPlan;
-use function Symfony\Component\String\u;
+use Symfony\Component\String\UnicodeString;
 
 final class EnumTypeGenerator extends AbstractGenerator
 {
@@ -26,12 +26,12 @@ final class EnumTypeGenerator extends AbstractGenerator
             yield sprintf('enum %s: string', $plan->typeName);
             yield '{';
             yield $generator->indent(function () use ($generator, $plan) {
-                foreach ($plan->values as $name => $value) {
+                foreach ($plan->values as $value) {
                     if ($value['description'] !== null) {
                         yield from $generator->comment($value['description']);
                     }
 
-                    yield sprintf("case %s = '%s';", u($value['value'])->lower()->pascal()->toString(), $value['value']);
+                    yield sprintf("case %s = '%s';", new UnicodeString($value['value'])->lower()->pascal()->toString(), $value['value']);
 
                     if ($value['description'] !== null) {
                         yield '';
@@ -48,7 +48,7 @@ final class EnumTypeGenerator extends AbstractGenerator
                     $numberOfValues = count($plan->values);
                     foreach ($plan->values as $value) {
                         yield '';
-                        yield sprintf('public function is%s() : bool', u($value['value'])->lower()->pascal()->toString());
+                        yield sprintf('public function is%s() : bool', new UnicodeString($value['value'])->lower()->pascal()->toString());
                         yield '{';
                         yield $generator->indent(function () use ($generator, $numberOfValues, $value) {
                             // Only add the phpstan-ignore if there's exactly one value and no Unknown__ case
@@ -58,7 +58,7 @@ final class EnumTypeGenerator extends AbstractGenerator
 
                             yield sprintf(
                                 'return $this === self::%s;',
-                                u($value['value'])->lower()->pascal()->toString(),
+                                new UnicodeString($value['value'])->lower()->pascal()->toString(),
                             );
                         });
                         yield '}';
