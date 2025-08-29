@@ -17,7 +17,7 @@ final class Data
     }
 
     /**
-     * @var array<int,Issue>
+     * @var array<int, Issue>
      */
     public array $issues {
         get => $this->issues ??= array_combine(
@@ -27,7 +27,7 @@ final class Data
     }
 
     /**
-     * @var array<string,array<string,Project>>
+     * @var array<string, array<string, Project>>
      */
     public array $projects {
         get => $this->projects ??= (function() {

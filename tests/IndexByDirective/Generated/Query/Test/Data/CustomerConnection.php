@@ -12,7 +12,7 @@ use Ruudk\GraphQLCodeGenerator\IndexByDirective\Generated\Query\Test\Data\Custom
 final class CustomerConnection
 {
     /**
-     * @var array<int,CustomerEdge>
+     * @var array<int, CustomerEdge>
      */
     public array $edges {
         get => $this->edges ??= array_combine(
@@ -22,7 +22,7 @@ final class CustomerConnection
     }
 
     /**
-     * @var array<int,Customer>
+     * @var array<int, Customer>
      */
     public array $nodes {
         get => array_map(fn($edge) => $edge->node, $this->edges);
