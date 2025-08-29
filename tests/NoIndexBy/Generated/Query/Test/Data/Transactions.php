@@ -14,7 +14,7 @@ use Symfony\Component\DependencyInjection\Attribute\Exclude;
 final class Transactions
 {
     /**
-     * @var array<string,Edge>
+     * @var array<string, Edge>
      */
     public array $edges {
         get => $this->edges ??= array_combine(
@@ -24,7 +24,7 @@ final class Transactions
     }
 
     /**
-     * @var array<string,Node>
+     * @var array<string, Node>
      */
     public array $nodes {
         get => array_map(fn($edge) => $edge->node, $this->edges);

@@ -12,7 +12,7 @@ use Ruudk\GraphQLCodeGenerator\IndexByDirective\Generated\Query\TestMultiField\D
 final class CustomerConnection
 {
     /**
-     * @var array<int,array<string,CustomerEdge>>
+     * @var array<int, array<string, CustomerEdge>>
      */
     public array $edges {
         get => $this->edges ??= (function() {

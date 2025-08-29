@@ -52,7 +52,7 @@ final class TypeDumper
             }
 
             return sprintf(
-                'array<%s,%s>',
+                'array<%s, %s>',
                 self::dump($type->getCollectionKeyType(), $importer, $indentation),
                 self::dump($type->getCollectionValueType(), $importer, $indentation),
             );
