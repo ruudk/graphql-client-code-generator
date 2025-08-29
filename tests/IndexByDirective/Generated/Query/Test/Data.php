@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Ruudk\GraphQLCodeGenerator\IndexByDirective\Generated\Query\Test;
 
 use Ruudk\GraphQLCodeGenerator\IndexByDirective\Generated\Query\Test\Data\CustomerConnection;
-use Ruudk\GraphQLCodeGenerator\IndexByDirective\Generated\Query\Test\Data\Issu;
+use Ruudk\GraphQLCodeGenerator\IndexByDirective\Generated\Query\Test\Data\Issue;
 use Ruudk\GraphQLCodeGenerator\IndexByDirective\Generated\Query\Test\Data\Project;
 
 // This file was automatically generated and should not be edited.
@@ -17,12 +17,12 @@ final class Data
     }
 
     /**
-     * @var array<int,Issu>
+     * @var array<int,Issue>
      */
     public array $issues {
         get => $this->issues ??= array_combine(
             array_column($this->data['issues'], 'id'),
-            array_map(fn($item) => new Issu($item), $this->data['issues']),
+            array_map(fn($item) => new Issue($item), $this->data['issues']),
         );
     }
 
