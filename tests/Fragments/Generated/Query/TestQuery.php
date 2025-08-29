@@ -37,14 +37,14 @@ final readonly class TestQuery {
           login
         }
         
+        fragment ProjectStateView on Project {
+          state
+        }
+        
         fragment ProjectView on Project {
           name
           description
           ...ProjectStateView
-        }
-        
-        fragment ProjectStateView on Project {
-          state
         }
         
         GRAPHQL;

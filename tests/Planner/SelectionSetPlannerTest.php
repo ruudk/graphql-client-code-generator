@@ -89,7 +89,7 @@ final class SelectionSetPlannerTest extends TestCase
         );
         // Set the fragments on the planner
         foreach ($fragments as $name => $def) {
-            $planner->setFragmentDefinition($name, $def);
+            $planner->setFragmentDefinition($name, $def, []);
             $planner->setFragmentType($name, $fragmentTypes[$name]);
         }
 
@@ -204,7 +204,7 @@ final class SelectionSetPlannerTest extends TestCase
         );
         // Set the fragments on the planner
         foreach ($fragments as $name => $def) {
-            $planner->setFragmentDefinition($name, $def);
+            $planner->setFragmentDefinition($name, $def, []);
             $planner->setFragmentType($name, $fragmentTypes[$name]);
         }
 

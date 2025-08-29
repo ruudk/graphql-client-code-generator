@@ -5,18 +5,19 @@ declare(strict_types=1);
 namespace Ruudk\GraphQLCodeGenerator;
 
 use Exception;
+use GraphQL\Language\AST\FragmentDefinitionNode;
 use GraphQL\Language\AST\Node;
 use GraphQL\Type\Schema;
 use Ruudk\GraphQLCodeGenerator\Visitor\DuplicateFieldOptimizer;
+use Ruudk\GraphQLCodeGenerator\Visitor\FragmentOptimizer;
 use Ruudk\GraphQLCodeGenerator\Visitor\IncludeAndSkipDirectiveOptimizer;
 use Ruudk\GraphQLCodeGenerator\Visitor\InlineFragmentOptimizer;
 use Ruudk\GraphQLCodeGenerator\Visitor\TypeNameVisitor;
-use Ruudk\GraphQLCodeGenerator\Visitor\UnusedFragmentOptimizer;
 
 final readonly class Optimizer
 {
     /**
-     * @var list<callable(Node): Node>
+     * @var list<callable(Node, array<string, array{FragmentDefinitionNode, list<string>}>): Node>
      */
     private array $visitors;
 
@@ -24,7 +25,7 @@ final readonly class Optimizer
         private Schema $schema,
     ) {
         $this->visitors = [
-            // new UnusedFragmentOptimizer(),
+            new FragmentOptimizer(),
             new IncludeAndSkipDirectiveOptimizer(),
             new InlineFragmentOptimizer($this->schema),
             new DuplicateFieldOptimizer(),
@@ -35,13 +36,14 @@ final readonly class Optimizer
     /**
      * @template T of Node
      * @param T $node
+     * @param array<string, array{FragmentDefinitionNode, list<string>}> $fragmentDefinitions
      * @throws Exception
      * @return T
      */
-    public function optimize(Node $node) : Node
+    public function optimize(Node $node, array $fragmentDefinitions) : Node
     {
         foreach ($this->visitors as $visitor) {
-            $node = $visitor($node);
+            $node = $visitor($node, $fragmentDefinitions);
         }
 
         return $node;

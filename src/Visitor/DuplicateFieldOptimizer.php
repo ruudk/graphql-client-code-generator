@@ -6,6 +6,7 @@ namespace Ruudk\GraphQLCodeGenerator\Visitor;
 
 use Exception;
 use GraphQL\Language\AST\FieldNode;
+use GraphQL\Language\AST\FragmentDefinitionNode;
 use GraphQL\Language\AST\Node;
 use GraphQL\Language\AST\NodeKind;
 use GraphQL\Language\AST\NodeList;
@@ -19,12 +20,13 @@ final readonly class DuplicateFieldOptimizer
     /**
      * @template T of Node
      * @param T $node
+     * @param array<string, array{FragmentDefinitionNode, list<string>}> $fragmentDefinitions
      *
      * @throws InvalidArgumentException
      * @throws Exception
      * @return T
      */
-    public function __invoke(Node $node) : Node
+    public function __invoke(Node $node, array $fragmentDefinitions) : Node
     {
         $new = Visitor::visit($node, [
             NodeKind::SELECTION_SET => [

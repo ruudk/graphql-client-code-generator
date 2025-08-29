@@ -65,7 +65,9 @@ use Ruudk\GraphQLCodeGenerator\Planner\Plan\OperationClassPlan;
 use Ruudk\GraphQLCodeGenerator\Planner\PlannerResult;
 use Ruudk\GraphQLCodeGenerator\Planner\SelectionSetPlanner;
 use Ruudk\GraphQLCodeGenerator\Validator\IndexByValidator;
+use Ruudk\GraphQLCodeGenerator\Visitor\DefinedFragmentsVisitor;
 use Ruudk\GraphQLCodeGenerator\Visitor\IndexByRemover;
+use Ruudk\GraphQLCodeGenerator\Visitor\UsedFragmentsVisitor;
 use Symfony\Component\Filesystem\Filesystem;
 use Symfony\Component\Filesystem\Path;
 use Symfony\Component\Finder\Finder;
@@ -202,12 +204,26 @@ final class Planner
 
         $operations = [];
         $usedTypesCollector = new UsedTypesCollector($this->schema);
+        $definedFragments = [];
 
         // First pass: parse all queries to find what types are actually used
         foreach ($finder as $file) {
             $document = Parser::parse($file->getContents());
 
             $usedTypesCollector->analyze($document);
+
+            foreach (DefinedFragmentsVisitor::getDefinedFragments($document) as $name => $fragmentNode) {
+                if (isset($definedFragments[$name])) {
+                    throw new Exception(sprintf(
+                        'File "%s" defined fragment "%s" but it is already defined in "%s".',
+                        $definedFragments[$name],
+                        $name,
+                        $file->getPathname(),
+                    ));
+                }
+
+                $definedFragments[$name] = $file->getPathname();
+            }
 
             $operations[Path::makeRelative($file->getPathname(), $this->config->projectDir)] = $document;
         }
@@ -346,7 +362,7 @@ final class Planner
                 throw new Exception(sprintf('Fragment validation failed: %s', implode(PHP_EOL, array_map(fn($error) => $error->getMessage(), $errors))));
             }
 
-            $fragment = $this->optimizer->optimize($fragment);
+            $fragment = $this->optimizer->optimize($fragment, []);
 
             $name = $fragment->name->value;
 
@@ -355,7 +371,7 @@ final class Planner
             Assert::notNull($type, 'Fragment type is expected');
 
             $planner->setFragmentType($name, $type);
-            $planner->setFragmentDefinition($name, $fragment);
+            $planner->setFragmentDefinition($name, $fragment, UsedFragmentsVisitor::getUsedFragments($fragment));
 
             // Store for processing after all are set
             $fragmentsToProcess[] = [
@@ -425,7 +441,7 @@ final class Planner
      */
     private function planOperation(DocumentNode $document, string $relativeFilePath, PlannerResult $result, SelectionSetPlanner $planner) : void
     {
-        $document = $this->optimizer->optimize($document);
+        $document = $this->optimizer->optimize($document, $planner->fragmentDefinitions);
 
         $errors = DocumentValidator::validate($this->schema, $document, $this->validatorRules);
 
@@ -445,7 +461,10 @@ final class Planner
             }
         }
 
-        Assert::notNull($operation, 'Expected operation to be defined');
+        if ($operation === null) {
+            return;
+        }
+
         Assert::notNull($operation->name, 'Expected operation to have a name');
 
         $operationName = $operation->name->value;

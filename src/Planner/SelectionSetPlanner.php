@@ -68,7 +68,7 @@ final class SelectionSetPlanner
     public private(set) array $fragmentSelectionResults = [];
 
     /**
-     * @var array<string, FragmentDefinitionNode> Fragment name to definition mapping
+     * @var array<string, array{FragmentDefinitionNode, list<string>}> Fragment name to definition mapping
      */
     public private(set) array $fragmentDefinitions = [];
     private PossibleTypesFinder $possibleTypesFinder;
@@ -595,7 +595,7 @@ final class SelectionSetPlanner
 
             // Get the fragment definition to extract all its fields
             if (isset($this->fragmentDefinitions[$selection->name->value])) {
-                $fragmentDef = $this->fragmentDefinitions[$selection->name->value];
+                $fragmentDef = $this->fragmentDefinitions[$selection->name->value][0];
                 // Collect all fields from the fragment's selection set
                 $this->collectRequiredFieldsFromSelectionSet($fragmentDef->selectionSet, $requiredFields);
             }
@@ -1090,7 +1090,7 @@ final class SelectionSetPlanner
 
                 if (isset($this->fragmentDefinitions[$fragmentName])) {
                     $this->collectRequiredFieldsFromSelectionSet(
-                        $this->fragmentDefinitions[$fragmentName]->selectionSet,
+                        $this->fragmentDefinitions[$fragmentName][0]->selectionSet,
                         $requiredFields,
                     );
                 }
@@ -1142,8 +1142,11 @@ final class SelectionSetPlanner
         $this->fragmentTypes[$name] = $type;
     }
 
-    public function setFragmentDefinition(string $name, FragmentDefinitionNode $definition) : void
+    /**
+     * @param list<string> $dependencies
+     */
+    public function setFragmentDefinition(string $name, FragmentDefinitionNode $definition, array $dependencies) : void
     {
-        $this->fragmentDefinitions[$name] = $definition;
+        $this->fragmentDefinitions[$name] = [$definition, $dependencies];
     }
 }

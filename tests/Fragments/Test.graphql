@@ -20,13 +20,3 @@ fragment ApplicationDetails on Application {
 fragment UserDetails on User {
     login
 }
-
-fragment ProjectView on Project {
-    name
-    description
-    ...ProjectStateView
-}
-
-fragment ProjectStateView on Project {
-    state
-}

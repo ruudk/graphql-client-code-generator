@@ -32,6 +32,7 @@ final class FragmentsTest extends GraphQLTestCase
                 ],
             ],
         ]))->execute();
+
         self::assertNotNull($result->viewer->viewerName);
         self::assertTrue($result->viewer->isViewerName);
         self::assertSame('Ruud Kamphuis', $result->viewer->viewerName->name);
@@ -44,6 +45,12 @@ final class FragmentsTest extends GraphQLTestCase
         self::assertSame('GraphQL Code Generator', $project->projectView->name);
         self::assertSame('ACTIVE', $project->projectView->projectStateView->state);
         self::assertNull($project->projectView->description);
+
+        self::assertStringContainsString('fragment ProjectStateView on Project', $this->getLastOperation());
+        self::assertStringContainsString('fragment ProjectView on Project', $this->getLastOperation());
+        self::assertStringContainsString('fragment ViewerName on Viewer', $this->getLastOperation());
+        self::assertStringContainsString('fragment ApplicationDetails on Application', $this->getLastOperation());
+        self::assertStringContainsString('fragment UserDetails on User', $this->getLastOperation());
     }
 
     public function testApplicationViewer() : void
