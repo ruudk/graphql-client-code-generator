@@ -9,8 +9,10 @@ use Http\Mock\Client;
 use JsonException;
 use Override;
 use PHPUnit\Framework\TestCase;
+use Psr\Http\Message\RequestInterface;
 use Ruudk\GraphQLCodeGenerator\Executor\PlanExecutor;
 use Symfony\Component\Finder\Finder;
+use Webmozart\Assert\Assert;
 
 abstract class GraphQLTestCase extends TestCase
 {
@@ -78,5 +80,25 @@ abstract class GraphQLTestCase extends TestCase
         ], json_encode($data, flags: JSON_THROW_ON_ERROR)));
 
         return new TestClient($this->client);
+    }
+
+    protected function getLastOperation() : string
+    {
+        $lastRequest = $this->client->getLastRequest();
+
+        Assert::isInstanceOf($lastRequest, RequestInterface::class, 'Expected a request to be made');
+
+        $json = json_decode(
+            (string) $lastRequest->getBody(),
+            true,
+            512,
+            JSON_THROW_ON_ERROR,
+        );
+
+        Assert::isArray($json, 'Expected request body to be an array');
+        Assert::keyExists($json, 'query', 'Expected request body to have a "query" key');
+        Assert::string($json['query'], 'Expected "query" key to be a string');
+
+        return $json['query'];
     }
 }

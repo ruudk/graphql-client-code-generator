@@ -1,0 +1,5 @@
+fragment ProjectView on Project {
+    name
+    description
+    ...ProjectStateView
+}

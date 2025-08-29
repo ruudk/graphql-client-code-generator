@@ -35,7 +35,7 @@ use Webmozart\Assert\Assert;
 final readonly class PayloadShapeBuilder
 {
     /**
-     * @param array<string, FragmentDefinitionNode> $fragmentDefinitions
+     * @param array<string, array{FragmentDefinitionNode, list<string>}> $fragmentDefinitions
      * @param array<string, Type&NamedType> $fragmentTypes
      */
     public function __construct(
@@ -188,7 +188,7 @@ final readonly class PayloadShapeBuilder
             }
 
             // Collect fields from this fragment
-            $fragmentDef = $this->fragmentDefinitions[$fragmentName];
+            $fragmentDef = $this->fragmentDefinitions[$fragmentName][0];
             $newVisited = [
                 ...$visitedFragments,
                 $fragmentName => true,
@@ -371,7 +371,7 @@ final readonly class PayloadShapeBuilder
         }
 
         $fragmentType = $this->fragmentTypes[$fragmentName];
-        $fragmentDef = $this->fragmentDefinitions[$fragmentName];
+        $fragmentDef = $this->fragmentDefinitions[$fragmentName][0];
         $newVisited = [
             ...$visitedFragments,
             $fragmentName => true,

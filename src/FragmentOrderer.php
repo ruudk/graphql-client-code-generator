@@ -7,11 +7,8 @@ namespace Ruudk\GraphQLCodeGenerator;
 use Exception;
 use GraphQL\Language\AST\DocumentNode;
 use GraphQL\Language\AST\FragmentDefinitionNode;
-use GraphQL\Language\AST\FragmentSpreadNode;
-use GraphQL\Language\AST\NodeKind;
-use GraphQL\Language\Visitor;
 use RuntimeException;
-use Webmozart\Assert\Assert;
+use Ruudk\GraphQLCodeGenerator\Visitor\UsedFragmentsVisitor;
 
 final class FragmentOrderer
 {
@@ -24,14 +21,13 @@ final class FragmentOrderer
      */
     public static function orderFragments(array $documents) : array
     {
-        // Index all fragments by name and collect their dependencies
         /**
          * @var array<string, FragmentDefinitionNode> $fragments
          */
         $fragments = [];
 
         /**
-         * @var array<string, array<string, true>> $deps  fragmentName => set(depName)
+         * @var array<string, list<string>> $deps  fragmentName => set(depName)
          */
         $deps = [];
 
@@ -43,14 +39,14 @@ final class FragmentOrderer
 
                 $name = $def->name->value;
                 $fragments[$name] = $def;
-                $deps[$name] = self::collectDeps($def); // set-like array: depName => true
+                $deps[$name] = UsedFragmentsVisitor::getUsedFragments($def);
             }
         }
 
         // Optional: detect references to unknown fragments early
         $unknown = [];
         foreach ($deps as $set) {
-            foreach (array_keys($set) as $to) {
+            foreach ($set as $to) {
                 if ( ! isset($fragments[$to])) {
                     $unknown[$to] = true;
                 }
@@ -67,7 +63,7 @@ final class FragmentOrderer
         // Compute in-degrees
         $inDegree = array_fill_keys(array_keys($fragments), 0);
         foreach ($deps as $set) {
-            foreach (array_keys($set) as $to) {
+            foreach ($set as $to) {
                 $inDegree[$to] ??= 0;
                 ++$inDegree[$to];
             }
@@ -86,7 +82,7 @@ final class FragmentOrderer
             $n = array_shift($queue);
             $sortedNames[] = $n;
 
-            foreach (array_keys($deps[$n] ?? []) as $m) {
+            foreach ($deps[$n] ?? [] as $m) {
                 $inDegree[$m] ??= 0;
                 --$inDegree[$m];
 
@@ -112,25 +108,5 @@ final class FragmentOrderer
 
         // Return in dependency-safe order (dependencies first)
         return array_map(fn($name) => $fragments[$name], $sortedNames);
-    }
-
-    /**
-     * @throws Exception
-     * @return array<string,true> set of fragment names used via spreads
-     */
-    private static function collectDeps(FragmentDefinitionNode $fragment) : array
-    {
-        $set = [];
-        Visitor::visit($fragment, [
-            NodeKind::FRAGMENT_SPREAD => function ($node) use (&$set) {
-                Assert::isInstanceOf($node, FragmentSpreadNode::class);
-
-                $set[$node->name->value] = true;
-
-                return null;
-            },
-        ]);
-
-        return $set;
     }
 }

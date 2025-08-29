@@ -1636,7 +1636,7 @@ final class PayloadShapeBuilderTest extends TestCase
      * @throws \GraphQL\Error\SyntaxError
      * @throws JsonException
      * @throws \GraphQL\Error\InvariantViolation
-     * @return array{definitions: array<string, FragmentDefinitionNode>, types: array<string, Type&NamedType>}
+     * @return array{definitions: array<string, array{FragmentDefinitionNode, list<string>}>, types: array<string, Type&NamedType>}
      */
     private function parseFragments(string $fragmentsSource) : array
     {
@@ -1648,7 +1648,7 @@ final class PayloadShapeBuilderTest extends TestCase
             }
 
             $name = $definition->name->value;
-            $definitions[$name] = $definition;
+            $definitions[$name] = [$definition, []];
             $type = $this->schema->getType($definition->typeCondition->name->value);
             self::assertInstanceOf(NamedType::class, $type);
             $types[$name] = $type;

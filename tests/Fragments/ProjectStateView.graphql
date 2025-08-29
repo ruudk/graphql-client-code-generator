@@ -1,0 +1,3 @@
+fragment ProjectStateView on Project {
+    state
+}

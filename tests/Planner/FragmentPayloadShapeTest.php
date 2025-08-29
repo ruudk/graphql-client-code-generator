@@ -35,7 +35,7 @@ final class FragmentPayloadShapeTest extends TestCase
         $fragmentTypes = [];
         foreach ($document->definitions as $def) {
             if ($def instanceof \GraphQL\Language\AST\FragmentDefinitionNode) {
-                $fragments[$def->name->value] = $def;
+                $fragments[$def->name->value] = [$def, []];
                 $type = $schema->getType($def->typeCondition->name->value);
                 self::assertNotNull($type, 'Fragment type ' . $def->typeCondition->name->value . ' should exist');
                 $fragmentTypes[$def->name->value] = $type;
@@ -54,7 +54,7 @@ final class FragmentPayloadShapeTest extends TestCase
         );
         $builder = new PayloadShapeBuilder($schema, $typeMapper, $fragments, $fragmentTypes);
         // Get the details field from ItemWithDetails fragment
-        $itemFragment = $fragments['ItemWithDetails'];
+        $itemFragment = $fragments['ItemWithDetails'][0];
         $detailsField = null;
         foreach ($itemFragment->selectionSet->selections as $sel) {
             if ($sel instanceof \GraphQL\Language\AST\FieldNode && $sel->name->value === 'details') {
@@ -111,7 +111,7 @@ final class FragmentPayloadShapeTest extends TestCase
         $fragmentTypes = [];
         foreach ($document->definitions as $def) {
             if ($def instanceof \GraphQL\Language\AST\FragmentDefinitionNode) {
-                $fragments[$def->name->value] = $def;
+                $fragments[$def->name->value] = [$def, []];
                 $type = $schema->getType($def->typeCondition->name->value);
                 self::assertNotNull($type, 'Fragment type ' . $def->typeCondition->name->value . ' should exist');
                 $fragmentTypes[$def->name->value] = $type;
@@ -130,7 +130,7 @@ final class FragmentPayloadShapeTest extends TestCase
         );
         $builder = new PayloadShapeBuilder($schema, $typeMapper, $fragments, $fragmentTypes);
         // Get the payouts field from PaymentDetails fragment
-        $paymentFragment = $fragments['PaymentDetails'];
+        $paymentFragment = $fragments['PaymentDetails'][0];
         $payoutsField = null;
         foreach ($paymentFragment->selectionSet->selections as $sel) {
             if ($sel instanceof \GraphQL\Language\AST\FieldNode && $sel->name->value === 'payouts') {
