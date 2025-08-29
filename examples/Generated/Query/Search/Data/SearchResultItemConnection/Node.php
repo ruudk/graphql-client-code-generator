@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Ruudk\GraphQLCodeGenerator\Examples\Generated\Query\Search\Data\SearchResultItemConnection;
 
 use Ruudk\GraphQLCodeGenerator\Examples\Generated\Fragment\PullRequestInfo;
-use Ruudk\GraphQLCodeGenerator\Examples\Generated\Query\Search\Data\SearchResultItemConnection\Nod\AsIssue;
+use Ruudk\GraphQLCodeGenerator\Examples\Generated\Query\Search\Data\SearchResultItemConnection\Node\AsIssue;
 
 // This file was automatically generated and should not be edited.
 
@@ -19,7 +19,7 @@ use Ruudk\GraphQLCodeGenerator\Examples\Generated\Query\Search\Data\SearchResult
  *   ...PullRequestInfo
  * }
  */
-final class Nod
+final class Node
 {
     public string $__typename {
         get => $this->__typename ??= $this->data['__typename'];
