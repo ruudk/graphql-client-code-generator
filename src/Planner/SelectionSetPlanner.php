@@ -117,7 +117,7 @@ final class SelectionSetPlanner
 
         // Store fragment results for later use
         // Only cache results from top-level fragment generation to ensure clean, unmerged results
-        if ($path === 'fragment' && $isGeneratingTopLevelFragment && strpos($fqcn, '\\Fragment\\') !== false) {
+        if ($path === 'fragment' && $isGeneratingTopLevelFragment && str_contains($fqcn, '\\Fragment\\')) {
             // Extract fragment name from FQCN
             $parts = explode('\\', $fqcn);
             $fragmentName = end($parts);

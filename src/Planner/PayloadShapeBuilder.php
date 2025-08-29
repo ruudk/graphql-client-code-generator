@@ -84,7 +84,7 @@ final readonly class PayloadShapeBuilder
             $fieldPayloadShape = $this->buildFieldPayloadShape($selections, $fieldType);
 
             // Fields with conditional directives should be optional
-            $hasConditionalDirective = array_any($selections, fn($selection) => $this->hasConditionalDirectives($selection));
+            $hasConditionalDirective = array_any($selections, $this->hasConditionalDirectives(...));
 
             if ($hasConditionalDirective) {
                 $shape->addOptional($fieldName, $fieldPayloadShape);
