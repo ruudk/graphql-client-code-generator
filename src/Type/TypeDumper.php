@@ -2,47 +2,34 @@
 
 declare(strict_types=1);
 
-namespace Ruudk\GraphQLCodeGenerator\Utility;
+namespace Ruudk\GraphQLCodeGenerator\Type;
 
 use Symfony\Component\TypeInfo\Type;
 
-/**
- * Formats Symfony Type objects as PHPDoc type strings
- */
-final class PayloadShapeFormatter
+final class TypeDumper
 {
-    /**
-     * Format a Type as a PHPDoc string
-     */
-    public function format(Type $type, int $indentation = 0) : string
-    {
-        return $this->dumpPHPDocType($type, fn(string $class) => $class, $indentation);
-    }
-
     /**
      * @param callable(string): string $importer
      */
-    private function dumpPHPDocType(Type $type, callable $importer, int $indentation = 0) : string
+    public static function dump(Type $type, ?callable $importer = null, int $indentation = 0) : string
     {
+        $importer ??= fn(string $class) => $class;
+
         if ($type instanceof Type\NullableType) {
-            return sprintf('null|%s', $this->dumpPHPDocType($type->getWrappedType(), $importer, $indentation));
+            return sprintf('null|%s', self::dump($type->getWrappedType(), $importer, $indentation));
         }
 
         if ($type instanceof Type\ArrayShapeType) {
             $items = [];
-            $shape = $type->getShape();
 
-            // Sort fields alphabetically for consistent output
-            ksort($shape);
-
-            foreach ($shape as $key => ['type' => $itemType, 'optional' => $optional]) {
+            foreach ($type->getShape() as $key => ['type' => $itemType, 'optional' => $optional]) {
                 $itemKey = sprintf("'%s'", $key);
 
                 if ($optional) {
                     $itemKey = sprintf('%s?', $itemKey);
                 }
 
-                $items[] = sprintf('%s: %s', $itemKey, $this->dumpPHPDocType($itemType, $importer, $indentation + 1));
+                $items[] = sprintf('%s: %s', $itemKey, self::dump($itemType, $importer, $indentation + 1));
             }
 
             if ($items === []) {
@@ -61,13 +48,13 @@ final class PayloadShapeFormatter
 
         if ($type instanceof Type\CollectionType) {
             if ($type->isList()) {
-                return sprintf('list<%s>', $this->dumpPHPDocType($type->getCollectionValueType(), $importer, $indentation));
+                return sprintf('list<%s>', self::dump($type->getCollectionValueType(), $importer, $indentation));
             }
 
             return sprintf(
                 'array<%s,%s>',
-                $this->dumpPHPDocType($type->getCollectionKeyType(), $importer, $indentation),
-                $this->dumpPHPDocType($type->getCollectionValueType(), $importer, $indentation),
+                self::dump($type->getCollectionKeyType(), $importer, $indentation),
+                self::dump($type->getCollectionValueType(), $importer, $indentation),
             );
         }
 
@@ -76,7 +63,7 @@ final class PayloadShapeFormatter
                 '|',
                 array_unique(
                     array_map(
-                        fn(Type $type) => $this->dumpPHPDocType($type, $importer, $indentation),
+                        fn(Type $type) => self::dump($type, $importer, $indentation),
                         $type->getTypes(),
                     ),
                 ),
