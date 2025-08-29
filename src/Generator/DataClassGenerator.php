@@ -14,6 +14,7 @@ use Ruudk\GraphQLCodeGenerator\Planner\Plan\DataClassPlan;
 use Ruudk\GraphQLCodeGenerator\Type\FragmentObjectType;
 use Ruudk\GraphQLCodeGenerator\Type\IndexByCollectionType;
 use Ruudk\GraphQLCodeGenerator\Type\StringLiteralType;
+use Ruudk\GraphQLCodeGenerator\Type\TypeDumper;
 use Ruudk\GraphQLCodeGenerator\TypeInitializer\DelegatingTypeInitializer;
 use Symfony\Component\TypeInfo\Type\ArrayShapeType;
 use Symfony\Component\TypeInfo\Type as SymfonyType;
@@ -149,7 +150,7 @@ final class DataClassGenerator extends AbstractGenerator
                                 if ($this->getNakedType($propertyType) instanceof SymfonyType\CollectionType) {
                                     yield sprintf(
                                         '@var %s',
-                                        $this->dumpPHPDocType($propertyType, $generator->import(...)),
+                                        TypeDumper::dump($propertyType, $generator->import(...)),
                                     );
                                 }
                             });
@@ -364,7 +365,7 @@ final class DataClassGenerator extends AbstractGenerator
                                     if ($this->getNakedType($unwrappedType) instanceof SymfonyType\CollectionType) {
                                         yield sprintf(
                                             '@var %s',
-                                            $this->dumpPHPDocType($unwrappedType, $generator->import(...)),
+                                            TypeDumper::dump($unwrappedType, $generator->import(...)),
                                         );
                                     }
 
@@ -393,7 +394,7 @@ final class DataClassGenerator extends AbstractGenerator
                         yield '';
                         yield from $generator->docComment(sprintf(
                             '@var %s',
-                            $this->dumpPHPDocType($nodesType, $generator->import(...)),
+                            TypeDumper::dump($nodesType, $generator->import(...)),
                         ));
                         yield sprintf(
                             'public %s $nodes {',
@@ -452,13 +453,13 @@ final class DataClassGenerator extends AbstractGenerator
                     yield from $generator->docComment(function () use ($isData, $generator, $payloadShape) {
                         yield sprintf(
                             '@param %s $data',
-                            $this->dumpPHPDocType($payloadShape, $generator->import(...)),
+                            TypeDumper::dump($payloadShape, $generator->import(...)),
                         );
 
                         if ($isData) {
                             yield sprintf(
                                 '@param %s $errors',
-                                $this->dumpPHPDocType(SymfonyType::list(SymfonyType::arrayShape([
+                                TypeDumper::dump(SymfonyType::list(SymfonyType::arrayShape([
                                     'message' => SymfonyType::string(),
                                     'code' => SymfonyType::string(),
                                     'debugMessage' => [

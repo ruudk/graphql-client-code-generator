@@ -17,15 +17,14 @@ use JsonException;
 use Override;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;
+use Ruudk\GraphQLCodeGenerator\Type\TypeDumper;
 use Ruudk\GraphQLCodeGenerator\TypeMapper;
-use Ruudk\GraphQLCodeGenerator\Utility\PayloadShapeFormatter;
 use Symfony\Component\TypeInfo\Type as SymfonyType;
 
 final class PayloadShapeBuilderTest extends TestCase
 {
     private Schema $schema;
     private PayloadShapeBuilder $builder;
-    private PayloadShapeFormatter $formatter;
 
     #[Override]
     protected function setUp() : void
@@ -152,7 +151,6 @@ final class PayloadShapeBuilderTest extends TestCase
             $this->schema,
             $typeMapper,
         );
-        $this->formatter = new PayloadShapeFormatter();
     }
 
     public function testSimpleDirectSelection() : void
@@ -173,7 +171,7 @@ final class PayloadShapeBuilderTest extends TestCase
                     'id': string,
                 }
                 PHPDOC,
-            $this->formatter->format($shape->toArrayShape()),
+            TypeDumper::dump($shape->toArrayShape()),
         );
     }
 
@@ -205,7 +203,7 @@ final class PayloadShapeBuilderTest extends TestCase
                     },
                 }
                 PHPDOC,
-            $this->formatter->format($shape->toArrayShape()),
+            TypeDumper::dump($shape->toArrayShape()),
         );
     }
 
@@ -235,7 +233,7 @@ final class PayloadShapeBuilderTest extends TestCase
                     }>,
                 }
                 PHPDOC,
-            $this->formatter->format($shape->toArrayShape()),
+            TypeDumper::dump($shape->toArrayShape()),
         );
     }
 
@@ -311,7 +309,7 @@ final class PayloadShapeBuilderTest extends TestCase
                     }>,
                 }
                 PHPDOC,
-            $this->formatter->format($shape->toArrayShape()),
+            TypeDumper::dump($shape->toArrayShape()),
         );
     }
 
@@ -350,7 +348,7 @@ final class PayloadShapeBuilderTest extends TestCase
                     'role'?: string,
                 }
                 PHPDOC,
-            $this->formatter->format($shape->toArrayShape()),
+            TypeDumper::dump($shape->toArrayShape()),
         );
     }
 
@@ -411,7 +409,7 @@ final class PayloadShapeBuilderTest extends TestCase
                     },
                 }
                 PHPDOC,
-            $this->formatter->format($shape->toArrayShape()),
+            TypeDumper::dump($shape->toArrayShape()),
         );
     }
 
@@ -437,7 +435,7 @@ final class PayloadShapeBuilderTest extends TestCase
                     'id': string,
                 }
                 PHPDOC,
-            $this->formatter->format($shape->toArrayShape()),
+            TypeDumper::dump($shape->toArrayShape()),
         );
     }
 
@@ -473,7 +471,7 @@ final class PayloadShapeBuilderTest extends TestCase
                     },
                 }
                 PHPDOC,
-            $this->formatter->format($shape->toArrayShape()),
+            TypeDumper::dump($shape->toArrayShape()),
         );
     }
 
@@ -545,7 +543,7 @@ final class PayloadShapeBuilderTest extends TestCase
                     }>,
                 }
                 PHPDOC,
-            $this->formatter->format($shape->toArrayShape()),
+            TypeDumper::dump($shape->toArrayShape()),
         );
     }
 
@@ -614,7 +612,7 @@ final class PayloadShapeBuilderTest extends TestCase
                     }>,
                 }
                 PHPDOC,
-            $this->formatter->format($shape->toArrayShape()),
+            TypeDumper::dump($shape->toArrayShape()),
         );
     }
 
@@ -793,7 +791,7 @@ final class PayloadShapeBuilderTest extends TestCase
                     }>,
                 }
                 PHPDOC,
-            $this->formatter->format($shape->toArrayShape()),
+            TypeDumper::dump($shape->toArrayShape()),
         );
     }
 
@@ -864,7 +862,7 @@ final class PayloadShapeBuilderTest extends TestCase
                     },
                 }
                 PHPDOC,
-            $this->formatter->format($shape->toArrayShape()),
+            TypeDumper::dump($shape->toArrayShape()),
         );
     }
 
@@ -928,7 +926,7 @@ final class PayloadShapeBuilderTest extends TestCase
                     }>,
                 }
                 PHPDOC,
-            $this->formatter->format($shape->toArrayShape()),
+            TypeDumper::dump($shape->toArrayShape()),
         );
     }
 
@@ -1008,7 +1006,7 @@ final class PayloadShapeBuilderTest extends TestCase
                     },
                 }
                 PHPDOC,
-            $this->formatter->format($shape->toArrayShape()),
+            TypeDumper::dump($shape->toArrayShape()),
         );
     }
 
@@ -1182,7 +1180,7 @@ final class PayloadShapeBuilderTest extends TestCase
                     },
                 }
                 PHPDOC,
-            $this->formatter->format($shape->toArrayShape()),
+            TypeDumper::dump($shape->toArrayShape()),
         );
     }
 
@@ -1239,7 +1237,7 @@ final class PayloadShapeBuilderTest extends TestCase
                     }>,
                 }
                 PHPDOC,
-            $this->formatter->format($shape->toArrayShape()),
+            TypeDumper::dump($shape->toArrayShape()),
         );
     }
 
@@ -1327,7 +1325,7 @@ final class PayloadShapeBuilderTest extends TestCase
                     }>,
                 }
                 PHPDOC,
-            $this->formatter->format($shape->toArrayShape()),
+            TypeDumper::dump($shape->toArrayShape()),
         );
     }
 
@@ -1372,7 +1370,7 @@ final class PayloadShapeBuilderTest extends TestCase
                     }>,
                 }
                 PHPDOC,
-            $this->formatter->format($shape->toArrayShape()),
+            TypeDumper::dump($shape->toArrayShape()),
         );
     }
 
@@ -1463,7 +1461,7 @@ final class PayloadShapeBuilderTest extends TestCase
                     }>,
                 }
                 PHPDOC,
-            $this->formatter->format($shape->toArrayShape()),
+            TypeDumper::dump($shape->toArrayShape()),
         );
     }
 
@@ -1523,7 +1521,7 @@ final class PayloadShapeBuilderTest extends TestCase
                     }>,
                 }
                 PHPDOC,
-            $this->formatter->format($shape->toArrayShape()),
+            TypeDumper::dump($shape->toArrayShape()),
         );
     }
 
@@ -1584,7 +1582,7 @@ final class PayloadShapeBuilderTest extends TestCase
                     }>,
                 }
                 PHPDOC,
-            $this->formatter->format($shape->toArrayShape()),
+            TypeDumper::dump($shape->toArrayShape()),
         );
         $shape2 = $builder->buildPayloadShape(
             $this->parseSelectionSet(
@@ -1615,7 +1613,7 @@ final class PayloadShapeBuilderTest extends TestCase
                     }>,
                 }
                 PHPDOC,
-            $this->formatter->format($shape2->toArrayShape()),
+            TypeDumper::dump($shape2->toArrayShape()),
         );
     }
 

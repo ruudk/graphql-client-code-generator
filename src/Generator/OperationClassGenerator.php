@@ -7,6 +7,7 @@ namespace Ruudk\GraphQLCodeGenerator\Generator;
 use JsonException;
 use Ruudk\CodeGenerator\CodeGenerator;
 use Ruudk\GraphQLCodeGenerator\Planner\Plan\OperationClassPlan;
+use Ruudk\GraphQLCodeGenerator\Type\TypeDumper;
 use Symfony\Component\TypeInfo\Type as SymfonyType;
 
 final class OperationClassGenerator extends AbstractGenerator
@@ -70,7 +71,7 @@ final class OperationClassGenerator extends AbstractGenerator
 
                         yield sprintf(
                             '@param %s $%s',
-                            $this->dumpPHPDocType($phpType, $generator->import(...)),
+                            TypeDumper::dump($phpType, $generator->import(...)),
                             $name,
                         );
                     }
@@ -119,7 +120,7 @@ final class OperationClassGenerator extends AbstractGenerator
 
                             yield sprintf(
                                 '@param %s $%s',
-                                $this->dumpPHPDocType($phpType, $generator->import(...)),
+                                TypeDumper::dump($phpType, $generator->import(...)),
                                 $name,
                             );
                         }

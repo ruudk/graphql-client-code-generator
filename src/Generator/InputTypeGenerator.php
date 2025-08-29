@@ -9,6 +9,7 @@ use Override;
 use Ruudk\CodeGenerator\CodeGenerator;
 use Ruudk\GraphQLCodeGenerator\Config;
 use Ruudk\GraphQLCodeGenerator\Planner\Plan\InputClassPlan;
+use Ruudk\GraphQLCodeGenerator\Type\TypeDumper;
 use Symfony\Component\TypeInfo\Type as SymfonyType;
 
 final class InputTypeGenerator extends AbstractGenerator
@@ -61,7 +62,7 @@ final class InputTypeGenerator extends AbstractGenerator
                             continue;
                         }
 
-                        yield sprintf('@param %s $%s', $this->dumpPHPDocType($fieldType, $generator->import(...)), $fieldName);
+                        yield sprintf('@param %s $%s', TypeDumper::dump($fieldType, $generator->import(...)), $fieldName);
                     }
                 });
 
@@ -103,7 +104,7 @@ final class InputTypeGenerator extends AbstractGenerator
                 }
 
                 yield '';
-                yield from $generator->docComment(sprintf('@return %s', $this->dumpPHPDocType(SymfonyType::arrayShape($fields), $generator->import(...))));
+                yield from $generator->docComment(sprintf('@return %s', TypeDumper::dump(SymfonyType::arrayShape($fields), $generator->import(...))));
                 yield $generator->dumpAttribute(Override::class);
                 yield 'public function jsonSerialize() : array';
                 yield '{';

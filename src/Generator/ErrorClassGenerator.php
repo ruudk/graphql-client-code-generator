@@ -6,6 +6,7 @@ namespace Ruudk\GraphQLCodeGenerator\Generator;
 
 use Ruudk\CodeGenerator\CodeGenerator;
 use Ruudk\GraphQLCodeGenerator\Planner\Plan\ErrorClassPlan;
+use Ruudk\GraphQLCodeGenerator\Type\TypeDumper;
 use Symfony\Component\TypeInfo\Type;
 
 final class ErrorClassGenerator extends AbstractGenerator
@@ -31,7 +32,7 @@ final class ErrorClassGenerator extends AbstractGenerator
                 yield 'public string $message;';
 
                 yield '';
-                yield from $generator->docComment(sprintf('@param %s $error', $this->dumpPHPDocType(Type::arrayShape([
+                yield from $generator->docComment(sprintf('@param %s $error', TypeDumper::dump(Type::arrayShape([
                     'message' => Type::string(),
                     'debugMessage' => [
                         'type' => Type::string(),
