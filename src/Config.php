@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Ruudk\GraphQLCodeGenerator;
 
+use Closure;
 use GraphQL\Type\Schema;
 use ReflectionClass;
 use Symfony\Component\TypeInfo\Type;
@@ -17,6 +18,7 @@ final readonly class Config
      * @param array<string, Type> $enumTypes
      * @param list<string> $ignoreTypes
      * @param list<TypeInitializer\TypeInitializer> $typeInitializers
+     * @param null|object|(Closure(): object) $introspectionClient
      */
     private function __construct(
         public Schema | string $schema,
@@ -41,6 +43,7 @@ final readonly class Config
         public bool $indexByDirective = false,
         public bool $addUnknownCaseToEnums = false,
         public bool $dumpEnumIsMethods = false,
+        public ?object $introspectionClient = null,
     ) {}
 
     public static function create(
@@ -157,6 +160,11 @@ final readonly class Config
         $typeInitializers[] = $typeInitializer;
 
         return $this->with('typeInitializers', $typeInitializers);
+    }
+
+    public function withIntrospectionClient(object $client) : self
+    {
+        return $this->with('introspectionClient', $client);
     }
 
     /**
