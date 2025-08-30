@@ -117,7 +117,7 @@ final class GenerateCommand
                 } elseif ( ! is_string($configItem->schema)) {
                     $io->error('Cannot update schema: schema should be a string');
                 } else {
-                    $io->writeln(sprintf('Updating schema for <info>%s</info>... ', $configItem->namespace));
+                    $io->write(sprintf('Updating schema for <info>%s</info>... ', $configItem->namespace));
 
                     $client = $configItem->introspectionClient;
 
