@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Ruudk\GraphQLCodeGenerator;
 
 use GraphQL\Type\Schema;
+use ReflectionClass;
 use Symfony\Component\TypeInfo\Type;
 
 final readonly class Config
@@ -24,22 +25,22 @@ final readonly class Config
         public string $outputDir,
         public string $namespace,
         public string $client,
-        public bool $dumpOrThrows,
-        public bool $dumpDefinition,
-        public bool $useNodeNameForEdgeNodes,
-        public array $scalars,
-        public array $inputObjectTypes,
-        public array $objectTypes,
-        public array $enumTypes,
-        public array $ignoreTypes,
-        public array $typeInitializers,
-        public bool $useConnectionNameForConnections,
-        public bool $useEdgeNameForEdges,
-        public bool $addNodesOnConnections,
-        public bool $addSymfonyExcludeAttribute,
-        public bool $indexByDirective,
-        public bool $addUnknownCaseToEnums,
-        public bool $dumpEnumIsMethods,
+        public bool $dumpOrThrows = false,
+        public bool $dumpDefinition = false,
+        public bool $useNodeNameForEdgeNodes = false,
+        public array $scalars = [],
+        public array $inputObjectTypes = [],
+        public array $objectTypes = [],
+        public array $enumTypes = [],
+        public array $ignoreTypes = [],
+        public array $typeInitializers = [],
+        public bool $useConnectionNameForConnections = false,
+        public bool $useEdgeNameForEdges = false,
+        public bool $addNodesOnConnections = false,
+        public bool $addSymfonyExcludeAttribute = false,
+        public bool $indexByDirective = false,
+        public bool $addUnknownCaseToEnums = false,
+        public bool $dumpEnumIsMethods = false,
     ) {}
 
     public static function create(
@@ -57,303 +58,57 @@ final readonly class Config
             $outputDir,
             $namespace,
             $client,
-            false,
-            false,
-            false,
-            [],
-            [],
-            [],
-            [],
-            [],
-            [],
-            false,
-            false,
-            false,
-            false,
-            false,
-            false,
-            false,
         );
     }
 
     public function enableDumpOrThrows() : self
     {
-        return new self(
-            $this->schema,
-            $this->projectDir,
-            $this->queriesDir,
-            $this->outputDir,
-            $this->namespace,
-            $this->client,
-            true,
-            $this->dumpDefinition,
-            $this->useNodeNameForEdgeNodes,
-            $this->scalars,
-            $this->inputObjectTypes,
-            $this->objectTypes,
-            $this->enumTypes,
-            $this->ignoreTypes,
-            $this->typeInitializers,
-            $this->useConnectionNameForConnections,
-            $this->useEdgeNameForEdges,
-            $this->addNodesOnConnections,
-            $this->addSymfonyExcludeAttribute,
-            $this->indexByDirective,
-            $this->addUnknownCaseToEnums,
-            $this->dumpEnumIsMethods,
-        );
+        return $this->with('dumpOrThrows', true);
     }
 
     public function enableDumpDefinition() : self
     {
-        return new self(
-            $this->schema,
-            $this->projectDir,
-            $this->queriesDir,
-            $this->outputDir,
-            $this->namespace,
-            $this->client,
-            $this->dumpOrThrows,
-            true,
-            $this->useNodeNameForEdgeNodes,
-            $this->scalars,
-            $this->inputObjectTypes,
-            $this->objectTypes,
-            $this->enumTypes,
-            $this->ignoreTypes,
-            $this->typeInitializers,
-            $this->useConnectionNameForConnections,
-            $this->useEdgeNameForEdges,
-            $this->addNodesOnConnections,
-            $this->addSymfonyExcludeAttribute,
-            $this->indexByDirective,
-            $this->addUnknownCaseToEnums,
-            $this->dumpEnumIsMethods,
-        );
+        return $this->with('dumpDefinition', true);
     }
 
     public function enableUseNodeNameForEdgeNodes() : self
     {
-        return new self(
-            $this->schema,
-            $this->projectDir,
-            $this->queriesDir,
-            $this->outputDir,
-            $this->namespace,
-            $this->client,
-            $this->dumpOrThrows,
-            $this->dumpDefinition,
-            true,
-            $this->scalars,
-            $this->inputObjectTypes,
-            $this->objectTypes,
-            $this->enumTypes,
-            $this->ignoreTypes,
-            $this->typeInitializers,
-            $this->useConnectionNameForConnections,
-            $this->useEdgeNameForEdges,
-            $this->addNodesOnConnections,
-            $this->addSymfonyExcludeAttribute,
-            $this->indexByDirective,
-            $this->addUnknownCaseToEnums,
-            $this->dumpEnumIsMethods,
-        );
+        return $this->with('useNodeNameForEdgeNodes', true);
     }
 
     public function enableUseConnectionNameForConnections() : self
     {
-        return new self(
-            $this->schema,
-            $this->projectDir,
-            $this->queriesDir,
-            $this->outputDir,
-            $this->namespace,
-            $this->client,
-            $this->dumpOrThrows,
-            $this->dumpDefinition,
-            $this->useNodeNameForEdgeNodes,
-            $this->scalars,
-            $this->inputObjectTypes,
-            $this->objectTypes,
-            $this->enumTypes,
-            $this->ignoreTypes,
-            $this->typeInitializers,
-            true,
-            $this->useEdgeNameForEdges,
-            $this->addNodesOnConnections,
-            $this->addSymfonyExcludeAttribute,
-            $this->indexByDirective,
-            $this->addUnknownCaseToEnums,
-            $this->dumpEnumIsMethods,
-        );
+        return $this->with('useConnectionNameForConnections', true);
     }
 
     public function enableUseEdgeNameForEdges() : self
     {
-        return new self(
-            $this->schema,
-            $this->projectDir,
-            $this->queriesDir,
-            $this->outputDir,
-            $this->namespace,
-            $this->client,
-            $this->dumpOrThrows,
-            $this->dumpDefinition,
-            $this->useNodeNameForEdgeNodes,
-            $this->scalars,
-            $this->inputObjectTypes,
-            $this->objectTypes,
-            $this->enumTypes,
-            $this->ignoreTypes,
-            $this->typeInitializers,
-            $this->useConnectionNameForConnections,
-            true,
-            $this->addNodesOnConnections,
-            $this->addSymfonyExcludeAttribute,
-            $this->indexByDirective,
-            $this->addUnknownCaseToEnums,
-            $this->dumpEnumIsMethods,
-        );
+        return $this->with('useEdgeNameForEdges', true);
     }
 
     public function enableAddNodesOnConnections() : self
     {
-        return new self(
-            $this->schema,
-            $this->projectDir,
-            $this->queriesDir,
-            $this->outputDir,
-            $this->namespace,
-            $this->client,
-            $this->dumpOrThrows,
-            $this->dumpDefinition,
-            $this->useNodeNameForEdgeNodes,
-            $this->scalars,
-            $this->inputObjectTypes,
-            $this->objectTypes,
-            $this->enumTypes,
-            $this->ignoreTypes,
-            $this->typeInitializers,
-            $this->useConnectionNameForConnections,
-            $this->useEdgeNameForEdges,
-            true,
-            $this->addSymfonyExcludeAttribute,
-            $this->indexByDirective,
-            $this->addUnknownCaseToEnums,
-            $this->dumpEnumIsMethods,
-        );
+        return $this->with('addNodesOnConnections', true);
     }
 
     public function enableAddSymfonyExcludeAttribute() : self
     {
-        return new self(
-            $this->schema,
-            $this->projectDir,
-            $this->queriesDir,
-            $this->outputDir,
-            $this->namespace,
-            $this->client,
-            $this->dumpOrThrows,
-            $this->dumpDefinition,
-            $this->useNodeNameForEdgeNodes,
-            $this->scalars,
-            $this->inputObjectTypes,
-            $this->objectTypes,
-            $this->enumTypes,
-            $this->ignoreTypes,
-            $this->typeInitializers,
-            $this->useConnectionNameForConnections,
-            $this->useEdgeNameForEdges,
-            $this->addNodesOnConnections,
-            true,
-            $this->indexByDirective,
-            $this->addUnknownCaseToEnums,
-            $this->dumpEnumIsMethods,
-        );
+        return $this->with('addSymfonyExcludeAttribute', true);
     }
 
     public function enableIndexByDirective() : self
     {
-        return new self(
-            $this->schema,
-            $this->projectDir,
-            $this->queriesDir,
-            $this->outputDir,
-            $this->namespace,
-            $this->client,
-            $this->dumpOrThrows,
-            $this->dumpDefinition,
-            $this->useNodeNameForEdgeNodes,
-            $this->scalars,
-            $this->inputObjectTypes,
-            $this->objectTypes,
-            $this->enumTypes,
-            $this->ignoreTypes,
-            $this->typeInitializers,
-            $this->useConnectionNameForConnections,
-            $this->useEdgeNameForEdges,
-            $this->addNodesOnConnections,
-            $this->addSymfonyExcludeAttribute,
-            true,
-            $this->addUnknownCaseToEnums,
-            $this->dumpEnumIsMethods,
-        );
+        return $this->with('indexByDirective', true);
     }
 
     public function enableAddUnknownCaseToEnums() : self
     {
-        return new self(
-            $this->schema,
-            $this->projectDir,
-            $this->queriesDir,
-            $this->outputDir,
-            $this->namespace,
-            $this->client,
-            $this->dumpOrThrows,
-            $this->dumpDefinition,
-            $this->useNodeNameForEdgeNodes,
-            $this->scalars,
-            $this->inputObjectTypes,
-            $this->objectTypes,
-            $this->enumTypes,
-            $this->ignoreTypes,
-            $this->typeInitializers,
-            $this->useConnectionNameForConnections,
-            $this->useEdgeNameForEdges,
-            $this->addNodesOnConnections,
-            $this->addSymfonyExcludeAttribute,
-            $this->indexByDirective,
-            true,
-            $this->dumpEnumIsMethods,
-        );
+        return $this->with('addUnknownCaseToEnums', true);
     }
 
     public function enableDumpEnumIsMethods() : self
     {
-        return new self(
-            $this->schema,
-            $this->projectDir,
-            $this->queriesDir,
-            $this->outputDir,
-            $this->namespace,
-            $this->client,
-            $this->dumpOrThrows,
-            $this->dumpDefinition,
-            $this->useNodeNameForEdgeNodes,
-            $this->scalars,
-            $this->inputObjectTypes,
-            $this->objectTypes,
-            $this->enumTypes,
-            $this->ignoreTypes,
-            $this->typeInitializers,
-            $this->useConnectionNameForConnections,
-            $this->useEdgeNameForEdges,
-            $this->addNodesOnConnections,
-            $this->addSymfonyExcludeAttribute,
-            $this->indexByDirective,
-            $this->addUnknownCaseToEnums,
-            true,
-        );
+        return $this->with('dumpEnumIsMethods', true);
     }
 
     public function withScalar(string $name, Type $type, ?Type $payloadType = null) : self
@@ -361,30 +116,7 @@ final readonly class Config
         $scalars = $this->scalars;
         $scalars[$name] = [$type, $payloadType ?? $type];
 
-        return new self(
-            $this->schema,
-            $this->projectDir,
-            $this->queriesDir,
-            $this->outputDir,
-            $this->namespace,
-            $this->client,
-            $this->dumpOrThrows,
-            $this->dumpDefinition,
-            $this->useNodeNameForEdgeNodes,
-            $scalars,
-            $this->inputObjectTypes,
-            $this->objectTypes,
-            $this->enumTypes,
-            $this->ignoreTypes,
-            $this->typeInitializers,
-            $this->useConnectionNameForConnections,
-            $this->useEdgeNameForEdges,
-            $this->addNodesOnConnections,
-            $this->addSymfonyExcludeAttribute,
-            $this->indexByDirective,
-            $this->addUnknownCaseToEnums,
-            $this->dumpEnumIsMethods,
-        );
+        return $this->with('scalars', $scalars);
     }
 
     public function withInputObjectType(string $name, Type $type) : self
@@ -392,30 +124,7 @@ final readonly class Config
         $inputObjectTypes = $this->inputObjectTypes;
         $inputObjectTypes[$name] = $type;
 
-        return new self(
-            $this->schema,
-            $this->projectDir,
-            $this->queriesDir,
-            $this->outputDir,
-            $this->namespace,
-            $this->client,
-            $this->dumpOrThrows,
-            $this->dumpDefinition,
-            $this->useNodeNameForEdgeNodes,
-            $this->scalars,
-            $inputObjectTypes,
-            $this->objectTypes,
-            $this->enumTypes,
-            $this->ignoreTypes,
-            $this->typeInitializers,
-            $this->useConnectionNameForConnections,
-            $this->useEdgeNameForEdges,
-            $this->addNodesOnConnections,
-            $this->addSymfonyExcludeAttribute,
-            $this->indexByDirective,
-            $this->addUnknownCaseToEnums,
-            $this->dumpEnumIsMethods,
-        );
+        return $this->with('inputObjectTypes', $inputObjectTypes);
     }
 
     public function withObjectType(string $name, Type $payloadShape, Type $payloadType) : self
@@ -423,30 +132,7 @@ final readonly class Config
         $objectTypes = $this->objectTypes;
         $objectTypes[$name] = [$payloadShape, $payloadType];
 
-        return new self(
-            $this->schema,
-            $this->projectDir,
-            $this->queriesDir,
-            $this->outputDir,
-            $this->namespace,
-            $this->client,
-            $this->dumpOrThrows,
-            $this->dumpDefinition,
-            $this->useNodeNameForEdgeNodes,
-            $this->scalars,
-            $this->inputObjectTypes,
-            $objectTypes,
-            $this->enumTypes,
-            $this->ignoreTypes,
-            $this->typeInitializers,
-            $this->useConnectionNameForConnections,
-            $this->useEdgeNameForEdges,
-            $this->addNodesOnConnections,
-            $this->addSymfonyExcludeAttribute,
-            $this->indexByDirective,
-            $this->addUnknownCaseToEnums,
-            $this->dumpEnumIsMethods,
-        );
+        return $this->with('objectTypes', $objectTypes);
     }
 
     public function withEnumType(string $name, Type $type) : self
@@ -454,30 +140,7 @@ final readonly class Config
         $enumTypes = $this->enumTypes;
         $enumTypes[$name] = $type;
 
-        return new self(
-            $this->schema,
-            $this->projectDir,
-            $this->queriesDir,
-            $this->outputDir,
-            $this->namespace,
-            $this->client,
-            $this->dumpOrThrows,
-            $this->dumpDefinition,
-            $this->useNodeNameForEdgeNodes,
-            $this->scalars,
-            $this->inputObjectTypes,
-            $this->objectTypes,
-            $enumTypes,
-            $this->ignoreTypes,
-            $this->typeInitializers,
-            $this->useConnectionNameForConnections,
-            $this->useEdgeNameForEdges,
-            $this->addNodesOnConnections,
-            $this->addSymfonyExcludeAttribute,
-            $this->indexByDirective,
-            $this->addUnknownCaseToEnums,
-            $this->dumpEnumIsMethods,
-        );
+        return $this->with('enumTypes', $enumTypes);
     }
 
     public function withIgnoreType(string $type) : self
@@ -485,30 +148,7 @@ final readonly class Config
         $ignoreTypes = $this->ignoreTypes;
         $ignoreTypes[] = $type;
 
-        return new self(
-            $this->schema,
-            $this->projectDir,
-            $this->queriesDir,
-            $this->outputDir,
-            $this->namespace,
-            $this->client,
-            $this->dumpOrThrows,
-            $this->dumpDefinition,
-            $this->useNodeNameForEdgeNodes,
-            $this->scalars,
-            $this->inputObjectTypes,
-            $this->objectTypes,
-            $this->enumTypes,
-            $ignoreTypes,
-            $this->typeInitializers,
-            $this->useConnectionNameForConnections,
-            $this->useEdgeNameForEdges,
-            $this->addNodesOnConnections,
-            $this->addSymfonyExcludeAttribute,
-            $this->indexByDirective,
-            $this->addUnknownCaseToEnums,
-            $this->dumpEnumIsMethods,
-        );
+        return $this->with('ignoreTypes', $ignoreTypes);
     }
 
     public function withTypeInitializer(TypeInitializer\TypeInitializer $typeInitializer) : self
@@ -516,29 +156,24 @@ final readonly class Config
         $typeInitializers = $this->typeInitializers;
         $typeInitializers[] = $typeInitializer;
 
-        return new self(
-            $this->schema,
-            $this->projectDir,
-            $this->queriesDir,
-            $this->outputDir,
-            $this->namespace,
-            $this->client,
-            $this->dumpOrThrows,
-            $this->dumpDefinition,
-            $this->useNodeNameForEdgeNodes,
-            $this->scalars,
-            $this->inputObjectTypes,
-            $this->objectTypes,
-            $this->enumTypes,
-            $this->ignoreTypes,
-            $typeInitializers,
-            $this->useConnectionNameForConnections,
-            $this->useEdgeNameForEdges,
-            $this->addNodesOnConnections,
-            $this->addSymfonyExcludeAttribute,
-            $this->indexByDirective,
-            $this->addUnknownCaseToEnums,
-            $this->dumpEnumIsMethods,
-        );
+        return $this->with('typeInitializers', $typeInitializers);
+    }
+
+    /**
+     * Replace with clone with when in PHP 8.5
+     */
+    private function with(string $name, mixed $value) : self
+    {
+        $clone = new ReflectionClass($this)->newInstanceWithoutConstructor();
+
+        $vars = get_object_vars($this);
+        $vars[$name] = $value;
+
+        foreach ($vars as $varName => $varValue) {
+            // @phpstan-ignore property.dynamicName
+            $clone->$varName = $varValue;
+        }
+
+        return $clone;
     }
 }
