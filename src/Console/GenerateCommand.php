@@ -154,6 +154,8 @@ final class GenerateCommand
                             ],
                         ),
                     );
+
+                    $io->writeln('✅');
                 }
             }
 
