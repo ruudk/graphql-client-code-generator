@@ -146,11 +146,13 @@ final class GenerateCommand
                         SchemaPrinter::doPrint(
                             $schema,
                             [
-                                'sortArguments' => true,
                                 'sortEnumValues' => true,
                                 'sortFields' => true,
-                                'sortInputFields' => true,
                                 'sortTypes' => true,
+
+                                // We might want to do this at some point automatically
+                                'sortArguments' => false,
+                                'sortInputFields' => false,
                             ],
                         ),
                     );
