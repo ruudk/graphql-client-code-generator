@@ -5,24 +5,24 @@ declare(strict_types=1);
 namespace Ruudk\GraphQLCodeGenerator;
 
 use Exception;
-use GraphQL\Language\AST\DocumentNode;
-use GraphQL\Language\AST\FragmentDefinitionNode;
 use RuntimeException;
+use Ruudk\GraphQLCodeGenerator\GraphQL\DocumentNodeWithSource;
+use Ruudk\GraphQLCodeGenerator\GraphQL\FragmentDefinitionNodeWithSource;
 use Ruudk\GraphQLCodeGenerator\Visitor\UsedFragmentsVisitor;
 
 final class FragmentOrderer
 {
     /**
-     * @param array<DocumentNode> $documents
+     * @param array<string, list<DocumentNodeWithSource>> $operations
      *
-     * @throws Exception
      * @throws RuntimeException
-     * @return list<FragmentDefinitionNode> Sorted so that dependencies come first
+     * @throws Exception
+     * @return list<FragmentDefinitionNodeWithSource> Sorted so that dependencies come first
      */
-    public static function orderFragments(array $documents) : array
+    public static function orderFragments(array $operations) : array
     {
         /**
-         * @var array<string, FragmentDefinitionNode> $fragments
+         * @var array<string, FragmentDefinitionNodeWithSource> $fragments
          */
         $fragments = [];
 
@@ -31,15 +31,17 @@ final class FragmentOrderer
          */
         $deps = [];
 
-        foreach ($documents as $doc) {
-            foreach ($doc->definitions as $def) {
-                if ( ! $def instanceof FragmentDefinitionNode) {
-                    continue;
-                }
+        foreach ($operations as $documents) {
+            foreach ($documents as $document) {
+                foreach ($document->definitions as $def) {
+                    if ( ! $def instanceof FragmentDefinitionNodeWithSource) {
+                        continue;
+                    }
 
-                $name = $def->name->value;
-                $fragments[$name] = $def;
-                $deps[$name] = UsedFragmentsVisitor::getUsedFragments($def);
+                    $name = $def->name->value;
+                    $fragments[$name] = $def;
+                    $deps[$name] = UsedFragmentsVisitor::getUsedFragments($def);
+                }
             }
         }
 

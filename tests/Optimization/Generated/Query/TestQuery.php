@@ -8,7 +8,6 @@ use Ruudk\GraphQLCodeGenerator\Optimization\Generated\Query\Test\Data;
 use Ruudk\GraphQLCodeGenerator\TestClient;
 
 // This file was automatically generated and should not be edited.
-// Based on tests/Optimization/Test.graphql
 
 final readonly class TestQuery {
     public const string OPERATION_NAME = 'Test';

@@ -5,6 +5,7 @@ declare(strict_types=1);
 return [
     'includes' => [
         'phar://phpstan.phar/conf/bleedingEdge.neon',
+        'extension.neon',
     ],
     'parameters' => [
         'level' => 'max',
@@ -19,6 +20,12 @@ return [
             'check' => [
                 'missingCheckedExceptionInThrows' => true,
                 'tooWideThrowType' => true,
+            ],
+        ],
+        'graphQLClientCodeGenerator' => [
+            'configs' => [
+                'examples/config.php',
+                'tests/config.php',
             ],
         ],
 

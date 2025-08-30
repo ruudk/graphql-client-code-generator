@@ -10,7 +10,6 @@ use Ruudk\GraphQLCodeGenerator\Money\ValueObjects\Money;
 use Ruudk\GraphQLCodeGenerator\TestClient;
 
 // This file was automatically generated and should not be edited.
-// Based on tests/Money/Test.graphql
 
 final readonly class ConvertMoneyQuery {
     public const string OPERATION_NAME = 'ConvertMoney';

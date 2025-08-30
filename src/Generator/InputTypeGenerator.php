@@ -7,7 +7,7 @@ namespace Ruudk\GraphQLCodeGenerator\Generator;
 use JsonSerializable;
 use Override;
 use Ruudk\CodeGenerator\CodeGenerator;
-use Ruudk\GraphQLCodeGenerator\Config;
+use Ruudk\GraphQLCodeGenerator\Config\Config;
 use Ruudk\GraphQLCodeGenerator\Planner\Plan\InputClassPlan;
 use Ruudk\GraphQLCodeGenerator\Type\TypeDumper;
 use Symfony\Component\TypeInfo\Type as SymfonyType;

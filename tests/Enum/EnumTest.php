@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Ruudk\GraphQLCodeGenerator\Enum;
 
 use Override;
-use Ruudk\GraphQLCodeGenerator\Config;
+use Ruudk\GraphQLCodeGenerator\Config\Config;
 use Ruudk\GraphQLCodeGenerator\Enum\Generated\Enum\Role;
 use Ruudk\GraphQLCodeGenerator\Enum\Generated\Enum\State;
 use Ruudk\GraphQLCodeGenerator\Enum\Generated\Query\TestQuery;

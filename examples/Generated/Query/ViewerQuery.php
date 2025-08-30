@@ -8,7 +8,6 @@ use Ruudk\GraphQLCodeGenerator\Examples\Generated\Query\Viewer\Data;
 use Ruudk\GraphQLCodeGenerator\Examples\GitHubClient;
 
 // This file was automatically generated and should not be edited.
-// Based on Viewer.graphql
 
 final readonly class ViewerQuery {
     public const string OPERATION_NAME = 'Viewer';

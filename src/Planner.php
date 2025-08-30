@@ -7,12 +7,14 @@ namespace Ruudk\GraphQLCodeGenerator;
 use Exception;
 use GraphQL\Error\InvariantViolation;
 use GraphQL\Language\AST\DocumentNode;
+use GraphQL\Language\AST\NameNode;
 use GraphQL\Language\AST\NodeList;
 use GraphQL\Language\AST\OperationDefinitionNode;
 use GraphQL\Language\Parser;
 use GraphQL\Language\Printer;
 use GraphQL\Type\Definition\EnumType;
 use GraphQL\Type\Definition\InputObjectType;
+use GraphQL\Type\Definition\NamedType;
 use GraphQL\Type\Definition\Type;
 use GraphQL\Type\Schema;
 use GraphQL\Validator\DocumentValidator;
@@ -53,7 +55,16 @@ use GraphQL\Validator\Rules\ValuesOfCorrectType;
 use GraphQL\Validator\Rules\VariablesAreInputTypes;
 use GraphQL\Validator\Rules\VariablesInAllowedPosition;
 use JsonException;
+use PhpParser\NodeTraverser;
+use PhpParser\NodeVisitor\NameResolver;
+use PhpParser\ParserFactory;
+use Ruudk\GraphQLCodeGenerator\Attribute\GeneratedGraphQLClient;
+use Ruudk\GraphQLCodeGenerator\Config\Config;
+use Ruudk\GraphQLCodeGenerator\GraphQL\DocumentNodeWithSource;
+use Ruudk\GraphQLCodeGenerator\GraphQL\FragmentDefinitionNodeWithSource;
 use Ruudk\GraphQLCodeGenerator\GraphQL\PossibleTypesFinder;
+use Ruudk\GraphQLCodeGenerator\PHP\Visitor\ClassConstantFinder;
+use Ruudk\GraphQLCodeGenerator\PHP\Visitor\OperationFinder;
 use Ruudk\GraphQLCodeGenerator\Planner\OperationPlan;
 use Ruudk\GraphQLCodeGenerator\Planner\Plan\DataClassPlan;
 use Ruudk\GraphQLCodeGenerator\Planner\Plan\EnumClassPlan;
@@ -111,6 +122,8 @@ final class Planner
     private DirectiveProcessor $directiveProcessor;
     private VariableParser $variableParser;
     private PossibleTypesFinder $possibleTypesFinder;
+    private \PhpParser\Parser $phpParser;
+    private Filesystem $filesystem;
 
     /**
      * @throws \GraphQL\Error\Error
@@ -181,6 +194,9 @@ final class Planner
         if ($config->indexByDirective) {
             $this->validatorRules[IndexByValidator::class] = new IndexByValidator($this->scalars);
         }
+
+        $this->phpParser = new ParserFactory()->createForNewestSupportedVersion();
+        $this->filesystem = new Filesystem();
     }
 
     /**
@@ -192,8 +208,7 @@ final class Planner
      */
     public function plan() : PlannerResult
     {
-        $finder = new Finder();
-        $finder->files()
+        $finder = Finder::create()->files()
             ->in($this->config->queriesDir)
             ->name('*.graphql')
             ->sortByName();
@@ -225,7 +240,65 @@ final class Planner
                 $definedFragments[$name] = $file->getPathname();
             }
 
-            $operations[Path::makeRelative($file->getPathname(), $this->config->projectDir)] = $document;
+            $operations[$file->getPathname()][] = DocumentNodeWithSource::create(
+                $document,
+                Path::makeRelative($file->getPathname(), $this->config->projectDir),
+            );
+        }
+
+        $operationsToInject = [];
+
+        if ($this->config->inlineProcessingDirectories !== []) {
+            $finder = Finder::create()
+                ->files()
+                ->in($this->config->inlineProcessingDirectories)
+                ->name('*.php')
+                ->contains(GeneratedGraphQLClient::class);
+
+            foreach ($finder as $file) {
+                $stmts = $this->phpParser->parse($this->filesystem->readFile($file->getPathname()));
+                Assert::notNull($stmts, 'Failed to parse PHP file');
+
+                $classConstants = new ClassConstantFinder();
+                $nameResolver = new NameResolver(options: [
+                    'replaceNodes' => false,
+                ]);
+                new NodeTraverser($nameResolver, $classConstants)->traverse($stmts);
+
+                $operationFinder = new OperationFinder(
+                    $classConstants->constants,
+                    $nameResolver->getNameContext(),
+                );
+                new NodeTraverser($operationFinder)->traverse($stmts);
+
+                foreach ($operationFinder->operations as $className => $methods) {
+                    foreach ($methods as $method => $properties) {
+                        foreach ($properties as $property => $operation) {
+                            $hash = hash('sha256', implode(',', [
+                                $className,
+                                $method,
+                                $property,
+                            ]));
+                            $shortHash = substr($hash, 0, 6);
+
+                            $document = Parser::parse($operation);
+                            Assert::count($document->definitions, 1);
+
+                            [$definition] = $document->definitions;
+                            Assert::isInstanceOf($definition, OperationDefinitionNode::class);
+
+                            $operationType = $definition->operation;
+                            $operationName = sprintf('Inline%s', $shortHash);
+                            $definition->name = new NameNode([
+                                'value' => $operationName,
+                            ]);
+
+                            $operationsToInject[$file->getPathname()][$method][$property] = sprintf('%s\%s\%s%s', $this->config->namespace, ucfirst($operationType), $operationName, ucfirst($operationType));
+                            $operations[$file->getPathname()][] = DocumentNodeWithSource::create($document, $className);
+                        }
+                    }
+                }
+            }
         }
 
         $usedTypes = $usedTypesCollector->usedTypes;
@@ -299,7 +372,7 @@ final class Planner
                     }
 
                     $result->addClass(new EnumClassPlan(
-                        relativePath: 'Enum/' . $typeName . '.php',
+                        path: $this->config->outputDir . '/Enum/' . $typeName . '.php',
                         typeName: $typeName,
                         description: $type->description(),
                         values: $values,
@@ -328,7 +401,7 @@ final class Planner
                 }
 
                 $result->addClass(new InputClassPlan(
-                    relativePath: 'Input/' . $typeName . '.php',
+                    path: $this->config->outputDir . '/Input/' . $typeName . '.php',
                     typeName: $typeName,
                     description: $type->description(),
                     isOneOf: $type->isOneOf(),
@@ -344,7 +417,7 @@ final class Planner
             $queryType = $this->schema->getQueryType();
             Assert::notNull($queryType);
             $result->addClass(new NodeNotFoundExceptionPlan(
-                relativePath: 'NodeNotFoundException.php',
+                path: $this->config->outputDir . '/NodeNotFoundException.php',
             ));
         }
 
@@ -352,6 +425,13 @@ final class Planner
         $ordered = FragmentOrderer::orderFragments($operations);
 
         // First, set ALL fragments on the planner so they're available when processing
+        /**
+         * @var list<array{
+         *     name: string,
+         *     fragment: FragmentDefinitionNodeWithSource,
+         *     type: NamedType&Type
+         * }> $fragmentsToProcess
+         */
         $fragmentsToProcess = [];
         foreach (array_reverse($ordered) as $fragment) {
             $errors = DocumentValidator::validate($this->schema, new DocumentNode([
@@ -389,6 +469,7 @@ final class Planner
 
             $fqcn = $this->fullyQualified('Fragment', $name);
             $planResult = $planner->plan(
+                $fragment->source,
                 $fragment->selectionSet,
                 $type,
                 $this->config->outputDir . '/Fragment/' . $name,
@@ -405,30 +486,35 @@ final class Planner
             }
 
             // Add the fragment class itself
-            $relativePath = str_replace($this->config->outputDir . '/', '', $this->config->outputDir . '/Fragment/' . $name . '.php');
+            $path = $this->config->outputDir . '/Fragment/' . $name . '.php';
             $result->addClass(new DataClassPlan(
-                relativePath: $relativePath,
-                fqcn: $fqcn,
-                parentType: $type,
-                fields: $planResult->fields,
-                payloadShape: $planResult->payloadShape,
-                possibleTypes: $this->possibleTypesFinder->find($type),
-                definitionNode: $fragment,
-                nodesType: null,
-                inlineFragmentRequiredFields: $planResult->inlineFragmentRequiredFields,
-                isData: false,
-                isFragment: true,
+                $fragment->source,
+                $path,
+                $fqcn,
+                $type,
+                $planResult->fields,
+                $planResult->payloadShape,
+                $this->possibleTypesFinder->find($type),
+                $fragment,
+                null,
+                $planResult->inlineFragmentRequiredFields,
+                false,
+                true,
             ));
         }
 
         // Plan operations
-        foreach ($operations as $relativeFilePath => $document) {
-            $this->planOperation($document, $relativeFilePath, $result, $planner);
+        foreach ($operations as $path => $documents) {
+            foreach ($documents as $document) {
+                $this->planOperation($document, $path, $result, $planner);
+            }
         }
 
         // Set the discovered types in the result
         $result->setDiscoveredEnumTypes($this->enumTypes);
         $result->setDiscoveredInputObjectTypes($this->inputObjectTypes);
+
+        $result->setOperationsToInject($operationsToInject);
 
         return $result;
     }
@@ -439,7 +525,7 @@ final class Planner
      * @throws JsonException
      * @throws InvariantViolation
      */
-    private function planOperation(DocumentNode $document, string $relativeFilePath, PlannerResult $result, SelectionSetPlanner $planner) : void
+    private function planOperation(DocumentNodeWithSource $document, string $path, PlannerResult $result, SelectionSetPlanner $planner) : void
     {
         $document = $this->optimizer->optimize($document, $planner->fragmentDefinitions);
 
@@ -506,6 +592,7 @@ final class Planner
 
         // Plan the data class and its nested classes
         $planResult = $planner->plan(
+            $document->source,
             $operation->selectionSet,
             $rootType,
             $operationDir . '/Data',
@@ -520,35 +607,37 @@ final class Planner
 
         // Create the data class plan
         $dataClassPlan = new DataClassPlan(
-            relativePath: str_replace($this->config->outputDir . '/', '', $operationDir . '/Data.php'),
-            fqcn: $fqcn,
-            parentType: $rootType,
-            fields: $planResult->fields,
-            payloadShape: $planResult->payloadShape,
-            possibleTypes: [],
-            definitionNode: $operation,
-            nodesType: null,
-            inlineFragmentRequiredFields: $planResult->inlineFragmentRequiredFields,
-            isData: true,
-            isFragment: false,
+            $document->source,
+            $operationDir . '/Data.php',
+            $fqcn,
+            $rootType,
+            $planResult->fields,
+            $planResult->payloadShape,
+            [],
+            $operation,
+            null,
+            $planResult->inlineFragmentRequiredFields,
+            true,
+            false,
         );
         $result->addClass($dataClassPlan);
 
         // Create the operation class plan
         $operationClassPlan = new OperationClassPlan(
-            relativePath: str_replace($this->config->outputDir . '/', '', $queryDir . '/' . $queryClassName . $operationType . '.php'),
+            path: $queryDir . '/' . $queryClassName . $operationType . '.php',
             fqcn: $this->fullyQualified($operationType, $queryClassName . $operationType),
             operationName: $operationName,
             operationType: $operationType,
             queryClassName: $queryClassName,
             operationDefinition: $operationDefinition,
             variables: $variables,
-            relativeFilePath: $relativeFilePath,
+            relativeFilePath: Path::makeRelative($path, $this->config->projectDir),
+            source: $document->source,
         );
 
         // Create the error class plan
         $errorClassPlan = new ErrorClassPlan(
-            relativePath: str_replace($this->config->outputDir . '/', '', $operationDir . '/Error.php'),
+            path: $operationDir . '/Error.php',
             operationType: $operationType,
             operationName: $operationName,
         );
@@ -558,11 +647,7 @@ final class Planner
 
         if ($this->config->dumpOrThrows) {
             $exceptionClassPlan = new ExceptionClassPlan(
-                relativePath: str_replace(
-                    $this->config->outputDir . '/',
-                    '',
-                    $operationDir . '/' . $queryClassName . $operationType . 'FailedException.php',
-                ),
+                path: $operationDir . '/' . $queryClassName . $operationType . 'FailedException.php',
                 operationType: $operationType,
                 operationName: $operationName,
                 exceptionClassName: $queryClassName . $operationType . 'FailedException',
@@ -576,7 +661,6 @@ final class Planner
             queryClassName: $queryClassName,
             operationDefinition: $operationDefinition,
             variables: $parsedVariables,
-            relativeFilePath: $relativeFilePath,
             dataClass: $dataClassPlan,
             operationClass: $operationClassPlan,
             errorClass: $errorClassPlan,

@@ -25,7 +25,7 @@ final readonly class GraphQLRequestMatcher implements RequestMatcherInterface
      */
     public function __construct(
         private ?array $variables = null,
-        private string $operationName = 'Test',
+        private ?string $operationName = null,
         ?string $path = null,
         ?string $host = null,
         null | array | string $methods = ['POST'],
@@ -56,7 +56,7 @@ final readonly class GraphQLRequestMatcher implements RequestMatcherInterface
             return false;
         }
 
-        if ($body['operationName'] !== $this->operationName) {
+        if ($this->operationName !== null && $body['operationName'] !== $this->operationName) {
             return false;
         }
 

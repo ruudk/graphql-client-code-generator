@@ -18,7 +18,8 @@ final readonly class DataClassPlan
      * @param array<string, list<string>> $inlineFragmentRequiredFields
      */
     public function __construct(
-        public string $relativePath,
+        public string $source,
+        public string $path,
         public string $fqcn,
         public NamedType & Type $parentType,
         public SymfonyType $fields,

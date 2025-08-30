@@ -7,10 +7,10 @@ namespace Ruudk\GraphQLCodeGenerator\Visitor;
 use Exception;
 use GraphQL\Language\AST\BooleanValueNode;
 use GraphQL\Language\AST\FieldNode;
-use GraphQL\Language\AST\FragmentDefinitionNode;
 use GraphQL\Language\AST\Node;
 use GraphQL\Language\AST\NodeKind;
 use GraphQL\Language\Visitor;
+use Ruudk\GraphQLCodeGenerator\GraphQL\FragmentDefinitionNodeWithSource;
 use Webmozart\Assert\Assert;
 use Webmozart\Assert\InvalidArgumentException;
 
@@ -19,7 +19,7 @@ final readonly class IncludeAndSkipDirectiveOptimizer
     /**
      * @template T of Node
      * @param T $node
-     * @param array<string, array{FragmentDefinitionNode, list<string>}> $fragmentDefinitions
+     * @param array<string, array{FragmentDefinitionNodeWithSource, list<string>}> $fragmentDefinitions
      *
      * @throws InvalidArgumentException
      * @throws Exception

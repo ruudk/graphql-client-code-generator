@@ -6,7 +6,7 @@ namespace Ruudk\GraphQLCodeGenerator\SymfonyExclude;
 
 use Override;
 use ReflectionClass;
-use Ruudk\GraphQLCodeGenerator\Config;
+use Ruudk\GraphQLCodeGenerator\Config\Config;
 use Ruudk\GraphQLCodeGenerator\GraphQLTestCase;
 use Ruudk\GraphQLCodeGenerator\SymfonyExclude\Generated\Query\Test\Data;
 use Ruudk\GraphQLCodeGenerator\SymfonyExclude\Generated\Query\TestQuery;
@@ -17,7 +17,7 @@ final class SymfonyExcludeTest extends GraphQLTestCase
     #[Override]
     public function getConfig() : Config
     {
-        return parent::getConfig()->enableAddSymfonyExcludeAttribute();
+        return parent::getConfig()->enableSymfonyExcludeAttribute();
     }
 
     public function testGenerate() : void

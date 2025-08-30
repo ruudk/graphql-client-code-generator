@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Ruudk\GraphQLCodeGenerator\Visitor;
 
 use Exception;
-use GraphQL\Language\AST\FragmentDefinitionNode;
 use GraphQL\Language\AST\InlineFragmentNode;
 use GraphQL\Language\AST\Node;
 use GraphQL\Language\AST\NodeKind;
@@ -14,6 +13,7 @@ use GraphQL\Language\Visitor;
 use GraphQL\Type\Definition\Type;
 use GraphQL\Type\Schema;
 use GraphQL\Utils\TypeInfo;
+use Ruudk\GraphQLCodeGenerator\GraphQL\FragmentDefinitionNodeWithSource;
 use Webmozart\Assert\Assert;
 use Webmozart\Assert\InvalidArgumentException;
 
@@ -26,7 +26,7 @@ final readonly class InlineFragmentOptimizer
     /**
      * @template T of Node
      * @param T $node
-     * @param array<string, array{FragmentDefinitionNode, list<string>}> $fragmentDefinitions
+     * @param array<string, array{FragmentDefinitionNodeWithSource, list<string>}> $fragmentDefinitions
      *
      * @throws InvalidArgumentException
      * @throws Exception

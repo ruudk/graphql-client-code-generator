@@ -7,6 +7,6 @@ namespace Ruudk\GraphQLCodeGenerator\Planner\Plan;
 final readonly class NodeNotFoundExceptionPlan
 {
     public function __construct(
-        public string $relativePath,
+        public string $path,
     ) {}
 }

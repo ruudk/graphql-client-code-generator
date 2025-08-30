@@ -5,9 +5,9 @@ declare(strict_types=1);
 namespace Ruudk\GraphQLCodeGenerator;
 
 use Exception;
-use GraphQL\Language\AST\FragmentDefinitionNode;
 use GraphQL\Language\AST\Node;
 use GraphQL\Type\Schema;
+use Ruudk\GraphQLCodeGenerator\GraphQL\FragmentDefinitionNodeWithSource;
 use Ruudk\GraphQLCodeGenerator\Visitor\DuplicateFieldOptimizer;
 use Ruudk\GraphQLCodeGenerator\Visitor\FragmentOptimizer;
 use Ruudk\GraphQLCodeGenerator\Visitor\IncludeAndSkipDirectiveOptimizer;
@@ -17,7 +17,7 @@ use Ruudk\GraphQLCodeGenerator\Visitor\TypeNameVisitor;
 final readonly class Optimizer
 {
     /**
-     * @var list<callable(Node, array<string, array{FragmentDefinitionNode, list<string>}>): Node>
+     * @var list<callable(Node, array<string, array{FragmentDefinitionNodeWithSource, list<string>}>): Node>
      */
     private array $visitors;
 
@@ -36,7 +36,7 @@ final readonly class Optimizer
     /**
      * @template T of Node
      * @param T $node
-     * @param array<string, array{FragmentDefinitionNode, list<string>}> $fragmentDefinitions
+     * @param array<string, array{FragmentDefinitionNodeWithSource, list<string>}> $fragmentDefinitions
      * @throws Exception
      * @return T
      */

@@ -12,7 +12,7 @@ final readonly class InputClassPlan
      * @param array<string, array{type: SymfonyType, required: bool, description: ?string}> $fields
      */
     public function __construct(
-        public string $relativePath,
+        public string $path,
         public string $typeName,
         public ?string $description,
         public bool $isOneOf,

@@ -1,0 +1,18 @@
+parametersSchema:
+    graphQLClientCodeGenerator: structure([
+        configs: listOf(string())
+    ])
+expandRelativePaths:
+    - '[parameters][graphQLClientCodeGenerator][paths][]'
+parameters:
+    graphQLClientCodeGenerator:
+        configs: []
+services:
+    -
+        class: Ruudk\GraphQLCodeGenerator\PHPStan\RestrictedUsageExtension
+        arguments:
+            configs: %graphQLClientCodeGenerator.configs%
+        tags:
+            - phpstan.restrictedClassNameUsageExtension
+            - phpstan.restrictedMethodUsageExtension
+            - phpstan.restrictedPropertyUsageExtension

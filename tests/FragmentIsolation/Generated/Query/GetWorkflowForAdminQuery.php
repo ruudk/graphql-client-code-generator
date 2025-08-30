@@ -8,7 +8,6 @@ use Ruudk\GraphQLCodeGenerator\FragmentIsolation\Generated\Query\GetWorkflowForA
 use Ruudk\GraphQLCodeGenerator\TestClient;
 
 // This file was automatically generated and should not be edited.
-// Based on tests/FragmentIsolation/Test.graphql
 
 final readonly class GetWorkflowForAdminQuery {
     public const string OPERATION_NAME = 'GetWorkflowForAdmin';

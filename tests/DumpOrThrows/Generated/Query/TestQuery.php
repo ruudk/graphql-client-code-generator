@@ -9,7 +9,6 @@ use Ruudk\GraphQLCodeGenerator\DumpOrThrows\Generated\Query\Test\TestQueryFailed
 use Ruudk\GraphQLCodeGenerator\TestClient;
 
 // This file was automatically generated and should not be edited.
-// Based on tests/DumpOrThrows/Test.graphql
 
 final readonly class TestQuery {
     public const string OPERATION_NAME = 'Test';

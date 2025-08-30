@@ -6,7 +6,6 @@ namespace Ruudk\GraphQLCodeGenerator\Planner;
 
 use GraphQL\Error\InvariantViolation;
 use GraphQL\Language\AST\FieldNode;
-use GraphQL\Language\AST\FragmentDefinitionNode;
 use GraphQL\Language\AST\FragmentSpreadNode;
 use GraphQL\Language\AST\InlineFragmentNode;
 use GraphQL\Language\AST\NamedTypeNode;
@@ -26,8 +25,9 @@ use GraphQL\Type\Definition\UnionType;
 use GraphQL\Type\Definition\WrappingType;
 use GraphQL\Type\Schema;
 use LogicException;
-use Ruudk\GraphQLCodeGenerator\Config;
+use Ruudk\GraphQLCodeGenerator\Config\Config;
 use Ruudk\GraphQLCodeGenerator\DirectiveProcessor;
+use Ruudk\GraphQLCodeGenerator\GraphQL\FragmentDefinitionNodeWithSource;
 use Ruudk\GraphQLCodeGenerator\GraphQL\PossibleTypesFinder;
 use Ruudk\GraphQLCodeGenerator\Planner\Plan\DataClassPlan;
 use Ruudk\GraphQLCodeGenerator\RecursiveTypeFinder;
@@ -68,7 +68,7 @@ final class SelectionSetPlanner
     public private(set) array $fragmentSelectionResults = [];
 
     /**
-     * @var array<string, array{FragmentDefinitionNode, list<string>}> Fragment name to definition mapping
+     * @var array<string, array{FragmentDefinitionNodeWithSource, list<string>}> Fragment name to definition mapping
      */
     public private(set) array $fragmentDefinitions = [];
     private PossibleTypesFinder $possibleTypesFinder;
@@ -93,6 +93,7 @@ final class SelectionSetPlanner
      * @throws LogicException
      */
     public function plan(
+        string $source,
         SelectionSetNode $selectionSet,
         Type $parent,
         string $outputDirectory,
@@ -113,7 +114,13 @@ final class SelectionSetPlanner
             isInsideFragmentContext: $isGeneratingTopLevelFragment, // If we're generating a fragment, we're in fragment context
         );
 
-        $result = $this->planSelectionSet($selectionSet, $parent, $context, $nullable);
+        $result = $this->planSelectionSet(
+            $source,
+            $selectionSet,
+            $parent,
+            $context,
+            $nullable,
+        );
 
         // Store fragment results for later use
         // Only cache results from top-level fragment generation to ensure clean, unmerged results
@@ -144,6 +151,7 @@ final class SelectionSetPlanner
      * @throws LogicException
      */
     public function planSelectionSet(
+        string $source,
         SelectionSetNode $selectionSet,
         Type $type,
         PlanningContext $context,
@@ -158,7 +166,13 @@ final class SelectionSetPlanner
             $itemsNullable = ! ($wrappedType instanceof NonNull);
 
             // Plan the inner type
-            $innerResult = $this->planSelectionSet($selectionSet, $wrappedType, $innerContext, true);
+            $innerResult = $this->planSelectionSet(
+                $source,
+                $selectionSet,
+                $wrappedType,
+                $innerContext,
+                true,
+            );
 
             // If items are nullable, wrap the result type in nullable
             if ($itemsNullable) {
@@ -176,20 +190,37 @@ final class SelectionSetPlanner
         }
 
         if ($type instanceof NonNull) {
-            $innerResult = $this->planSelectionSet($selectionSet, $type->getWrappedType(), $context, false);
+            $innerResult = $this->planSelectionSet(
+                $source,
+                $selectionSet,
+                $type->getWrappedType(),
+                $context,
+                false,
+            );
 
             return $innerResult; // NonNull doesn't change the structure
         }
 
         if ($type instanceof NullableType && $nullable === null) {
-            $innerResult = $this->planSelectionSet($selectionSet, $type, $context, true);
+            $innerResult = $this->planSelectionSet(
+                $source,
+                $selectionSet,
+                $type,
+                $context,
+                true,
+            );
 
             return $this->wrapInNullable($innerResult);
         }
 
         Assert::isInstanceOf($type, NamedType::class, 'Parent type must be a named type');
 
-        return $this->planNamedTypeSelectionSet($selectionSet, $type, $context);
+        return $this->planNamedTypeSelectionSet(
+            $source,
+            $selectionSet,
+            $type,
+            $context,
+        );
     }
 
     /**
@@ -198,6 +229,7 @@ final class SelectionSetPlanner
      * @throws LogicException
      */
     private function planNamedTypeSelectionSet(
+        string $source,
         SelectionSetNode $selectionSet,
         NamedType & Type $type,
         PlanningContext $context,
@@ -229,6 +261,7 @@ final class SelectionSetPlanner
         // Process the merged field selections
         foreach ($mergedFieldSelections as $fieldName => $mergedSelection) {
             $this->processFieldSelection(
+                $source,
                 $mergedSelection,
                 $type,
                 $context,
@@ -249,6 +282,7 @@ final class SelectionSetPlanner
             }
 
             $this->processInlineFragment(
+                $source,
                 $selection,
                 $type,
                 $context,
@@ -291,6 +325,7 @@ final class SelectionSetPlanner
      * @throws LogicException
      */
     private function processFieldSelection(
+        string $source,
         FieldNode $selection,
         Type $parent,
         PlanningContext $context,
@@ -337,6 +372,7 @@ final class SelectionSetPlanner
         // Handle nested selection sets
         if ($selection->selectionSet !== null) {
             $this->processNestedSelection(
+                $source,
                 $selection,
                 $fieldName,
                 $fieldType,
@@ -366,6 +402,7 @@ final class SelectionSetPlanner
      * @throws LogicException
      */
     private function processNestedSelection(
+        string $source,
         FieldNode $selection,
         string $fieldName,
         Type $fieldType,
@@ -396,6 +433,7 @@ final class SelectionSetPlanner
         // Recursively plan the nested selection
         Assert::notNull($selection->selectionSet, 'Selection set must not be null');
         $nestedResult = $this->planSelectionSet(
+            $source,
             $selection->selectionSet,
             $fieldType,
             $nestedContext,
@@ -406,6 +444,7 @@ final class SelectionSetPlanner
 
         // Create the class plan
         $this->createDataClassPlan(
+            $source,
             $nakedFieldType,
             $nestedResult,
             $nestedContext,
@@ -436,6 +475,7 @@ final class SelectionSetPlanner
      * @throws LogicException
      */
     private function processInlineFragment(
+        string $source,
         InlineFragmentNode $selection,
         Type $parent,
         PlanningContext $context,
@@ -460,6 +500,7 @@ final class SelectionSetPlanner
             ->withPath($context->path . '.' . $fieldName);
 
         $fragmentResult = $this->planSelectionSet(
+            $source,
             $selection->selectionSet,
             $fragmentType,
             $fragmentContext,
@@ -521,6 +562,7 @@ final class SelectionSetPlanner
 
         // Create the inline fragment class plan with the correct payload shape
         $this->createInlineFragmentClassPlan(
+            $source,
             $fragmentType,
             $mergedFields,
             $inlineFragmentPayloadShape,
@@ -989,6 +1031,7 @@ final class SelectionSetPlanner
      * @throws InvariantViolation
      */
     private function createDataClassPlan(
+        string $source,
         NamedType & Type $parentType,
         SelectionSetResult $result,
         PlanningContext $context,
@@ -1008,10 +1051,9 @@ final class SelectionSetPlanner
             $payloadShape = $payloadShape->getCollectionValueType();
         }
 
-        $relativePath = str_replace($this->config->outputDir . '/', '', $context->outputDirectory . '.php');
-
         $dataClass = new DataClassPlan(
-            relativePath: $relativePath,
+            source: $source,
+            path: $context->outputDirectory . '.php',
             fqcn: $context->fqcn,
             parentType: $parentType,
             fields: $fields,
@@ -1035,16 +1077,16 @@ final class SelectionSetPlanner
     }
 
     private function createInlineFragmentClassPlan(
+        string $source,
         NamedType & Type $fragmentType,
         FieldCollection $fields,
         PayloadShape $payloadShape,
         PlanningContext $context,
         InlineFragmentNode $selection,
     ) : void {
-        $relativePath = str_replace($this->config->outputDir . '/', '', $context->outputDirectory . '.php');
-
         $dataClass = new DataClassPlan(
-            relativePath: $relativePath,
+            source: $source,
+            path: $context->outputDirectory . '.php',
             fqcn: $context->fqcn,
             parentType: $fragmentType,
             fields: $fields->toArrayShape(),
@@ -1145,7 +1187,7 @@ final class SelectionSetPlanner
     /**
      * @param list<string> $dependencies
      */
-    public function setFragmentDefinition(string $name, FragmentDefinitionNode $definition, array $dependencies) : void
+    public function setFragmentDefinition(string $name, FragmentDefinitionNodeWithSource $definition, array $dependencies) : void
     {
         $this->fragmentDefinitions[$name] = [$definition, $dependencies];
     }

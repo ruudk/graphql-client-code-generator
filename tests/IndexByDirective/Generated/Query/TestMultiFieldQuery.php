@@ -8,7 +8,6 @@ use Ruudk\GraphQLCodeGenerator\IndexByDirective\Generated\Query\TestMultiField\D
 use Ruudk\GraphQLCodeGenerator\TestClient;
 
 // This file was automatically generated and should not be edited.
-// Based on tests/IndexByDirective/TestMultiField.graphql
 
 final readonly class TestMultiFieldQuery {
     public const string OPERATION_NAME = 'TestMultiField';

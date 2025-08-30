@@ -10,7 +10,9 @@ use JsonException;
 use Override;
 use PHPUnit\Framework\TestCase;
 use Psr\Http\Message\RequestInterface;
+use Ruudk\GraphQLCodeGenerator\Config\Config;
 use Ruudk\GraphQLCodeGenerator\Executor\PlanExecutor;
+use Symfony\Component\Filesystem\Filesystem;
 use Symfony\Component\Finder\Finder;
 use Webmozart\Assert\Assert;
 
@@ -48,10 +50,16 @@ abstract class GraphQLTestCase extends TestCase
         $config = $this->getConfig();
         $plan = new Planner($config)->plan();
         $actual = new PlanExecutor($config)->execute($plan);
+
         // Read expected files from disk
         $expected = [];
         foreach (Finder::create()->files()->in($this->directory . '/Generated') as $file) {
-            $expected[$file->getRelativePathname()] = $file->getContents();
+            $expected[$file->getPathname()] = $file->getContents();
+        }
+
+        $filesystem = new Filesystem();
+        foreach (array_keys($plan->operationsToInject) as $file) {
+            $expected[$file] = $filesystem->readFile($file);
         }
 
         // Sort both arrays by key to ensure consistent comparison

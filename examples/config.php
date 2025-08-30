@@ -3,7 +3,7 @@
 declare(strict_types=1);
 
 use Http\Discovery\Psr18ClientDiscovery;
-use Ruudk\GraphQLCodeGenerator\Config;
+use Ruudk\GraphQLCodeGenerator\Config\Config;
 use Ruudk\GraphQLCodeGenerator\Examples\GitHubClient;
 use Symfony\Component\Dotenv\Dotenv;
 use Webmozart\Assert\Assert;

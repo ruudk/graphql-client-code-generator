@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Ruudk\GraphQLCodeGenerator\DumpDefinitions;
 
 use Override;
-use Ruudk\GraphQLCodeGenerator\Config;
+use Ruudk\GraphQLCodeGenerator\Config\Config;
 use Ruudk\GraphQLCodeGenerator\DumpDefinitions\Generated\Query\TestQuery;
 use Ruudk\GraphQLCodeGenerator\GraphQLTestCase;
 

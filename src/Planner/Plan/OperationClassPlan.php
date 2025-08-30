@@ -13,7 +13,7 @@ final readonly class OperationClassPlan
      * @param array<non-empty-string, array{required: bool, typeNode: null|TypeNode, type: SymfonyType}> $variables
      */
     public function __construct(
-        public string $relativePath,
+        public string $path,
         public string $fqcn,
         public string $operationName,
         public string $operationType,
@@ -21,5 +21,6 @@ final readonly class OperationClassPlan
         public string $operationDefinition,
         public array $variables,
         public string $relativeFilePath,
+        public string $source,
     ) {}
 }

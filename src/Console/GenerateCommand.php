@@ -9,7 +9,8 @@ use Exception;
 use GraphQL\Type\Introspection;
 use GraphQL\Utils\BuildClientSchema;
 use GraphQL\Utils\SchemaPrinter;
-use Ruudk\GraphQLCodeGenerator\Config;
+use Ruudk\GraphQLCodeGenerator\Config\ConfigException;
+use Ruudk\GraphQLCodeGenerator\Config\ConfigLoader;
 use Ruudk\GraphQLCodeGenerator\Executor\PlanExecutor;
 use Ruudk\GraphQLCodeGenerator\GraphQL\IndexByDirectiveSchemaExtender;
 use Ruudk\GraphQLCodeGenerator\Planner;
@@ -17,6 +18,7 @@ use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Attribute\Option;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Style\SymfonyStyle;
+use Symfony\Component\Filesystem\Exception\IOException;
 use Symfony\Component\Filesystem\Filesystem;
 use Symfony\Component\Filesystem\Path;
 use Symfony\Component\Finder\Finder;
@@ -38,6 +40,8 @@ final class GenerateCommand
      * @param list<string> $configs
      * @throws InvalidArgumentException
      * @throws Exception
+     * @throws ConfigException
+     * @throws IOException
      */
     public function __invoke(
         SymfonyStyle $io,
@@ -58,47 +62,12 @@ final class GenerateCommand
             return Command::FAILURE;
         }
 
-        $allConfigs = [];
-        foreach ($configs as $configFile) {
-            $configPath = $workingDir . '/' . $configFile;
+        $allConfigs = ConfigLoader::load(...array_map(
+            fn(string $path) => Path::makeAbsolute($path, $workingDir),
+            $configs,
+        ));
 
-            if ( ! file_exists($configPath)) {
-                $io->error(sprintf('Configuration file not found: %s', $configPath));
-                $io->note(sprintf('Create a %s file in your project root that returns a %s object or a list of %s objects.', $configFile, Config::class, Config::class));
-
-                return Command::FAILURE;
-            }
-
-            try {
-                $configData = require $configPath;
-            } catch (Throwable $error) {
-                $io->error(sprintf('Failed to load configuration from %s: %s', $configFile, $error->getMessage()));
-
-                return Command::FAILURE;
-            }
-
-            if ( ! $configData instanceof Config && ! is_array($configData)) {
-                $io->error(sprintf('Configuration file %s must return a Config object or an array of Config objects', $configFile));
-
-                return Command::FAILURE;
-            }
-
-            // Add configs to our collection
-            if ($configData instanceof Config) {
-                $allConfigs[] = $configData;
-            } else {
-                // Validate array items
-                foreach ($configData as $index => $configItem) {
-                    if ( ! $configItem instanceof Config) {
-                        $io->error(sprintf('Invalid configuration at index %d in %s: expected Config object', $index, $configFile));
-
-                        return Command::FAILURE;
-                    }
-
-                    $allConfigs[] = $configItem;
-                }
-            }
-        }
+        $exitCode = Command::SUCCESS;
 
         $io->title('GraphQL Client Code Generator');
 
@@ -179,7 +148,11 @@ final class GenerateCommand
                 if ($ensureSync) {
                     $actual = [];
                     foreach (Finder::create()->files()->in($configItem->outputDir) as $file) {
-                        $actual[$file->getRelativePathname()] = $file->getContents();
+                        $actual[$file->getPathname()] = $file->getContents();
+                    }
+
+                    foreach (array_keys($plan->operationsToInject) as $file) {
+                        $actual[$file] = $this->filesystem->readFile($file);
                     }
 
                     // Sort both arrays by key to ensure consistent comparison
@@ -191,38 +164,39 @@ final class GenerateCommand
                     foreach ($files as $path => $content) {
                         if (isset($actual[$path]) && $content !== $actual[$path]) {
                             $errors = true;
-                            $io->writeln(sprintf('%s content does not match expectations', Path::makeRelative(Path::join($configItem->outputDir, $path), $configItem->projectDir)));
+                            $io->writeln(sprintf('%s content does not match expectations', Path::makeRelative($path, $configItem->projectDir)));
                         } elseif ( ! isset($actual[$path])) {
                             $errors = true;
-                            $io->writeln(sprintf('%s does not exist', Path::makeRelative(Path::join($configItem->outputDir, $path), $configItem->projectDir)));
+                            $io->writeln(sprintf('%s does not exist', Path::makeRelative($path, $configItem->projectDir)));
                         }
                     }
 
                     foreach (array_keys($actual) as $path) {
                         if ( ! isset($files[$path])) {
                             $errors = true;
-                            $io->writeln(sprintf('%s should not exist', Path::makeRelative(Path::join($configItem->outputDir, $path), $configItem->projectDir)));
+                            $io->writeln(sprintf('%s should not exist', Path::makeRelative($path, $configItem->projectDir)));
                         }
                     }
 
                     if ($errors) {
                         $io->error('Generated files are not in sync');
 
-                        return Command::FAILURE;
+                        $exitCode = Command::FAILURE;
+
+                        continue;
                     }
 
-                    $io->success('Generated code is in sync!');
+                    $io->success('Generated code is in sync ✅');
 
-                    return Command::SUCCESS;
+                    continue;
                 }
 
                 // Clear output directory
                 $this->filesystem->remove($configItem->outputDir);
 
                 // Write all files to disk
-                foreach ($files as $relativePath => $content) {
-                    $fullPath = $configItem->outputDir . '/' . $relativePath;
-                    $this->filesystem->dumpFile($fullPath, $content);
+                foreach ($files as $path => $content) {
+                    $this->filesystem->dumpFile($path, $content);
                 }
 
                 $io->writeln('✅');
@@ -234,12 +208,10 @@ final class GenerateCommand
                     $io->writeln($error->getTraceAsString());
                 }
 
-                return Command::FAILURE;
+                $exitCode = Command::FAILURE;
             }
         }
 
-        $io->success('Code generation completed successfully!');
-
-        return Command::SUCCESS;
+        return $exitCode;
     }
 }

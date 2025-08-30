@@ -10,7 +10,7 @@ final readonly class EnumClassPlan
      * @param array<string, array{value: string, description: ?string}> $values
      */
     public function __construct(
-        public string $relativePath,
+        public string $path,
         public string $typeName,
         public ?string $description,
         public array $values,
