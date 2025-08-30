@@ -7,6 +7,7 @@ use Ruudk\GraphQLCodeGenerator\Console\GenerateCommand;
 use Symfony\Component\Console\Application;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\ArgvInput;
+use Symfony\Component\Filesystem\Filesystem;
 
 $autoloaderPaths = [
     __DIR__ . '/../vendor/autoload.php', // When in development
@@ -37,5 +38,5 @@ if ($input->getFirstArgument() === null) {
 $application = new Application('graphql-client-code-generator', '1.0.0');
 
 // TODO symfony/console:7.4 Remove `new Command()->setCode` wrapping everywhere
-$application->add(new Command('generate')->setCode(new GenerateCommand()));
+$application->add(new Command('generate')->setCode(new GenerateCommand(new Filesystem())));
 $application->run($input);
