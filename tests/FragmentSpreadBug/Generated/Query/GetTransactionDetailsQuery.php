@@ -8,7 +8,6 @@ use Ruudk\GraphQLCodeGenerator\FragmentSpreadBug\Generated\Query\GetTransactionD
 use Ruudk\GraphQLCodeGenerator\TestClient;
 
 // This file was automatically generated and should not be edited.
-// Based on tests/FragmentSpreadBug/Test.graphql
 
 final readonly class GetTransactionDetailsQuery {
     public const string OPERATION_NAME = 'GetTransactionDetails';

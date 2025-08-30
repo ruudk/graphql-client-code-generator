@@ -24,7 +24,6 @@ final readonly class OperationPlan
         public string $queryClassName,
         public string $operationDefinition,
         public array $variables,
-        public string $relativeFilePath,
         public DataClassPlan $dataClass,
         public OperationClassPlan $operationClass,
         public ErrorClassPlan $errorClass,

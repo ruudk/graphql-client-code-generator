@@ -7,7 +7,7 @@ namespace Ruudk\GraphQLCodeGenerator\Tests\Planner;
 use PHPUnit\Framework\TestCase;
 use RecursiveDirectoryIterator;
 use RecursiveIteratorIterator;
-use Ruudk\GraphQLCodeGenerator\Config;
+use Ruudk\GraphQLCodeGenerator\Config\Config;
 use Ruudk\GraphQLCodeGenerator\Planner;
 use Ruudk\GraphQLCodeGenerator\Planner\Plan\DataClassPlan;
 use SplFileInfo;
@@ -73,7 +73,7 @@ final class NestedFragmentPayloadShapeTest extends TestCase
         // Find the Detail class within ItemWithDetails fragment
         $detailClass = null;
         foreach ($result->classes as $class) {
-            if ($class instanceof DataClassPlan && str_contains($class->relativePath, 'ItemWithDetails/Detail.php')) {
+            if ($class instanceof DataClassPlan && str_contains($class->path, 'ItemWithDetails/Detail.php')) {
                 $detailClass = $class;
 
                 break;
@@ -123,7 +123,7 @@ final class NestedFragmentPayloadShapeTest extends TestCase
         // Find the Payout class within PaymentDetails fragment
         $payoutClass = null;
         foreach ($result->classes as $class) {
-            if ($class instanceof DataClassPlan && str_contains($class->relativePath, 'PaymentDetails/Payout.php')) {
+            if ($class instanceof DataClassPlan && str_contains($class->path, 'PaymentDetails/Payout.php')) {
                 $payoutClass = $class;
 
                 break;

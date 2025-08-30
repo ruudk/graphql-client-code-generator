@@ -2,11 +2,12 @@
 
 declare(strict_types=1);
 
-namespace Ruudk\GraphQLCodeGenerator;
+namespace Ruudk\GraphQLCodeGenerator\Config;
 
 use Closure;
 use GraphQL\Type\Schema;
 use ReflectionClass;
+use Ruudk\GraphQLCodeGenerator\TypeInitializer;
 use Symfony\Component\TypeInfo\Type;
 
 final readonly class Config
@@ -19,6 +20,7 @@ final readonly class Config
      * @param list<string> $ignoreTypes
      * @param list<TypeInitializer\TypeInitializer> $typeInitializers
      * @param null|object|(Closure(): object) $introspectionClient
+     * @param list<string> $inlineProcessingDirectories
      */
     private function __construct(
         public Schema | string $schema,
@@ -40,10 +42,12 @@ final readonly class Config
         public bool $useEdgeNameForEdges = false,
         public bool $addNodesOnConnections = false,
         public bool $addSymfonyExcludeAttribute = false,
+        public bool $addGeneratedFromAttribute = false,
         public bool $indexByDirective = false,
         public bool $addUnknownCaseToEnums = false,
         public bool $dumpEnumIsMethods = false,
         public ?object $introspectionClient = null,
+        public array $inlineProcessingDirectories = [],
     ) {}
 
     public static function create(
@@ -94,9 +98,14 @@ final readonly class Config
         return $this->with('addNodesOnConnections', true);
     }
 
-    public function enableAddSymfonyExcludeAttribute() : self
+    public function enableSymfonyExcludeAttribute() : self
     {
         return $this->with('addSymfonyExcludeAttribute', true);
+    }
+
+    public function enableGeneratedFromAttribute() : self
+    {
+        return $this->with('addGeneratedFromAttribute', true);
     }
 
     public function enableIndexByDirective() : self
@@ -165,6 +174,11 @@ final readonly class Config
     public function withIntrospectionClient(object $client) : self
     {
         return $this->with('introspectionClient', $client);
+    }
+
+    public function withInlineProcessingDirectory(string $directory, string ...$directories) : self
+    {
+        return $this->with('inlineProcessingDirectories', [...$this->inlineProcessingDirectories, $directory, ...$directories]);
     }
 
     /**

@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Ruudk\GraphQLCodeGenerator\NoIndexBy;
 
 use Override;
-use Ruudk\GraphQLCodeGenerator\Config;
+use Ruudk\GraphQLCodeGenerator\Config\Config;
 use Ruudk\GraphQLCodeGenerator\GraphQLTestCase;
 use Ruudk\GraphQLCodeGenerator\NoIndexBy\Generated\Query\TestQuery;
 
@@ -15,7 +15,7 @@ final class NoIndexByTest extends GraphQLTestCase
     public function getConfig() : Config
     {
         return parent::getConfig()
-            ->enableAddSymfonyExcludeAttribute()
+            ->enableSymfonyExcludeAttribute()
             ->enableIndexByDirective()
             ->enableAddNodesOnConnections();
     }

@@ -32,12 +32,17 @@ final class PlannerResult
     public private(set) array $discoveredInputObjectTypes = [];
 
     /**
-     * @param object $class A plan object with a relativePath property
+     * @var array<string, array<string, array<string, string>>>
+     */
+    public private(set) array $operationsToInject = [];
+
+    /**
+     * @param object $class A plan object with a path property
      */
     public function addClass(object $class) : void
     {
-        /** @var object{relativePath: string} $class */
-        $this->classes[$class->relativePath] = $class;
+        /** @var object{path: string} $class */
+        $this->classes[$class->path] = $class;
     }
 
     public function addOperation(OperationPlan $operation) : void
@@ -59,5 +64,13 @@ final class PlannerResult
     public function setDiscoveredInputObjectTypes(array $inputObjectTypes) : void
     {
         $this->discoveredInputObjectTypes = $inputObjectTypes;
+    }
+
+    /**
+     * @param array<string, array<string, array<string, string>>> $operationsToInject
+     */
+    public function setOperationsToInject(array $operationsToInject) : void
+    {
+        $this->operationsToInject = $operationsToInject;
     }
 }

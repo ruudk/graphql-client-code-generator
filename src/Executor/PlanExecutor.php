@@ -6,7 +6,13 @@ namespace Ruudk\GraphQLCodeGenerator\Executor;
 
 use JsonException;
 use LogicException;
-use Ruudk\GraphQLCodeGenerator\Config;
+use PhpParser\NodeTraverser;
+use PhpParser\NodeVisitor\CloningVisitor;
+use PhpParser\NodeVisitor\NodeConnectingVisitor;
+use PhpParser\Parser;
+use PhpParser\ParserFactory;
+use PhpParser\PrettyPrinter\Standard;
+use Ruudk\GraphQLCodeGenerator\Config\Config;
 use Ruudk\GraphQLCodeGenerator\Generator\DataClassGenerator;
 use Ruudk\GraphQLCodeGenerator\Generator\EnumTypeGenerator;
 use Ruudk\GraphQLCodeGenerator\Generator\ErrorClassGenerator;
@@ -14,6 +20,8 @@ use Ruudk\GraphQLCodeGenerator\Generator\ExceptionClassGenerator;
 use Ruudk\GraphQLCodeGenerator\Generator\InputTypeGenerator;
 use Ruudk\GraphQLCodeGenerator\Generator\NodeNotFoundExceptionGenerator;
 use Ruudk\GraphQLCodeGenerator\Generator\OperationClassGenerator;
+use Ruudk\GraphQLCodeGenerator\PHP\Visitor\OperationInjector;
+use Ruudk\GraphQLCodeGenerator\PHP\Visitor\UseStatementInserter;
 use Ruudk\GraphQLCodeGenerator\Planner\OperationPlan;
 use Ruudk\GraphQLCodeGenerator\Planner\Plan\DataClassPlan;
 use Ruudk\GraphQLCodeGenerator\Planner\Plan\EnumClassPlan;
@@ -26,6 +34,9 @@ use Ruudk\GraphQLCodeGenerator\TypeInitializer\DelegatingTypeInitializer;
 use Ruudk\GraphQLCodeGenerator\TypeInitializer\IndexByCollectionTypeInitializer;
 use Ruudk\GraphQLCodeGenerator\TypeInitializer\NullableTypeInitializer;
 use Ruudk\GraphQLCodeGenerator\TypeInitializer\ObjectTypeInitializer;
+use Symfony\Component\Filesystem\Exception\IOException;
+use Symfony\Component\Filesystem\Filesystem;
+use Webmozart\Assert\Assert;
 
 final class PlanExecutor
 {
@@ -36,6 +47,8 @@ final class PlanExecutor
     private readonly ExceptionClassGenerator $exceptionClassGenerator;
     private readonly InputTypeGenerator $inputTypeGenerator;
     private readonly NodeNotFoundExceptionGenerator $nodeNotFoundExceptionGenerator;
+    private Parser $phpParser;
+    private Filesystem $filesystem;
 
     public function __construct(
         Config $config,
@@ -58,23 +71,55 @@ final class PlanExecutor
         $this->exceptionClassGenerator = new ExceptionClassGenerator($config);
         $this->inputTypeGenerator = new InputTypeGenerator($config);
         $this->nodeNotFoundExceptionGenerator = new NodeNotFoundExceptionGenerator($config);
+        $this->phpParser = new ParserFactory()->createForNewestSupportedVersion();
+        $this->filesystem = new Filesystem();
     }
 
     /**
      * @throws LogicException
      * @throws JsonException
+     * @throws IOException
      * @return array<string, string>
      */
     public function execute(PlannerResult $plan) : array
     {
         $files = [];
 
-        foreach ($plan->classes as $relativePath => $class) {
-            $files[$relativePath] = $this->generateClass($class);
+        foreach ($plan->classes as $path => $class) {
+            $files[$path] = $this->generateClass($class);
         }
 
         foreach ($plan->operations as $operation) {
             $files = array_merge($files, $this->generateOperation($operation));
+        }
+
+        $printer = new Standard();
+        foreach ($plan->operationsToInject as $path => $operations) {
+            $oldStmts = $this->phpParser->parse($this->filesystem->readFile($path));
+            Assert::notNull($oldStmts, 'Failed to parse PHP file');
+
+            $oldTokens = $this->phpParser->getTokens();
+
+            $newStmts = new NodeTraverser(new CloningVisitor())->traverse($oldStmts);
+
+            $traverser = new NodeTraverser();
+            $traverser->addVisitor(new NodeConnectingVisitor());
+            $traverser->addVisitor(new OperationInjector($operations));
+            $newStmts = $traverser->traverse($newStmts);
+
+            $fqcns = [];
+            foreach ($operations as $methodOperations) {
+                foreach ($methodOperations as $fqcn) {
+                    $fqcns[] = $fqcn;
+                }
+            }
+
+            $newStmts = new NodeTraverser(
+                new NodeConnectingVisitor(),
+                new UseStatementInserter($fqcns),
+            )->traverse($newStmts);
+
+            $files[$path] = $printer->printFormatPreserving($newStmts, $oldStmts, $oldTokens);
         }
 
         return $files;
@@ -107,18 +152,18 @@ final class PlanExecutor
         $files = [];
 
         // Generate operation class
-        $files[$operation->operationClass->relativePath] = $this->operationClassGenerator->generate(
+        $files[$operation->operationClass->path] = $this->operationClassGenerator->generate(
             $operation->operationClass,
         );
 
         // Generate error class
-        $files[$operation->errorClass->relativePath] = $this->errorClassGenerator->generate(
+        $files[$operation->errorClass->path] = $this->errorClassGenerator->generate(
             $operation->errorClass,
         );
 
         // Generate exception class only if it exists
         if ($operation->exceptionClass !== null) {
-            $files[$operation->exceptionClass->relativePath] = $this->exceptionClassGenerator->generate(
+            $files[$operation->exceptionClass->path] = $this->exceptionClassGenerator->generate(
                 $operation->exceptionClass,
             );
         }

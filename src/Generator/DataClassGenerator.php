@@ -9,7 +9,8 @@ use GraphQL\Type\Definition\InterfaceType;
 use GraphQL\Type\Definition\ObjectType;
 use GraphQL\Type\Definition\UnionType;
 use Ruudk\CodeGenerator\CodeGenerator;
-use Ruudk\GraphQLCodeGenerator\Config;
+use Ruudk\GraphQLCodeGenerator\Attribute\GeneratedFrom;
+use Ruudk\GraphQLCodeGenerator\Config\Config;
 use Ruudk\GraphQLCodeGenerator\Planner\Plan\DataClassPlan;
 use Ruudk\GraphQLCodeGenerator\Type\FragmentObjectType;
 use Ruudk\GraphQLCodeGenerator\Type\IndexByCollectionType;
@@ -68,16 +69,29 @@ final class DataClassGenerator extends AbstractGenerator
 
         $generator = new CodeGenerator($namespace);
 
-        return $generator->dumpFile(function () use ($parentType, $nodesType, $fqcn, $definitionNode, $payloadShape, $isData, $fields, $possibleTypes, $generator, $inlineFragmentRequiredFields) {
+        return $generator->dumpFile(function () use ($plan, $definitionNode, $parentType, $nodesType, $fqcn, $payloadShape, $isData, $fields, $possibleTypes, $generator, $inlineFragmentRequiredFields) {
             yield $this->dumpHeader();
             yield '';
 
-            if ($this->config->dumpDefinition && $definitionNode !== null) {
-                yield from $generator->docComment(Printer::doPrint($definitionNode));
-            }
+            yield from $generator->docComment(function () use ($definitionNode) {
+                if ($this->config->dumpDefinition && $definitionNode !== null) {
+                    yield Printer::doPrint($definitionNode);
+                }
+            });
 
             if ($this->config->addSymfonyExcludeAttribute) {
                 yield $generator->dumpAttribute('Symfony\Component\DependencyInjection\Attribute\Exclude');
+            }
+
+            if ($this->config->addGeneratedFromAttribute) {
+                yield sprintf(
+                    '#[%s(source: %s)]',
+                    $generator->import(GeneratedFrom::class),
+                    str_ends_with($plan->source, '.graphql') ? var_export(
+                        $plan->source,
+                        true,
+                    ) : $generator->dumpClassReference($plan->source),
+                );
             }
 
             yield sprintf('final class %s', $generator->import($fqcn));

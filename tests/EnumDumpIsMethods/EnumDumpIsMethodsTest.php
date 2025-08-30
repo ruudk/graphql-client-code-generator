@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Ruudk\GraphQLCodeGenerator\EnumDumpIsMethods;
 
 use Override;
-use Ruudk\GraphQLCodeGenerator\Config;
+use Ruudk\GraphQLCodeGenerator\Config\Config;
 use Ruudk\GraphQLCodeGenerator\EnumDumpIsMethods\Generated\Enum\Role;
 use Ruudk\GraphQLCodeGenerator\EnumDumpIsMethods\Generated\Enum\State;
 use Ruudk\GraphQLCodeGenerator\EnumDumpIsMethods\Generated\Query\TestQuery;

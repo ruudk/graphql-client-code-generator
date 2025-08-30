@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Ruudk\GraphQLCodeGenerator\Generator;
 
-use Ruudk\GraphQLCodeGenerator\Config;
+use Ruudk\GraphQLCodeGenerator\Config\Config;
 use Ruudk\GraphQLCodeGenerator\Type\ScalarType;
 use Symfony\Component\TypeInfo\Type;
 

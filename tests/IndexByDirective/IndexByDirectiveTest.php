@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Ruudk\GraphQLCodeGenerator\IndexByDirective;
 
 use Override;
-use Ruudk\GraphQLCodeGenerator\Config;
+use Ruudk\GraphQLCodeGenerator\Config\Config;
 use Ruudk\GraphQLCodeGenerator\GraphQLRequestMatcher;
 use Ruudk\GraphQLCodeGenerator\GraphQLTestCase;
 use Ruudk\GraphQLCodeGenerator\IndexByDirective\Generated\Query\TestMultiFieldQuery;

@@ -8,8 +8,10 @@ use GraphQL\Language\Parser;
 use GraphQL\Utils\BuildSchema;
 use PHPUnit\Framework\TestCase;
 use ReflectionClass;
-use Ruudk\GraphQLCodeGenerator\Config;
+use Ruudk\GraphQLCodeGenerator\Config\Config;
 use Ruudk\GraphQLCodeGenerator\DirectiveProcessor;
+use Ruudk\GraphQLCodeGenerator\GraphQL\DocumentNodeWithSource;
+use Ruudk\GraphQLCodeGenerator\GraphQL\FragmentDefinitionNodeWithSource;
 use Ruudk\GraphQLCodeGenerator\Planner\Plan\DataClassPlan;
 use Ruudk\GraphQLCodeGenerator\Planner\SelectionSetPlanner;
 use Ruudk\GraphQLCodeGenerator\TypeMapper;
@@ -39,11 +41,12 @@ final class SelectionSetPlannerTest extends TestCase
                 metadata { key }
             }
         ');
+        $document = DocumentNodeWithSource::create($document, '');
         // Collect fragments
         $fragments = [];
         $fragmentTypes = [];
         foreach ($document->definitions as $def) {
-            if ($def instanceof \GraphQL\Language\AST\FragmentDefinitionNode) {
+            if ($def instanceof FragmentDefinitionNodeWithSource) {
                 $fragments[$def->name->value] = $def;
                 $type = $schema->getType($def->typeCondition->name->value);
                 self::assertNotNull($type, 'Fragment type ' . $def->typeCondition->name->value . ' should exist');
@@ -97,6 +100,7 @@ final class SelectionSetPlannerTest extends TestCase
         $itemFragment = $fragments['ItemWithDetails'];
         $itemType = $fragmentTypes['ItemWithDetails'];
         $result = $planner->plan(
+            '',
             $itemFragment->selectionSet,
             $itemType,
             '/tmp/generated/Fragment/ItemWithDetails',
@@ -107,7 +111,7 @@ final class SelectionSetPlannerTest extends TestCase
         // Find the Detail class plan in the result
         $detailClassPlan = null;
         foreach ($result->plannerResult->classes as $class) {
-            if ($class instanceof DataClassPlan && str_contains($class->relativePath, 'ItemWithDetails/Detail.php')) {
+            if ($class instanceof DataClassPlan && str_contains($class->path, 'ItemWithDetails/Detail.php')) {
                 $detailClassPlan = $class;
 
                 break;
@@ -154,11 +158,12 @@ final class SelectionSetPlannerTest extends TestCase
                 }
             }
         ');
+        $document = DocumentNodeWithSource::create($document, '');
         // Collect fragments
         $fragments = [];
         $fragmentTypes = [];
         foreach ($document->definitions as $def) {
-            if ($def instanceof \GraphQL\Language\AST\FragmentDefinitionNode) {
+            if ($def instanceof FragmentDefinitionNodeWithSource) {
                 $fragments[$def->name->value] = $def;
                 $type = $schema->getType($def->typeCondition->name->value);
                 self::assertNotNull($type, 'Fragment type ' . $def->typeCondition->name->value . ' should exist');
@@ -212,6 +217,7 @@ final class SelectionSetPlannerTest extends TestCase
         $paymentFragment = $fragments['PaymentDetails'];
         $paymentType = $fragmentTypes['PaymentDetails'];
         $result = $planner->plan(
+            '',
             $paymentFragment->selectionSet,
             $paymentType,
             '/tmp/generated/Fragment/PaymentDetails',
@@ -222,7 +228,7 @@ final class SelectionSetPlannerTest extends TestCase
         // Find the Payout class plan in the result
         $payoutClassPlan = null;
         foreach ($result->plannerResult->classes as $class) {
-            if ($class instanceof DataClassPlan && str_contains($class->relativePath, 'PaymentDetails/Payout.php')) {
+            if ($class instanceof DataClassPlan && str_contains($class->path, 'PaymentDetails/Payout.php')) {
                 $payoutClassPlan = $class;
 
                 break;

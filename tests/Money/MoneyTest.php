@@ -7,7 +7,7 @@ namespace Ruudk\GraphQLCodeGenerator\Money;
 use Generator;
 use Override;
 use Ruudk\CodeGenerator\CodeGenerator;
-use Ruudk\GraphQLCodeGenerator\Config;
+use Ruudk\GraphQLCodeGenerator\Config\Config;
 use Ruudk\GraphQLCodeGenerator\GraphQLRequestMatcher;
 use Ruudk\GraphQLCodeGenerator\GraphQLTestCase;
 use Ruudk\GraphQLCodeGenerator\Money\Generated\Query\ConvertMoneyQuery;

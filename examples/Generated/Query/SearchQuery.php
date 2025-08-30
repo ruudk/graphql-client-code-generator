@@ -8,7 +8,6 @@ use Ruudk\GraphQLCodeGenerator\Examples\Generated\Query\Search\Data;
 use Ruudk\GraphQLCodeGenerator\Examples\GitHubClient;
 
 // This file was automatically generated and should not be edited.
-// Based on Search.graphql
 
 final readonly class SearchQuery {
     public const string OPERATION_NAME = 'Search';

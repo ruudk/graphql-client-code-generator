@@ -5,6 +5,8 @@
     "type": "library",
     "require": {
         "php": "^8.4",
+        "nikic/php-parser": "^5.6",
+        "phpstan/phpstan": "^2.1",
         "ruudk/code-generator": "^0.4.3",
         "symfony/console": "^7.3",
         "symfony/filesystem": "^7.3",
@@ -24,7 +26,6 @@
         "php-http/message": "^1.16",
         "php-http/mock-client": "^1.6",
         "phpstan/extension-installer": "^1.4",
-        "phpstan/phpstan": "^2.1",
         "phpstan/phpstan-deprecation-rules": "^2.0",
         "phpstan/phpstan-phpunit": "^2.0",
         "phpstan/phpstan-strict-rules": "^2.0",
@@ -61,6 +62,13 @@
             "ergebnis/composer-normalize": true,
             "php-http/discovery": true,
             "phpstan/extension-installer": true
+        }
+    },
+    "extra": {
+        "phpstan": {
+            "includes": [
+                "extension.neon"
+            ]
         }
     }
 }
