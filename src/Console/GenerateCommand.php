@@ -18,6 +18,8 @@ use Symfony\Component\Console\Attribute\Option;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Style\SymfonyStyle;
 use Symfony\Component\Filesystem\Filesystem;
+use Symfony\Component\Filesystem\Path;
+use Symfony\Component\Finder\Finder;
 use Throwable;
 use Webmozart\Assert\Assert;
 use Webmozart\Assert\InvalidArgumentException;
@@ -45,6 +47,8 @@ final class GenerateCommand
         ?string $workingDir = null,
         #[Option(description: 'Update the schema by doing an introspection query to the backend.', name: 'update-schema')]
         bool $updateSchema = false,
+        #[Option(description: 'Guard that the generated files are in sync.', name: 'ensure-sync')]
+        bool $ensureSync = false,
     ) : int {
         $workingDir ??= getcwd();
 
@@ -159,7 +163,9 @@ final class GenerateCommand
                 }
             }
 
-            $io->write(sprintf('Generating code for <info>%s</info>... ', $configItem->namespace));
+            if ( ! $ensureSync) {
+                $io->write(sprintf('Generating code for <info>%s</info>... ', $configItem->namespace));
+            }
 
             try {
                 // Planning phase - discovers types
@@ -167,6 +173,46 @@ final class GenerateCommand
 
                 // Execution phase - uses discovered types from plan
                 $files = new PlanExecutor($configItem)->execute($plan);
+
+                if ($ensureSync) {
+                    $actual = [];
+                    foreach (Finder::create()->files()->in($configItem->outputDir) as $file) {
+                        $actual[$file->getRelativePathname()] = $file->getContents();
+                    }
+
+                    // Sort both arrays by key to ensure consistent comparison
+                    ksort($actual);
+                    ksort($files);
+
+                    $errors = false;
+
+                    foreach ($files as $path => $content) {
+                        if (isset($actual[$path]) && $content !== $actual[$path]) {
+                            $errors = true;
+                            $io->writeln(sprintf('%s content does not match expectations', Path::makeRelative(Path::join($configItem->outputDir, $path), $configItem->projectDir)));
+                        } elseif ( ! isset($actual[$path])) {
+                            $errors = true;
+                            $io->writeln(sprintf('%s does not exist', Path::makeRelative(Path::join($configItem->outputDir, $path), $configItem->projectDir)));
+                        }
+                    }
+
+                    foreach (array_keys($actual) as $path) {
+                        if ( ! isset($files[$path])) {
+                            $errors = true;
+                            $io->writeln(sprintf('%s should not exist', Path::makeRelative(Path::join($configItem->outputDir, $path), $configItem->projectDir)));
+                        }
+                    }
+
+                    if ($errors) {
+                        $io->error('Generated files are not in sync');
+
+                        return Command::FAILURE;
+                    }
+
+                    $io->success('Generated code is in sync!');
+
+                    return Command::SUCCESS;
+                }
 
                 // Clear output directory
                 $this->filesystem->remove($configItem->outputDir);
