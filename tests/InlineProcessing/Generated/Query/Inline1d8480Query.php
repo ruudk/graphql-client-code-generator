@@ -11,7 +11,10 @@ use Ruudk\GraphQLCodeGenerator\TestClient;
 
 // This file was automatically generated and should not be edited.
 
-#[GeneratedFrom(source: SomeController::class)]
+#[GeneratedFrom(
+    source: SomeController::class,
+    restrict: true,
+)]
 final readonly class Inline1d8480Query {
     public const string OPERATION_NAME = 'Inline1d8480';
     public const string OPERATION_DEFINITION = <<<'GRAPHQL'

@@ -35,7 +35,7 @@ final class InputTypeGenerator extends AbstractGenerator
             yield '';
 
             if ($this->config->addSymfonyExcludeAttribute) {
-                yield $generator->dumpAttribute('Symfony\Component\DependencyInjection\Attribute\Exclude');
+                yield from $generator->dumpAttribute('Symfony\Component\DependencyInjection\Attribute\Exclude');
             }
 
             yield sprintf('final readonly class %s implements %s', $plan->typeName, $generator->import(JsonSerializable::class));
@@ -105,7 +105,7 @@ final class InputTypeGenerator extends AbstractGenerator
 
                 yield '';
                 yield from $generator->docComment(sprintf('@return %s', TypeDumper::dump(SymfonyType::arrayShape($fields), $generator->import(...))));
-                yield $generator->dumpAttribute(Override::class);
+                yield from $generator->dumpAttribute(Override::class);
                 yield 'public function jsonSerialize() : array';
                 yield '{';
                 yield $generator->indent(function () use ($generator, $plan) {

@@ -57,10 +57,10 @@ final readonly class RestrictedUsageExtension implements RestrictedClassNameUsag
         return $this->isAllowed(
             $classReflection,
             $scope,
-            $location->createMessage(sprintf(
+            rtrim($location->createMessage(sprintf(
                 '%s is only allowed to be used from within',
                 $classReflection->getDisplayName(),
-            )),
+            )), '.'),
             $location->createIdentifier('graphql.inline.class.restricted'),
         );
     }
@@ -130,14 +130,20 @@ final readonly class RestrictedUsageExtension implements RestrictedClassNameUsag
         }
 
         $source = null;
+        $restrict = false;
         foreach ($reflection->getNativeReflection()->getAttributes() as $attribute) {
             if ($attribute->getName() !== GeneratedFrom::class) {
                 continue;
             }
 
             $source = $attribute->getArguments()['source'];
+            $restrict = $attribute->getArguments()['restrict'] === true;
 
             break;
+        }
+
+        if ( ! $restrict) {
+            return null;
         }
 
         if ( ! is_string($source)) {

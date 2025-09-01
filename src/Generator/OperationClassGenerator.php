@@ -40,14 +40,16 @@ final class OperationClassGenerator extends AbstractGenerator
             yield '';
 
             if ($this->config->addGeneratedFromAttribute) {
-                yield sprintf(
-                    '#[%s(source: %s)]',
-                    $generator->import(GeneratedFrom::class),
-                    str_ends_with($plan->source, '.graphql') ? var_export(
-                        $plan->source,
-                        true,
-                    ) : $generator->dumpClassReference($plan->source),
-                );
+                yield from $generator->dumpAttribute(GeneratedFrom::class, function () use ($generator, $plan) {
+                    if (str_ends_with($plan->source, '.graphql')) {
+                        yield sprintf('source: %s', var_export($plan->source, true));
+
+                        return;
+                    }
+
+                    yield sprintf('source: %s', $generator->dumpClassReference($plan->source));
+                    yield 'restrict: true';
+                });
             }
 
             yield sprintf('final readonly class %s {', $className);

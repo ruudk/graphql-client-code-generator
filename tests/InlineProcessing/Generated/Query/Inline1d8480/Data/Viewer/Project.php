@@ -9,7 +9,10 @@ use Ruudk\GraphQLCodeGenerator\InlineProcessing\SomeController;
 
 // This file was automatically generated and should not be edited.
 
-#[GeneratedFrom(source: SomeController::class)]
+#[GeneratedFrom(
+    source: SomeController::class,
+    restrict: true,
+)]
 final class Project
 {
     public ?string $description {
