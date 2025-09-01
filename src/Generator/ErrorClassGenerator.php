@@ -23,7 +23,7 @@ final class ErrorClassGenerator extends AbstractGenerator
             yield '';
 
             if ($this->config->addSymfonyExcludeAttribute) {
-                yield $generator->dumpAttribute('Symfony\Component\DependencyInjection\Attribute\Exclude');
+                yield from $generator->dumpAttribute('Symfony\Component\DependencyInjection\Attribute\Exclude');
             }
 
             yield 'final readonly class Error';

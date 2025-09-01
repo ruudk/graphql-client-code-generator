@@ -11,5 +11,6 @@ final readonly class GeneratedFrom
 {
     public function __construct(
         public string $source,
+        public bool $restrict = false,
     ) {}
 }

@@ -20,7 +20,7 @@ final class EnumTypeGenerator extends AbstractGenerator
             yield from $generator->docComment('@api');
 
             if ($this->config->addSymfonyExcludeAttribute) {
-                yield $generator->dumpAttribute('Symfony\Component\DependencyInjection\Attribute\Exclude');
+                yield from $generator->dumpAttribute('Symfony\Component\DependencyInjection\Attribute\Exclude');
             }
 
             yield sprintf('enum %s: string', $plan->typeName);

@@ -177,16 +177,16 @@
         },
         {
             "name": "ruudk/code-generator",
-            "version": "0.4.3",
+            "version": "0.4.4",
             "source": {
                 "type": "git",
                 "url": "https://github.com/ruudk/code-generator.git",
-                "reference": "743473506794b20a8954c5805cb2fd5bdac735b4"
+                "reference": "06976aa5707a0a783af67246701e7846ed94ddb9"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/ruudk/code-generator/zipball/743473506794b20a8954c5805cb2fd5bdac735b4",
-                "reference": "743473506794b20a8954c5805cb2fd5bdac735b4",
+                "url": "https://api.github.com/repos/ruudk/code-generator/zipball/06976aa5707a0a783af67246701e7846ed94ddb9",
+                "reference": "06976aa5707a0a783af67246701e7846ed94ddb9",
                 "shasum": ""
             },
             "require": {
@@ -228,7 +228,7 @@
             ],
             "support": {
                 "issues": "https://github.com/ruudk/code-generator/issues",
-                "source": "https://github.com/ruudk/code-generator/tree/0.4.3"
+                "source": "https://github.com/ruudk/code-generator/tree/0.4.4"
             },
             "funding": [
                 {
@@ -236,7 +236,7 @@
                     "type": "github"
                 }
             ],
-            "time": "2025-08-23T08:34:17+00:00"
+            "time": "2025-09-01T08:09:55+00:00"
         },
         {
             "name": "symfony/console",
