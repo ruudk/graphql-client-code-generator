@@ -3,7 +3,7 @@ parametersSchema:
         configs: listOf(string())
     ])
 expandRelativePaths:
-    - '[parameters][graphQLClientCodeGenerator][paths][]'
+    - '[parameters][graphQLClientCodeGenerator][configs][]'
 parameters:
     graphQLClientCodeGenerator:
         configs: []
