@@ -11,6 +11,7 @@ use Ruudk\GraphQLCodeGenerator\Config\Config;
 use Ruudk\GraphQLCodeGenerator\Planner\Plan\InputClassPlan;
 use Ruudk\GraphQLCodeGenerator\Type\TypeDumper;
 use Symfony\Component\TypeInfo\Type as SymfonyType;
+use Symfony\Component\TypeInfo\TypeIdentifier;
 
 final class InputTypeGenerator extends AbstractGenerator
 {
@@ -32,18 +33,6 @@ final class InputTypeGenerator extends AbstractGenerator
                 yield from $generator->comment($plan->description);
             }
 
-            $sortedFields = $plan->fields;
-            uksort($sortedFields, function (string $a, string $b) use ($plan) : int {
-                $aRequired = in_array($a, $plan->required, true);
-                $bRequired = in_array($b, $plan->required, true);
-
-                if ($aRequired === $bRequired) {
-                    return 0;
-                }
-
-                return $aRequired ? -1 : 1;
-            });
-
             yield '';
 
             if ($this->config->addSymfonyExcludeAttribute) {
@@ -52,9 +41,9 @@ final class InputTypeGenerator extends AbstractGenerator
 
             yield sprintf('final readonly class %s implements %s', $plan->typeName, $generator->import(JsonSerializable::class));
             yield '{';
-            yield $generator->indent(function () use ($sortedFields, $plan, $generator) {
-                yield from $generator->docComment(function () use ($sortedFields, $generator) {
-                    foreach ($sortedFields as $fieldName => $fieldType) {
+            yield $generator->indent(function () use ($plan, $generator) {
+                yield from $generator->docComment(function () use ($plan, $generator) {
+                    foreach ($plan->fields as $fieldName => $fieldType) {
                         if ($fieldType instanceof SymfonyType\CollectionType) {
                             yield sprintf('@param %s $%s', TypeDumper::dump($fieldType, $generator->import(...)), $fieldName);
                         }
@@ -62,8 +51,8 @@ final class InputTypeGenerator extends AbstractGenerator
                 });
 
                 yield sprintf('%s function __construct(', $plan->isOneOf ? 'private' : 'public');
-                yield $generator->indent(function () use ($plan, $sortedFields, $generator) {
-                    foreach ($sortedFields as $fieldName => $fieldType) {
+                yield $generator->indent(function () use ($plan, $generator) {
+                    foreach ($plan->fields as $fieldName => $fieldType) {
                         yield sprintf(
                             'public %s $%s%s,',
                             $this->dumpPHPType($fieldType, $generator->import(...)),
@@ -75,7 +64,7 @@ final class InputTypeGenerator extends AbstractGenerator
                 yield ') {}';
 
                 if ($plan->isOneOf) {
-                    foreach ($sortedFields as $fieldName => $fieldType) {
+                    foreach ($plan->fields as $fieldName => $fieldType) {
                         // For oneOf, remove nullability for factory methods
                         if ($fieldType instanceof SymfonyType\NullableType) {
                             $fieldType = $fieldType->getWrappedType();
@@ -99,10 +88,7 @@ final class InputTypeGenerator extends AbstractGenerator
                 yield '';
                 yield from $generator->docComment(sprintf(
                     '@return %s',
-                    TypeDumper::dump(
-                        SymfonyType::arrayShape($plan->fields),
-                        $generator->import(...),
-                    ),
+                    TypeDumper::dump($plan->payloadShape, $generator->import(...)),
                 ));
                 yield from $generator->dumpAttribute(Override::class);
                 yield 'public function jsonSerialize() : array';
@@ -110,7 +96,28 @@ final class InputTypeGenerator extends AbstractGenerator
                 yield $generator->indent(function () use ($generator, $plan) {
                     yield 'return [';
                     yield $generator->indent(function () use ($plan) {
-                        foreach (array_keys($plan->fields) as $fieldName) {
+                        foreach ($plan->fields as $fieldName => $fieldType) {
+                            if ($fieldType->isIdentifiedBy(TypeIdentifier::STRING)) {
+                                if ($fieldType instanceof SymfonyType\NullableType) {
+                                    yield sprintf(
+                                        "'%s' => \$this->%s !== null ? (string) \$this->%s : null,",
+                                        $fieldName,
+                                        $fieldName,
+                                        $fieldName,
+                                    );
+
+                                    continue;
+                                }
+
+                                yield sprintf(
+                                    "'%s' => (string) \$this->%s,",
+                                    $fieldName,
+                                    $fieldName,
+                                );
+
+                                continue;
+                            }
+
                             yield sprintf(
                                 "'%s' => \$this->%s,",
                                 $fieldName,

@@ -19,5 +19,6 @@ final readonly class InputClassPlan
         public bool $isOneOf,
         public array $fields,
         public array $required,
+        public SymfonyType\ArrayShapeType $payloadShape,
     ) {}
 }

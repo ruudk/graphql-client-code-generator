@@ -6,6 +6,7 @@ namespace Ruudk\GraphQLCodeGenerator\Input\Generated\Mutation\Test;
 
 use Ruudk\GraphQLCodeGenerator\Input\Generated\Input\CreateUserInput;
 use Ruudk\GraphQLCodeGenerator\TestClient;
+use Stringable;
 
 // This file was automatically generated and should not be edited.
 
@@ -24,16 +25,16 @@ final readonly class TestMutation {
     ) {}
 
     public function execute(
-        string $firstName,
+        Stringable|string $firstName,
         CreateUserInput $input,
-        ?string $lastName = null,
+        null|Stringable|string $lastName = null,
     ) : Data {
         $data = $this->client->graphql(
             self::OPERATION_DEFINITION,
             [
-                'firstName' => $firstName,
+                'firstName' => (string) $firstName,
                 'input' => $input,
-                'lastName' => $lastName,
+                'lastName' => $lastName !== null ? (string) $lastName : null,
             ],
             self::OPERATION_NAME,
         );
