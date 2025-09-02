@@ -584,19 +584,7 @@ final class Planner
 
         $operationDir = Path::join($this->config->outputDir, $operationType, $operationNamespaceName);
 
-        $parsedVariables = $this->variableParser->parseVariables($operation);
-
-        // Build the full variables structure for OperationClassPlan
-        /** @var array<non-empty-string, array{required: bool, typeNode: null, type: SymfonyType}> $variables */
-        $variables = [];
-        foreach ($parsedVariables as $name => $type) {
-            /** @var non-empty-string $name */
-            $variables[$name] = [
-                'required' => ! ($type instanceof SymfonyType\NullableType),
-                'typeNode' => null,
-                'type' => $type,
-            ];
-        }
+        $variables = $this->variableParser->parseVariables($operation);
 
         $rootType = match ($operation->operation) {
             'query' => $this->schema->getQueryType(),
