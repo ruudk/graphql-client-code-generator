@@ -5,12 +5,12 @@ declare(strict_types=1);
 namespace Ruudk\GraphQLCodeGenerator\InlineProcessing;
 
 use Ruudk\GraphQLCodeGenerator\Attribute\GeneratedGraphQLClient;
-use Ruudk\GraphQLCodeGenerator\InlineProcessing\Generated\Query\Inline1d8480Query;
+use Ruudk\GraphQLCodeGenerator\InlineProcessing\Generated\Query\ViewerProjects1d8480\ViewerProjectsQuery;
 
 final readonly class SomeController
 {
     private const string OPERATION = <<<'GRAPHQL'
-        query {
+        query ViewerProjects {
             viewer {
                 login
                 projects {
@@ -23,7 +23,7 @@ final readonly class SomeController
 
     public function __construct(
         #[GeneratedGraphQLClient(self::OPERATION)]
-        public Inline1d8480Query $query,
+        public ViewerProjectsQuery $query,
     ) {}
 
     /**

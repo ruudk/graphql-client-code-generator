@@ -6,7 +6,7 @@ namespace Ruudk\GraphQLCodeGenerator\DumpOrThrows;
 
 use Override;
 use Ruudk\GraphQLCodeGenerator\Config\Config;
-use Ruudk\GraphQLCodeGenerator\DumpOrThrows\Generated\Query\TestQuery;
+use Ruudk\GraphQLCodeGenerator\DumpOrThrows\Generated\Query\Test\TestQuery;
 use Ruudk\GraphQLCodeGenerator\GraphQLTestCase;
 
 final class DumpOrThrowsTest extends GraphQLTestCase

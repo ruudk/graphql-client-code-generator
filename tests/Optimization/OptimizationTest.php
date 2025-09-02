@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Ruudk\GraphQLCodeGenerator\Optimization;
 
 use Ruudk\GraphQLCodeGenerator\GraphQLTestCase;
-use Ruudk\GraphQLCodeGenerator\Optimization\Generated\Query\TestQuery;
+use Ruudk\GraphQLCodeGenerator\Optimization\Generated\Query\Test\TestQuery;
 
 final class OptimizationTest extends GraphQLTestCase
 {

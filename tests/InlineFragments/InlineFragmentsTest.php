@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Ruudk\GraphQLCodeGenerator\InlineFragments;
 
 use Ruudk\GraphQLCodeGenerator\GraphQLTestCase;
-use Ruudk\GraphQLCodeGenerator\InlineFragments\Generated\Query\TestQuery;
+use Ruudk\GraphQLCodeGenerator\InlineFragments\Generated\Query\Test\TestQuery;
 
 final class InlineFragmentsTest extends GraphQLTestCase
 {

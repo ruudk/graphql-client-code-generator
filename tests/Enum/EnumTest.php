@@ -8,7 +8,7 @@ use Override;
 use Ruudk\GraphQLCodeGenerator\Config\Config;
 use Ruudk\GraphQLCodeGenerator\Enum\Generated\Enum\Role;
 use Ruudk\GraphQLCodeGenerator\Enum\Generated\Enum\State;
-use Ruudk\GraphQLCodeGenerator\Enum\Generated\Query\TestQuery;
+use Ruudk\GraphQLCodeGenerator\Enum\Generated\Query\Test\TestQuery;
 use Ruudk\GraphQLCodeGenerator\GraphQLTestCase;
 use Symfony\Component\TypeInfo\Type;
 

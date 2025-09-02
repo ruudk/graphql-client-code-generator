@@ -12,25 +12,22 @@ final class ExceptionClassGenerator extends AbstractGenerator
 {
     public function generate(ExceptionClassPlan $plan) : string
     {
-        $operationType = $plan->operationType;
-        $operationName = $plan->operationName;
-        $className = $plan->exceptionClassName;
-        $generator = new CodeGenerator($this->fullyQualified($operationType, $operationName));
+        $generator = new CodeGenerator($plan->namespace);
 
-        return $generator->dumpFile(function () use ($className, $generator) {
+        return $generator->dumpFile(function () use ($plan, $generator) {
             yield $this->dumpHeader();
 
             yield '';
-            yield sprintf('final class %s extends %s', $className, $generator->import(Exception::class));
+            yield sprintf('final class %s extends %s', $plan->className, $generator->import(Exception::class));
             yield '{';
-            yield $generator->indent(function () use ($generator, $className) {
+            yield $generator->indent(function () use ($generator, $plan) {
                 yield 'public function __construct(';
                 yield $generator->indent('public readonly Data $data,');
                 yield ') {';
-                yield $generator->indent(function () use ($generator, $className) {
+                yield $generator->indent(function () use ($generator, $plan) {
                     yield 'parent::__construct(sprintf(';
                     yield $generator->indent([
-                        sprintf("'%s failed%%s',", $className),
+                        sprintf("'%s failed%%s',", $plan->className),
                         "\$data->errors !== [] ? sprintf(': %s', \$data->errors[0]->message) : '',",
                     ]);
                     yield '));';

@@ -30,6 +30,8 @@ use Ruudk\GraphQLCodeGenerator\DirectiveProcessor;
 use Ruudk\GraphQLCodeGenerator\GraphQL\FragmentDefinitionNodeWithSource;
 use Ruudk\GraphQLCodeGenerator\GraphQL\PossibleTypesFinder;
 use Ruudk\GraphQLCodeGenerator\Planner\Plan\DataClassPlan;
+use Ruudk\GraphQLCodeGenerator\Planner\Source\FileSource;
+use Ruudk\GraphQLCodeGenerator\Planner\Source\InlineSource;
 use Ruudk\GraphQLCodeGenerator\RecursiveTypeFinder;
 use Ruudk\GraphQLCodeGenerator\Type\FragmentObjectType;
 use Ruudk\GraphQLCodeGenerator\Type\IndexByCollectionType;
@@ -45,8 +47,6 @@ use Webmozart\Assert\InvalidArgumentException;
  */
 final class SelectionSetPlanner
 {
-    public private(set) PlannerResult $result;
-
     /**
      * @var array<string, SymfonyType> Fragment name to payload shape mapping
      */
@@ -79,8 +79,8 @@ final class SelectionSetPlanner
         private readonly TypeMapper $typeMapper,
         private readonly DirectiveProcessor $directiveProcessor,
         private readonly EnglishInflector $inflector,
+        private readonly PlannerResult $result,
     ) {
-        $this->result = new PlannerResult();
         $this->possibleTypesFinder = new PossibleTypesFinder($this->schema);
     }
 
@@ -93,7 +93,7 @@ final class SelectionSetPlanner
      * @throws LogicException
      */
     public function plan(
-        string $source,
+        FileSource | InlineSource $source,
         SelectionSetNode $selectionSet,
         Type $parent,
         string $outputDirectory,
@@ -138,7 +138,6 @@ final class SelectionSetPlanner
             fields2: $result->pathFields->all(),
             payloadShape: $result->payloadShape->toArrayShape(),
             type: $result->resultType,
-            plannerResult: $this->result,
             fragmentPayloadShapes: $this->fragmentPayloadShapes,
             fragmentTypes: $this->fragmentTypes,
             inlineFragmentRequiredFields: $this->inlineFragmentRequiredFields,
@@ -151,7 +150,7 @@ final class SelectionSetPlanner
      * @throws LogicException
      */
     public function planSelectionSet(
-        string $source,
+        FileSource | InlineSource $source,
         SelectionSetNode $selectionSet,
         Type $type,
         PlanningContext $context,
@@ -229,7 +228,7 @@ final class SelectionSetPlanner
      * @throws LogicException
      */
     private function planNamedTypeSelectionSet(
-        string $source,
+        FileSource | InlineSource $source,
         SelectionSetNode $selectionSet,
         NamedType & Type $type,
         PlanningContext $context,
@@ -325,7 +324,7 @@ final class SelectionSetPlanner
      * @throws LogicException
      */
     private function processFieldSelection(
-        string $source,
+        FileSource | InlineSource $source,
         FieldNode $selection,
         Type $parent,
         PlanningContext $context,
@@ -402,7 +401,7 @@ final class SelectionSetPlanner
      * @throws LogicException
      */
     private function processNestedSelection(
-        string $source,
+        FileSource | InlineSource $source,
         FieldNode $selection,
         string $fieldName,
         Type $fieldType,
@@ -475,7 +474,7 @@ final class SelectionSetPlanner
      * @throws LogicException
      */
     private function processInlineFragment(
-        string $source,
+        FileSource | InlineSource $source,
         InlineFragmentNode $selection,
         Type $parent,
         PlanningContext $context,
@@ -1031,7 +1030,7 @@ final class SelectionSetPlanner
      * @throws InvariantViolation
      */
     private function createDataClassPlan(
-        string $source,
+        FileSource | InlineSource $source,
         NamedType & Type $parentType,
         SelectionSetResult $result,
         PlanningContext $context,
@@ -1077,7 +1076,7 @@ final class SelectionSetPlanner
     }
 
     private function createInlineFragmentClassPlan(
-        string $source,
+        FileSource | InlineSource $source,
         NamedType & Type $fragmentType,
         FieldCollection $fields,
         PayloadShape $payloadShape,

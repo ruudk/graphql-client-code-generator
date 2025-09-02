@@ -13,9 +13,7 @@ final class ErrorClassGenerator extends AbstractGenerator
 {
     public function generate(ErrorClassPlan $plan) : string
     {
-        $operationType = $plan->operationType;
-        $operationName = $plan->operationName;
-        $generator = new CodeGenerator($this->fullyQualified($operationType, $operationName));
+        $generator = new CodeGenerator($plan->namespace);
 
         return $generator->dumpFile(function () use ($generator) {
             yield $this->dumpHeader();

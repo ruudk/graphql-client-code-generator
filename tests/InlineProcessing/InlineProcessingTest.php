@@ -7,7 +7,7 @@ namespace Ruudk\GraphQLCodeGenerator\InlineProcessing;
 use Override;
 use Ruudk\GraphQLCodeGenerator\Config\Config;
 use Ruudk\GraphQLCodeGenerator\GraphQLTestCase;
-use Ruudk\GraphQLCodeGenerator\InlineProcessing\Generated\Query\Inline1d8480Query;
+use Ruudk\GraphQLCodeGenerator\InlineProcessing\Generated\Query\ViewerProjects1d8480\ViewerProjectsQuery;
 
 final class InlineProcessingTest extends GraphQLTestCase
 {
@@ -15,7 +15,8 @@ final class InlineProcessingTest extends GraphQLTestCase
     public function getConfig() : Config
     {
         return parent::getConfig()
-            ->enableGeneratedFromAttribute()
+            ->enableGeneratedAttribute()
+            ->enableDumpOrThrows()
             ->withInlineProcessingDirectory(__DIR__);
     }
 
@@ -26,7 +27,7 @@ final class InlineProcessingTest extends GraphQLTestCase
 
     public function testQuery() : void
     {
-        $query = new Inline1d8480Query($this->getClient([
+        $query = new ViewerProjectsQuery($this->getClient([
             'data' => [
                 'viewer' => [
                     'login' => 'ruudk',

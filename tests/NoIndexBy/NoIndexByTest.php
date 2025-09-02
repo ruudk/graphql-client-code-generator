@@ -7,7 +7,7 @@ namespace Ruudk\GraphQLCodeGenerator\NoIndexBy;
 use Override;
 use Ruudk\GraphQLCodeGenerator\Config\Config;
 use Ruudk\GraphQLCodeGenerator\GraphQLTestCase;
-use Ruudk\GraphQLCodeGenerator\NoIndexBy\Generated\Query\TestQuery;
+use Ruudk\GraphQLCodeGenerator\NoIndexBy\Generated\Query\Test\TestQuery;
 
 final class NoIndexByTest extends GraphQLTestCase
 {

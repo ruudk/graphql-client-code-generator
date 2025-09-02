@@ -7,7 +7,7 @@ namespace Ruudk\GraphQLCodeGenerator\NullableConnections;
 use Override;
 use Ruudk\GraphQLCodeGenerator\Config\Config;
 use Ruudk\GraphQLCodeGenerator\GraphQLTestCase;
-use Ruudk\GraphQLCodeGenerator\NullableConnections\Generated\Query\TestQuery;
+use Ruudk\GraphQLCodeGenerator\NullableConnections\Generated\Query\Test\TestQuery;
 
 final class NullableConnectionsTest extends GraphQLTestCase
 {

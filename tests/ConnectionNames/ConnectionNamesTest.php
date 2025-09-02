@@ -6,7 +6,7 @@ namespace Ruudk\GraphQLCodeGenerator\ConnectionNames;
 
 use Override;
 use Ruudk\GraphQLCodeGenerator\Config\Config;
-use Ruudk\GraphQLCodeGenerator\ConnectionNames\Generated\Query\TestQuery;
+use Ruudk\GraphQLCodeGenerator\ConnectionNames\Generated\Query\Test\TestQuery;
 use Ruudk\GraphQLCodeGenerator\GraphQLTestCase;
 
 final class ConnectionNamesTest extends GraphQLTestCase

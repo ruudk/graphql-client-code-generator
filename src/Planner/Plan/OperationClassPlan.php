@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Ruudk\GraphQLCodeGenerator\Planner\Plan;
 
 use GraphQL\Language\AST\TypeNode;
+use Ruudk\GraphQLCodeGenerator\Planner\Source\FileSource;
+use Ruudk\GraphQLCodeGenerator\Planner\Source\InlineSource;
 use Symfony\Component\TypeInfo\Type as SymfonyType;
 
 final readonly class OperationClassPlan
@@ -14,13 +16,12 @@ final readonly class OperationClassPlan
      */
     public function __construct(
         public string $path,
-        public string $fqcn,
+        public string $className,
+        public string $operationNamepaceName,
         public string $operationName,
         public string $operationType,
-        public string $queryClassName,
         public string $operationDefinition,
         public array $variables,
-        public string $relativeFilePath,
-        public string $source,
+        public FileSource | InlineSource $source,
     ) {}
 }

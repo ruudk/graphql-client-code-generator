@@ -24,7 +24,6 @@ final readonly class SelectionSetPlanResult
         public array $fields2,
         public SymfonyType $payloadShape,
         public SymfonyType $type,
-        public PlannerResult $plannerResult,
         public array $fragmentPayloadShapes,
         public array $fragmentTypes,
         public array $inlineFragmentRequiredFields,

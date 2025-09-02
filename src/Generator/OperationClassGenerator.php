@@ -6,8 +6,9 @@ namespace Ruudk\GraphQLCodeGenerator\Generator;
 
 use JsonException;
 use Ruudk\CodeGenerator\CodeGenerator;
-use Ruudk\GraphQLCodeGenerator\Attribute\GeneratedFrom;
+use Ruudk\GraphQLCodeGenerator\Attribute\Generated;
 use Ruudk\GraphQLCodeGenerator\Planner\Plan\OperationClassPlan;
+use Ruudk\GraphQLCodeGenerator\Planner\Source\FileSource;
 use Ruudk\GraphQLCodeGenerator\Type\TypeDumper;
 use Symfony\Component\TypeInfo\Type as SymfonyType;
 
@@ -24,35 +25,34 @@ final class OperationClassGenerator extends AbstractGenerator
             $variables[$name] = $variable['type'];
         }
 
-        $namespace = $this->fullyQualified($plan->operationType);
-        $className = $plan->queryClassName . $plan->operationType;
+        $namespace = $this->fullyQualified($plan->operationType, $plan->operationNamepaceName);
         $failedException = $this->fullyQualified(
             $plan->operationType,
-            $plan->queryClassName,
-            $plan->queryClassName . $plan->operationType . 'FailedException',
+            $plan->operationNamepaceName,
+            $plan->operationName . $plan->operationType . 'FailedException',
         );
 
         $generator = new CodeGenerator($namespace);
 
-        return $generator->dumpFile(function () use ($generator, $plan, $variables, $namespace, $failedException, $className) {
+        return $generator->dumpFile(function () use ($generator, $plan, $variables, $namespace, $failedException) {
             yield $this->dumpHeader();
 
             yield '';
 
-            if ($this->config->addGeneratedFromAttribute) {
-                yield from $generator->dumpAttribute(GeneratedFrom::class, function () use ($generator, $plan) {
-                    if (str_ends_with($plan->source, '.graphql')) {
-                        yield sprintf('source: %s', var_export($plan->source, true));
+            if ($this->config->addGeneratedAttribute) {
+                yield from $generator->dumpAttribute(Generated::class, function () use ($generator, $plan) {
+                    if ($plan->source instanceof FileSource) {
+                        yield sprintf('source: %s', var_export($plan->source->relativeFilePath, true));
 
                         return;
                     }
 
-                    yield sprintf('source: %s', $generator->dumpClassReference($plan->source));
-                    yield 'restrict: true';
+                    yield sprintf('source: %s', $generator->dumpClassReference($plan->source->class));
+                    yield 'restricted: true';
                 });
             }
 
-            yield sprintf('final readonly class %s {', $className);
+            yield sprintf('final readonly class %s {', $plan->className);
             yield $generator->indent(
                 function () use ($plan, $failedException, $namespace, $variables, $generator) {
                     yield sprintf('public const string OPERATION_NAME = %s;', var_export($plan->operationName, true));
@@ -99,12 +99,12 @@ final class OperationClassGenerator extends AbstractGenerator
                         yield $parameters;
                         yield sprintf(
                             ') : %s {',
-                            $generator->import(sprintf($namespace . '\\%s\Data', $plan->queryClassName)),
+                            $generator->import($namespace . '\\Data'),
                         );
                     } else {
                         yield sprintf(
                             'public function execute() : %s',
-                            $generator->import(sprintf($namespace . '\\%s\Data', $plan->queryClassName)),
+                            $generator->import($namespace . '\\Data'),
                         );
                         yield '{';
                     }
@@ -156,12 +156,12 @@ final class OperationClassGenerator extends AbstractGenerator
                             yield $parameters;
                             yield sprintf(
                                 ') : %s {',
-                                $generator->import(sprintf($namespace . '\\%s\Data', $plan->queryClassName)),
+                                $generator->import($namespace . '\\Data'),
                             );
                         } else {
                             yield sprintf(
                                 'public function executeOrThrow() : %s',
-                                $generator->import(sprintf($namespace . '\\%s\Data', $plan->queryClassName)),
+                                $generator->import($namespace . '\\Data'),
                             );
                             yield '{';
                         }

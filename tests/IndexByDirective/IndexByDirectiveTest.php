@@ -8,8 +8,8 @@ use Override;
 use Ruudk\GraphQLCodeGenerator\Config\Config;
 use Ruudk\GraphQLCodeGenerator\GraphQLRequestMatcher;
 use Ruudk\GraphQLCodeGenerator\GraphQLTestCase;
-use Ruudk\GraphQLCodeGenerator\IndexByDirective\Generated\Query\TestMultiFieldQuery;
-use Ruudk\GraphQLCodeGenerator\IndexByDirective\Generated\Query\TestQuery;
+use Ruudk\GraphQLCodeGenerator\IndexByDirective\Generated\Query\Test\TestQuery;
+use Ruudk\GraphQLCodeGenerator\IndexByDirective\Generated\Query\TestMultiField\TestMultiFieldQuery;
 use Symfony\Component\TypeInfo\Type;
 
 final class IndexByDirectiveTest extends GraphQLTestCase

@@ -14,7 +14,7 @@ use PHPStan\Rules\RestrictedUsage\RestrictedClassNameUsageExtension;
 use PHPStan\Rules\RestrictedUsage\RestrictedMethodUsageExtension;
 use PHPStan\Rules\RestrictedUsage\RestrictedPropertyUsageExtension;
 use PHPStan\Rules\RestrictedUsage\RestrictedUsage;
-use Ruudk\GraphQLCodeGenerator\Attribute\GeneratedFrom;
+use Ruudk\GraphQLCodeGenerator\Attribute\Generated;
 use Ruudk\GraphQLCodeGenerator\Config\ConfigException;
 use Ruudk\GraphQLCodeGenerator\Config\ConfigLoader;
 
@@ -45,12 +45,10 @@ final readonly class RestrictedUsageExtension implements RestrictedClassNameUsag
         ClassNameUsageLocation $location,
     ) : ?RestrictedUsage {
         if ($location->value === ClassNameUsageLocation::INSTANTIATION) {
-            foreach ($this->namespaces as $namespace) {
-                $pattern = sprintf('/^%s\\\(Query|Mutation)\\\Inline\w{6}(Query|Mutation)$/', preg_quote($namespace, '/'));
+            $generated = $this->getGeneratedAttribute($classReflection);
 
-                if (preg_match($pattern, $classReflection->getName()) === 1) {
-                    return null;
-                }
+            if ($generated?->restrictInstantiation === false) {
+                return null;
             }
         }
 
@@ -129,34 +127,66 @@ final readonly class RestrictedUsageExtension implements RestrictedClassNameUsag
             return null;
         }
 
-        $source = null;
-        $restrict = false;
-        foreach ($reflection->getNativeReflection()->getAttributes() as $attribute) {
-            if ($attribute->getName() !== GeneratedFrom::class) {
-                continue;
-            }
+        $generated = $this->getGeneratedAttribute($reflection);
 
-            $source = $attribute->getArguments()['source'];
-            $restrict = $attribute->getArguments()['restrict'] === true;
-
-            break;
-        }
-
-        if ( ! $restrict) {
+        if ($generated === null) {
             return null;
         }
 
-        if ( ! is_string($source)) {
+        if ( ! $generated->restricted) {
             return null;
         }
 
-        if ($sourceReflection->getName() === $source) {
+        if ($generated->source === $sourceReflection->getName()) {
             return null;
         }
 
         return RestrictedUsage::create(
-            sprintf('%s %s', $errorMessage, $source),
+            sprintf('%s %s', $errorMessage, $generated->source),
             $identifier,
         );
+    }
+
+    private function getGeneratedAttribute(ClassReflection $classReflection) : ?Generated
+    {
+        foreach ($classReflection->getAttributes() as $attribute) {
+            if ($attribute->getName() !== Generated::class) {
+                continue;
+            }
+
+            $source = $attribute->getArgumentTypes()['source']->getConstantScalarValues()[0];
+
+            if ( ! is_string($source)) {
+                continue;
+            }
+
+            $restricted = false;
+
+            if (array_key_exists('restricted', $attribute->getArgumentTypes())) {
+                $restricted = $attribute->getArgumentTypes()['restricted']->getConstantScalarValues()[0];
+
+                if ( ! is_bool($restricted)) {
+                    continue;
+                }
+            }
+
+            $restrictInstantiation = false;
+
+            if (array_key_exists('restrictInstantiation', $attribute->getArgumentTypes())) {
+                $restrictInstantiation = $attribute->getArgumentTypes()['restrictInstantiation']->getConstantScalarValues()[0] ?? false;
+
+                if ( ! is_bool($restrictInstantiation)) {
+                    continue;
+                }
+            }
+
+            return new Generated(
+                $source,
+                $restricted,
+                $restrictInstantiation,
+            );
+        }
+
+        return null;
     }
 }

@@ -90,7 +90,9 @@ final class PlanExecutor
         }
 
         foreach ($plan->operations as $operation) {
-            $files = array_merge($files, $this->generateOperation($operation));
+            foreach ($this->generateOperation($operation) as $file => $content) {
+                $files[$file] = $content;
+            }
         }
 
         $printer = new Standard();

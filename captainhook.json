@@ -7,7 +7,7 @@
         "enabled": true,
         "actions": [
             {
-                "action": "bin/graphql-client-code-generator --config=examples/config.php --config=tests/config.php"
+                "action": "bin/graphql-client-code-generator --config=examples/config.php --config=tests/config.php --ensure-sync"
             },
             {
                 "action": "composer validate --strict"

@@ -13,7 +13,9 @@ use Ruudk\GraphQLCodeGenerator\DirectiveProcessor;
 use Ruudk\GraphQLCodeGenerator\GraphQL\DocumentNodeWithSource;
 use Ruudk\GraphQLCodeGenerator\GraphQL\FragmentDefinitionNodeWithSource;
 use Ruudk\GraphQLCodeGenerator\Planner\Plan\DataClassPlan;
+use Ruudk\GraphQLCodeGenerator\Planner\PlannerResult;
 use Ruudk\GraphQLCodeGenerator\Planner\SelectionSetPlanner;
+use Ruudk\GraphQLCodeGenerator\Planner\Source\FileSource;
 use Ruudk\GraphQLCodeGenerator\TypeMapper;
 use Symfony\Component\String\Inflector\EnglishInflector;
 use Symfony\Component\TypeInfo\Type as SymfonyType;
@@ -41,7 +43,7 @@ final class SelectionSetPlannerTest extends TestCase
                 metadata { key }
             }
         ');
-        $document = DocumentNodeWithSource::create($document, '');
+        $document = DocumentNodeWithSource::create($document, new FileSource(''));
         // Collect fragments
         $fragments = [];
         $fragmentTypes = [];
@@ -83,12 +85,14 @@ final class SelectionSetPlannerTest extends TestCase
             [],
             [],
         );
+        $result = new PlannerResult();
         $planner = new SelectionSetPlanner(
             $configInstance,
             $schema,
             $typeMapper,
             new DirectiveProcessor(),
             new EnglishInflector(),
+            $result,
         );
         // Set the fragments on the planner
         foreach ($fragments as $name => $def) {
@@ -99,8 +103,8 @@ final class SelectionSetPlannerTest extends TestCase
         // Plan the ItemWithDetails fragment
         $itemFragment = $fragments['ItemWithDetails'];
         $itemType = $fragmentTypes['ItemWithDetails'];
-        $result = $planner->plan(
-            '',
+        $planner->plan(
+            new FileSource(''),
             $itemFragment->selectionSet,
             $itemType,
             '/tmp/generated/Fragment/ItemWithDetails',
@@ -110,7 +114,7 @@ final class SelectionSetPlannerTest extends TestCase
         );
         // Find the Detail class plan in the result
         $detailClassPlan = null;
-        foreach ($result->plannerResult->classes as $class) {
+        foreach ($result->classes as $class) {
             if ($class instanceof DataClassPlan && str_contains($class->path, 'ItemWithDetails/Detail.php')) {
                 $detailClassPlan = $class;
 
@@ -158,7 +162,7 @@ final class SelectionSetPlannerTest extends TestCase
                 }
             }
         ');
-        $document = DocumentNodeWithSource::create($document, '');
+        $document = DocumentNodeWithSource::create($document, new FileSource(''));
         // Collect fragments
         $fragments = [];
         $fragmentTypes = [];
@@ -200,12 +204,14 @@ final class SelectionSetPlannerTest extends TestCase
             [],
             [],
         );
+        $result = new PlannerResult();
         $planner = new SelectionSetPlanner(
             $configInstance,
             $schema,
             $typeMapper,
             new DirectiveProcessor(),
             new EnglishInflector(),
+            $result,
         );
         // Set the fragments on the planner
         foreach ($fragments as $name => $def) {
@@ -216,8 +222,8 @@ final class SelectionSetPlannerTest extends TestCase
         // Plan the PaymentDetails fragment
         $paymentFragment = $fragments['PaymentDetails'];
         $paymentType = $fragmentTypes['PaymentDetails'];
-        $result = $planner->plan(
-            '',
+        $planner->plan(
+            new FileSource(''),
             $paymentFragment->selectionSet,
             $paymentType,
             '/tmp/generated/Fragment/PaymentDetails',
@@ -227,7 +233,7 @@ final class SelectionSetPlannerTest extends TestCase
         );
         // Find the Payout class plan in the result
         $payoutClassPlan = null;
-        foreach ($result->plannerResult->classes as $class) {
+        foreach ($result->classes as $class) {
             if ($class instanceof DataClassPlan && str_contains($class->path, 'PaymentDetails/Payout.php')) {
                 $payoutClassPlan = $class;
 
