@@ -36,11 +36,11 @@ abstract class AbstractGenerator
         if ($type instanceof Type\NullableType) {
             $wrappedType = $type->getWrappedType();
 
-            if ($wrappedType instanceof Type\CollectionType || ! $wrappedType instanceof Type\WrappingTypeInterface) {
-                return sprintf('?%s', $this->dumpPHPType($wrappedType, $importer));
+            if ($wrappedType instanceof Type\UnionType) {
+                return sprintf('null|%s', $this->dumpPHPType($wrappedType, $importer));
             }
 
-            return sprintf('null|%s', $this->dumpPHPType($wrappedType, $importer));
+            return sprintf('?%s', $this->dumpPHPType($wrappedType, $importer));
         }
 
         if ($type instanceof ScalarType) {
