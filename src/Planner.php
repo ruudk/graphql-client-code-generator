@@ -76,16 +76,19 @@ use Ruudk\GraphQLCodeGenerator\Planner\PlannerResult;
 use Ruudk\GraphQLCodeGenerator\Planner\SelectionSetPlanner;
 use Ruudk\GraphQLCodeGenerator\Planner\Source\FileSource;
 use Ruudk\GraphQLCodeGenerator\Planner\Source\InlineSource;
+use Ruudk\GraphQLCodeGenerator\Type\TypeHelper;
 use Ruudk\GraphQLCodeGenerator\Validator\IndexByValidator;
 use Ruudk\GraphQLCodeGenerator\Visitor\DefinedFragmentsVisitor;
 use Ruudk\GraphQLCodeGenerator\Visitor\IndexByRemover;
 use Ruudk\GraphQLCodeGenerator\Visitor\UsedFragmentsVisitor;
+use Stringable;
 use Symfony\Component\Filesystem\Filesystem;
 use Symfony\Component\Filesystem\Path;
 use Symfony\Component\Finder\Finder;
 use Symfony\Component\String\Inflector\EnglishInflector;
 use Symfony\Component\TypeInfo\Type as SymfonyType;
 use Symfony\Component\TypeInfo\Type\BackedEnumType;
+use Symfony\Component\TypeInfo\TypeIdentifier;
 use Webmozart\Assert\Assert;
 use Webmozart\Assert\InvalidArgumentException;
 
@@ -406,12 +409,26 @@ final class Planner
                     continue;
                 }
 
+                $payloadShape = [];
+
+                // Put the ones that are not required at the end
+                $sortedFields = $type->getFields();
+                uasort($sortedFields, fn($left, $right) => (int) $right->isRequired() <=> (int) $left->isRequired());
+
                 $fields = [];
                 $required = [];
-                foreach ($type->getFields() as $fieldName => $field) {
-                    $fields[$fieldName] = $this->typeMapper->mapGraphQLTypeToPHPType($field->getType());
+                foreach ($sortedFields as $fieldName => $field) {
+                    $fieldType = $this->typeMapper->mapGraphQLTypeToPHPType($field->getType());
 
-                    if ($field->isRequired()) {
+                    $payloadShape[$fieldName] = $fieldType;
+
+                    if ($fieldType->isIdentifiedBy(TypeIdentifier::STRING)) {
+                        $fieldType = TypeHelper::rewrap($fieldType, fn() => SymfonyType::union(SymfonyType::string(), SymfonyType::object(Stringable::class)));
+                    }
+
+                    $fields[$fieldName] = $fieldType;
+
+                    if ( ! $type->isOneOf() && $field->isRequired()) {
                         $required[] = $fieldName;
                     }
                 }
@@ -423,6 +440,7 @@ final class Planner
                     $type->isOneOf(),
                     $fields,
                     $required,
+                    SymfonyType::arrayShape($payloadShape),
                 ));
 
                 continue;

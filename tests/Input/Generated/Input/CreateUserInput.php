@@ -6,15 +6,16 @@ namespace Ruudk\GraphQLCodeGenerator\Input\Generated\Input;
 
 use JsonSerializable;
 use Override;
+use Stringable;
 
 // This file was automatically generated and should not be edited.
 
 final readonly class CreateUserInput implements JsonSerializable
 {
     public function __construct(
-        public string $firstName,
+        public Stringable|string $firstName,
         public int $age,
-        public ?string $lastName = null,
+        public null|Stringable|string $lastName = null,
     ) {}
 
     /**
@@ -28,9 +29,9 @@ final readonly class CreateUserInput implements JsonSerializable
     public function jsonSerialize() : array
     {
         return [
-            'firstName' => $this->firstName,
-            'lastName' => $this->lastName,
+            'firstName' => (string) $this->firstName,
             'age' => $this->age,
+            'lastName' => $this->lastName !== null ? (string) $this->lastName : null,
         ];
     }
 }

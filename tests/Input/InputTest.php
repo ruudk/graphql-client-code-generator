@@ -6,6 +6,7 @@ namespace Ruudk\GraphQLCodeGenerator\Input;
 
 use Ruudk\GraphQLCodeGenerator\GraphQLRequestMatcher;
 use Ruudk\GraphQLCodeGenerator\GraphQLTestCase;
+use Ruudk\GraphQLCodeGenerator\Input\Fixture\Name;
 use Ruudk\GraphQLCodeGenerator\Input\Generated\Input\CreateUserInput;
 use Ruudk\GraphQLCodeGenerator\Input\Generated\Mutation\Test\TestMutation;
 
@@ -27,18 +28,18 @@ final class InputTest extends GraphQLTestCase
             'firstName' => 'Ruud',
             'input' => [
                 'firstName' => 'Ruud',
-                'lastName' => 'Kamphuis',
                 'age' => 99,
+                'lastName' => 'Kamphuis',
             ],
             'lastName' => 'Kamphuis',
         ])))->execute(
-            'Ruud',
+            new Name('Ruud'),
             new CreateUserInput(
-                'Ruud',
+                new Name('Ruud'),
                 99,
-                'Kamphuis',
+                new Name('Kamphuis'),
             ),
-            'Kamphuis',
+            new Name('Kamphuis'),
         );
 
         self::assertSame('Hello, Ruud!', $result->sayHello);
