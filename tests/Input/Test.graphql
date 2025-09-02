@@ -1,0 +1,4 @@
+mutation Test($firstName: String!, $lastName: String, $input: CreateUserInput!) {
+    sayHello(firstName: $firstName, lastName: $lastName)
+    createUser(input: $input)
+}
