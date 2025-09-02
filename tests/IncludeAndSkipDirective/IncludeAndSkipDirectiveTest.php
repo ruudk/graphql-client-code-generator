@@ -7,7 +7,7 @@ namespace Ruudk\GraphQLCodeGenerator\IncludeAndSkipDirective;
 use Override;
 use Ruudk\GraphQLCodeGenerator\Config\Config;
 use Ruudk\GraphQLCodeGenerator\GraphQLTestCase;
-use Ruudk\GraphQLCodeGenerator\IncludeAndSkipDirective\Generated\Query\TestQuery;
+use Ruudk\GraphQLCodeGenerator\IncludeAndSkipDirective\Generated\Query\Test\TestQuery;
 
 final class IncludeAndSkipDirectiveTest extends GraphQLTestCase
 {

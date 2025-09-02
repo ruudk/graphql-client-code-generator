@@ -42,7 +42,7 @@ final readonly class Config
         public bool $useEdgeNameForEdges = false,
         public bool $addNodesOnConnections = false,
         public bool $addSymfonyExcludeAttribute = false,
-        public bool $addGeneratedFromAttribute = false,
+        public bool $addGeneratedAttribute = false,
         public bool $indexByDirective = false,
         public bool $addUnknownCaseToEnums = false,
         public bool $dumpEnumIsMethods = false,
@@ -103,9 +103,9 @@ final readonly class Config
         return $this->with('addSymfonyExcludeAttribute', true);
     }
 
-    public function enableGeneratedFromAttribute() : self
+    public function enableGeneratedAttribute() : self
     {
-        return $this->with('addGeneratedFromAttribute', true);
+        return $this->with('addGeneratedAttribute', true);
     }
 
     public function enableIndexByDirective() : self

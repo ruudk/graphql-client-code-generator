@@ -10,7 +10,7 @@ use Ruudk\CodeGenerator\CodeGenerator;
 use Ruudk\GraphQLCodeGenerator\Config\Config;
 use Ruudk\GraphQLCodeGenerator\GraphQLRequestMatcher;
 use Ruudk\GraphQLCodeGenerator\GraphQLTestCase;
-use Ruudk\GraphQLCodeGenerator\Money\Generated\Query\ConvertMoneyQuery;
+use Ruudk\GraphQLCodeGenerator\Money\Generated\Query\ConvertMoney\ConvertMoneyQuery;
 use Ruudk\GraphQLCodeGenerator\Money\ValueObjects\Currency;
 use Ruudk\GraphQLCodeGenerator\Money\ValueObjects\Money;
 use Ruudk\GraphQLCodeGenerator\Type\PseudoType;

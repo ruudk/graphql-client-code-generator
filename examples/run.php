@@ -5,8 +5,8 @@ declare(strict_types=1);
 require_once __DIR__ . '/../vendor/autoload.php';
 
 use Http\Discovery\Psr18ClientDiscovery;
-use Ruudk\GraphQLCodeGenerator\Examples\Generated\Query\SearchQuery;
-use Ruudk\GraphQLCodeGenerator\Examples\Generated\Query\ViewerQuery;
+use Ruudk\GraphQLCodeGenerator\Examples\Generated\Query\Search\SearchQuery;
+use Ruudk\GraphQLCodeGenerator\Examples\Generated\Query\Viewer\ViewerQuery;
 use Ruudk\GraphQLCodeGenerator\Examples\GitHubClient;
 use Symfony\Component\Dotenv\Dotenv;
 use Webmozart\Assert\Assert;

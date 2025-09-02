@@ -9,9 +9,10 @@ use GraphQL\Type\Definition\InterfaceType;
 use GraphQL\Type\Definition\ObjectType;
 use GraphQL\Type\Definition\UnionType;
 use Ruudk\CodeGenerator\CodeGenerator;
-use Ruudk\GraphQLCodeGenerator\Attribute\GeneratedFrom;
+use Ruudk\GraphQLCodeGenerator\Attribute\Generated;
 use Ruudk\GraphQLCodeGenerator\Config\Config;
 use Ruudk\GraphQLCodeGenerator\Planner\Plan\DataClassPlan;
+use Ruudk\GraphQLCodeGenerator\Planner\Source\FileSource;
 use Ruudk\GraphQLCodeGenerator\Type\FragmentObjectType;
 use Ruudk\GraphQLCodeGenerator\Type\IndexByCollectionType;
 use Ruudk\GraphQLCodeGenerator\Type\StringLiteralType;
@@ -83,16 +84,17 @@ final class DataClassGenerator extends AbstractGenerator
                 yield from $generator->dumpAttribute('Symfony\Component\DependencyInjection\Attribute\Exclude');
             }
 
-            if ($this->config->addGeneratedFromAttribute) {
-                yield from $generator->dumpAttribute(GeneratedFrom::class, function () use ($generator, $plan) {
-                    if (str_ends_with($plan->source, '.graphql')) {
-                        yield sprintf('source: %s', var_export($plan->source, true));
+            if ($this->config->addGeneratedAttribute) {
+                yield from $generator->dumpAttribute(Generated::class, function () use ($generator, $plan) {
+                    if ($plan->source instanceof FileSource) {
+                        yield sprintf('source: %s', var_export($plan->source->relativeFilePath, true));
 
                         return;
                     }
 
-                    yield sprintf('source: %s', $generator->dumpClassReference($plan->source));
-                    yield 'restrict: true';
+                    yield sprintf('source: %s', $generator->dumpClassReference($plan->source->class));
+                    yield 'restricted: true';
+                    yield 'restrictInstantiation: true';
                 });
             }
 

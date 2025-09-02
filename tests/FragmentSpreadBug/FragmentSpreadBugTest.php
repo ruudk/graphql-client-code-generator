@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Ruudk\GraphQLCodeGenerator\FragmentSpreadBug;
 
-use Ruudk\GraphQLCodeGenerator\FragmentSpreadBug\Generated\Query\GetTransactionDetailsQuery;
+use Ruudk\GraphQLCodeGenerator\FragmentSpreadBug\Generated\Query\GetTransactionDetails\GetTransactionDetailsQuery;
 use Ruudk\GraphQLCodeGenerator\GraphQLRequestMatcher;
 use Ruudk\GraphQLCodeGenerator\GraphQLTestCase;
 

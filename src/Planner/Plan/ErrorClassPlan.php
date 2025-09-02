@@ -8,7 +8,6 @@ final readonly class ErrorClassPlan
 {
     public function __construct(
         public string $path,
-        public string $operationType,
-        public string $operationName,
+        public string $namespace,
     ) {}
 }
