@@ -19,12 +19,6 @@ final class OperationClassGenerator extends AbstractGenerator
      */
     public function generate(OperationClassPlan $plan) : string
     {
-        // Extract just the types from the variables structure
-        $variables = [];
-        foreach ($plan->variables as $name => $variable) {
-            $variables[$name] = $variable['type'];
-        }
-
         $namespace = $this->fullyQualified($plan->operationType, $plan->operationNamepaceName);
         $failedException = $this->fullyQualified(
             $plan->operationType,
@@ -34,7 +28,7 @@ final class OperationClassGenerator extends AbstractGenerator
 
         $generator = new CodeGenerator($namespace);
 
-        return $generator->dumpFile(function () use ($generator, $plan, $variables, $namespace, $failedException) {
+        return $generator->dumpFile(function () use ($generator, $plan, $namespace, $failedException) {
             yield $this->dumpHeader();
 
             yield '';
@@ -54,7 +48,7 @@ final class OperationClassGenerator extends AbstractGenerator
 
             yield sprintf('final readonly class %s {', $plan->className);
             yield $generator->indent(
-                function () use ($plan, $failedException, $namespace, $variables, $generator) {
+                function () use ($plan, $failedException, $namespace, $generator) {
                     yield sprintf('public const string OPERATION_NAME = %s;', var_export($plan->operationName, true));
                     yield sprintf(
                         'public const string OPERATION_DEFINITION = %s;',
@@ -68,8 +62,8 @@ final class OperationClassGenerator extends AbstractGenerator
                     ]);
                     yield ') {}';
 
-                    $parameters = $generator->indent(function () use ($generator, $variables) {
-                        foreach ($variables as $name => $phpType) {
+                    $parameters = $generator->indent(function () use ($plan, $generator) {
+                        foreach ($plan->variables as $name => $phpType) {
                             yield sprintf(
                                 '%s $%s%s,',
                                 $this->dumpPHPType($phpType, $generator->import(...)),
@@ -80,8 +74,8 @@ final class OperationClassGenerator extends AbstractGenerator
                     });
 
                     yield '';
-                    yield from $generator->docComment(function () use ($generator, $variables) {
-                        foreach ($variables as $name => $phpType) {
+                    yield from $generator->docComment(function () use ($plan, $generator) {
+                        foreach ($plan->variables as $name => $phpType) {
                             if ( ! $phpType instanceof SymfonyType\CollectionType) {
                                 continue;
                             }
@@ -94,7 +88,7 @@ final class OperationClassGenerator extends AbstractGenerator
                         }
                     });
 
-                    if ($variables !== []) {
+                    if ($plan->variables !== []) {
                         yield 'public function execute(';
                         yield $parameters;
                         yield sprintf(
@@ -109,13 +103,13 @@ final class OperationClassGenerator extends AbstractGenerator
                         yield '{';
                     }
 
-                    yield $generator->indent(function () use ($generator, $variables) {
+                    yield $generator->indent(function () use ($plan, $generator) {
                         yield '$data = $this->client->graphql(';
-                        yield $generator->indent(function () use ($generator, $variables) {
+                        yield $generator->indent(function () use ($plan, $generator) {
                             yield 'self::OPERATION_DEFINITION,';
                             yield '[';
-                            yield $generator->indent(function () use ($variables) {
-                                foreach ($variables as $name => $phpType) {
+                            yield $generator->indent(function () use ($plan) {
+                                foreach ($plan->variables as $name => $phpType) {
                                     yield sprintf("'%s' => \$%s,", $name, $name);
                                 }
                             });
@@ -135,8 +129,8 @@ final class OperationClassGenerator extends AbstractGenerator
 
                     if ($this->config->dumpOrThrows) {
                         yield '';
-                        yield from $generator->docComment(function () use ($failedException, $generator, $variables) {
-                            foreach ($variables as $name => $phpType) {
+                        yield from $generator->docComment(function () use ($plan, $failedException, $generator) {
+                            foreach ($plan->variables as $name => $phpType) {
                                 if ( ! $phpType instanceof SymfonyType\CollectionType) {
                                     continue;
                                 }
@@ -151,7 +145,7 @@ final class OperationClassGenerator extends AbstractGenerator
                             yield sprintf('@throws %s', $generator->import($failedException));
                         });
 
-                        if ($variables !== []) {
+                        if ($plan->variables !== []) {
                             yield 'public function executeOrThrow(';
                             yield $parameters;
                             yield sprintf(
@@ -166,10 +160,10 @@ final class OperationClassGenerator extends AbstractGenerator
                             yield '{';
                         }
 
-                        yield $generator->indent(function () use ($failedException, $generator, $variables) {
+                        yield $generator->indent(function () use ($plan, $failedException, $generator) {
                             yield '$data = $this->execute(';
-                            yield $generator->indent(function () use ($variables) {
-                                foreach ($variables as $name => $phpType) {
+                            yield $generator->indent(function () use ($plan) {
+                                foreach ($plan->variables as $name => $phpType) {
                                     yield sprintf('$%s,', $name);
                                 }
                             });
