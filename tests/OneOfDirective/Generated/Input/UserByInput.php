@@ -12,8 +12,8 @@ use Override;
 final readonly class UserByInput implements JsonSerializable
 {
     private function __construct(
-        public ?string $id = null,
-        public ?string $email = null,
+        public ?string $id,
+        public ?string $email,
     ) {}
 
     public static function createId(string $id) : self

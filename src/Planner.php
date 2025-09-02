@@ -407,20 +407,22 @@ final class Planner
                 }
 
                 $fields = [];
+                $required = [];
                 foreach ($type->getFields() as $fieldName => $field) {
-                    $fields[$fieldName] = [
-                        'type' => $this->typeMapper->mapGraphQLTypeToPHPType($field->getType()),
-                        'required' => $field->isRequired(),
-                        'description' => $field->description,
-                    ];
+                    $fields[$fieldName] = $this->typeMapper->mapGraphQLTypeToPHPType($field->getType());
+
+                    if ($field->isRequired()) {
+                        $required[] = $fieldName;
+                    }
                 }
 
                 $result->addClass(new InputClassPlan(
-                    path: $this->config->outputDir . '/Input/' . $typeName . '.php',
-                    typeName: $typeName,
-                    description: $type->description(),
-                    isOneOf: $type->isOneOf(),
-                    fields: $fields,
+                    $this->config->outputDir . '/Input/' . $typeName . '.php',
+                    $typeName,
+                    $type->description(),
+                    $type->isOneOf(),
+                    $fields,
+                    $required,
                 ));
 
                 continue;

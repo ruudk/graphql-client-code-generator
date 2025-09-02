@@ -1,0 +1,13 @@
+type Mutation {
+    sayHello(firstName: String!, lastName: String): String!
+    createUser(input: CreateUserInput!): Boolean!
+}
+
+input CreateUserInput {
+    "First name to use for the new user"
+    firstName: String!
+    lastName: String
+
+    "The age of the user"
+    age: Int!
+}

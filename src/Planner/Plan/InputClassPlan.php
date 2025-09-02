@@ -9,7 +9,8 @@ use Symfony\Component\TypeInfo\Type as SymfonyType;
 final readonly class InputClassPlan
 {
     /**
-     * @param array<string, array{type: SymfonyType, required: bool, description: ?string}> $fields
+     * @param array<string, SymfonyType> $fields
+     * @param list<string> $required
      */
     public function __construct(
         public string $path,
@@ -17,5 +18,6 @@ final readonly class InputClassPlan
         public ?string $description,
         public bool $isOneOf,
         public array $fields,
+        public array $required,
     ) {}
 }
