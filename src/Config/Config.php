@@ -48,6 +48,7 @@ final readonly class Config
         public bool $dumpEnumIsMethods = false,
         public ?object $introspectionClient = null,
         public array $inlineProcessingDirectories = [],
+        public bool $formatOperationFiles = false,
     ) {}
 
     public static function create(
@@ -121,6 +122,11 @@ final readonly class Config
     public function enableDumpEnumIsMethods() : self
     {
         return $this->with('dumpEnumIsMethods', true);
+    }
+
+    public function enableFormatOperationFiles() : self
+    {
+        return $this->with('formatOperationFiles', true);
     }
 
     public function withScalar(string $name, Type $type, ?Type $payloadType = null) : self

@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 namespace Ruudk\GraphQLCodeGenerator\Generator;
 
-use GraphQL\Language\Printer;
 use GraphQL\Type\Definition\InterfaceType;
 use GraphQL\Type\Definition\ObjectType;
 use GraphQL\Type\Definition\UnionType;
 use Ruudk\CodeGenerator\CodeGenerator;
 use Ruudk\GraphQLCodeGenerator\Attribute\Generated;
 use Ruudk\GraphQLCodeGenerator\Config\Config;
+use Ruudk\GraphQLCodeGenerator\GraphQL\AST\Printer;
 use Ruudk\GraphQLCodeGenerator\Planner\Plan\DataClassPlan;
 use Ruudk\GraphQLCodeGenerator\Planner\Source\FileSource;
 use Ruudk\GraphQLCodeGenerator\Type\FragmentObjectType;

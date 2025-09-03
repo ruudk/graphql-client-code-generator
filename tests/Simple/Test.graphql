@@ -1,9 +1,9 @@
 query Test {
-    viewer {
-        login
-        projects {
-            name
-            description
-        }
+  viewer {
+    login
+    projects {
+      name
+      description
     }
+  }
 }
