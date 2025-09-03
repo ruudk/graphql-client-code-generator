@@ -4,14 +4,12 @@ declare(strict_types=1);
 
 namespace Ruudk\GraphQLCodeGenerator\PHP\Visitor;
 
+use InvalidArgumentException;
 use Override;
-use PhpParser\NameContext;
 use PhpParser\Node;
-use PhpParser\Node\Name;
 use PhpParser\Node\Scalar\String_;
 use PhpParser\NodeVisitorAbstract;
 use Ruudk\GraphQLCodeGenerator\Attribute\GeneratedGraphQLClient;
-use Webmozart\Assert\InvalidArgumentException;
 
 final class OperationFinder extends NodeVisitorAbstract
 {
@@ -26,17 +24,16 @@ final class OperationFinder extends NodeVisitorAbstract
      */
     public function __construct(
         private array $constants,
-        private NameContext $context,
     ) {}
 
     /**
-     * @throws \InvalidArgumentException
+     * @throws InvalidArgumentException
      */
     #[Override]
     public function enterNode(Node $node) : null
     {
         if ($node instanceof Node\Stmt\Class_ && $node->name !== null) {
-            $this->className = Name::concat($this->context->getNamespace(), (string) $node->name)?->toString();
+            $this->className = $node->namespacedName?->toString();
 
             return null;
         }
@@ -56,7 +53,7 @@ final class OperationFinder extends NodeVisitorAbstract
 
             foreach ($param->attrGroups as $attrGroup) {
                 foreach ($attrGroup->attrs as $attr) {
-                    if ($this->context->getResolvedClassName($attr->name)->toString() !== GeneratedGraphQLClient::class) {
+                    if ($attr->name->toString() !== GeneratedGraphQLClient::class) {
                         continue;
                     }
 
