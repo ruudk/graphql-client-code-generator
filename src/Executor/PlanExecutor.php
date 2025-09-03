@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Ruudk\GraphQLCodeGenerator\Executor;
 
+use GraphQL\Error\SyntaxError;
+use GraphQL\Language\Parser as GraphQLParser;
 use JsonException;
 use LogicException;
 use PhpParser\NodeTraverser;
@@ -12,6 +14,7 @@ use PhpParser\NodeVisitor\NodeConnectingVisitor;
 use PhpParser\Parser;
 use PhpParser\ParserFactory;
 use PhpParser\PrettyPrinter\Standard;
+use RuntimeException;
 use Ruudk\GraphQLCodeGenerator\Config\Config;
 use Ruudk\GraphQLCodeGenerator\Generator\DataClassGenerator;
 use Ruudk\GraphQLCodeGenerator\Generator\EnumTypeGenerator;
@@ -20,6 +23,7 @@ use Ruudk\GraphQLCodeGenerator\Generator\ExceptionClassGenerator;
 use Ruudk\GraphQLCodeGenerator\Generator\InputTypeGenerator;
 use Ruudk\GraphQLCodeGenerator\Generator\NodeNotFoundExceptionGenerator;
 use Ruudk\GraphQLCodeGenerator\Generator\OperationClassGenerator;
+use Ruudk\GraphQLCodeGenerator\GraphQL\AST\Printer;
 use Ruudk\GraphQLCodeGenerator\PHP\Visitor\OperationInjector;
 use Ruudk\GraphQLCodeGenerator\PHP\Visitor\UseStatementInserter;
 use Ruudk\GraphQLCodeGenerator\Planner\OperationPlan;
@@ -36,6 +40,7 @@ use Ruudk\GraphQLCodeGenerator\TypeInitializer\NullableTypeInitializer;
 use Ruudk\GraphQLCodeGenerator\TypeInitializer\ObjectTypeInitializer;
 use Symfony\Component\Filesystem\Exception\IOException;
 use Symfony\Component\Filesystem\Filesystem;
+use Symfony\Component\Finder\Finder;
 use Webmozart\Assert\Assert;
 
 final class PlanExecutor
@@ -51,7 +56,7 @@ final class PlanExecutor
     private Filesystem $filesystem;
 
     public function __construct(
-        Config $config,
+        private Config $config,
     ) {
         // Initialize type initializer
         $typeInitializer = new DelegatingTypeInitializer(
@@ -76,9 +81,11 @@ final class PlanExecutor
     }
 
     /**
-     * @throws LogicException
      * @throws JsonException
      * @throws IOException
+     * @throws SyntaxError
+     * @throws RuntimeException
+     * @throws LogicException
      * @return array<string, string>
      */
     public function execute(PlannerResult $plan) : array
@@ -92,6 +99,19 @@ final class PlanExecutor
         foreach ($plan->operations as $operation) {
             foreach ($this->generateOperation($operation) as $file => $content) {
                 $files[$file] = $content;
+            }
+        }
+
+        if ($this->config->formatOperationFiles) {
+            $finder = Finder::create()->files()
+                ->in($this->config->queriesDir)
+                ->name('*.graphql')
+                ->sortByName();
+
+            foreach ($finder as $file) {
+                $document = GraphQLParser::parse($file->getContents());
+
+                $this->filesystem->dumpFile($file->getPathname(), Printer::doPrint($document));
             }
         }
 

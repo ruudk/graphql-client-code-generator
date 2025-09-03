@@ -4,11 +4,20 @@ declare(strict_types=1);
 
 namespace Ruudk\GraphQLCodeGenerator\Simple;
 
+use Override;
+use Ruudk\GraphQLCodeGenerator\Config\Config;
 use Ruudk\GraphQLCodeGenerator\GraphQLTestCase;
 use Ruudk\GraphQLCodeGenerator\Simple\Generated\Query\Test\TestQuery;
 
 final class SimpleTest extends GraphQLTestCase
 {
+    #[Override]
+    public function getConfig() : Config
+    {
+        return parent::getConfig()
+            ->enableFormatOperationFiles();
+    }
+
     public function testGenerate() : void
     {
         $this->assertActualMatchesExpected();
