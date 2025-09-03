@@ -264,15 +264,9 @@ final class Planner
                 Assert::notNull($stmts, 'Failed to parse PHP file');
 
                 $classConstants = new ClassConstantFinder();
-                $nameResolver = new NameResolver(options: [
-                    'replaceNodes' => false,
-                ]);
-                new NodeTraverser($nameResolver, $classConstants)->traverse($stmts);
+                $stmts = new NodeTraverser(new NameResolver(), $classConstants)->traverse($stmts);
 
-                $operationFinder = new OperationFinder(
-                    $classConstants->constants,
-                    $nameResolver->getNameContext(),
-                );
+                $operationFinder = new OperationFinder($classConstants->constants);
                 new NodeTraverser($operationFinder)->traverse($stmts);
 
                 foreach ($operationFinder->operations as $className => $methods) {
