@@ -1,0 +1,15 @@
+{% types {
+    project: '\\Ruudk\\GraphQLCodeGenerator\\Twig\\Generated\\Fragment\\AdminProjectOptions',
+} %}
+
+{% graphql %}
+fragment AdminProjectOptions on Project {
+    state
+}
+{% endgraphql %}
+
+{% if project.state.isActive %}
+    <a href="#archive">Archive</a>
+{% else %}
+    <a href="#unarchive">Unarchive</a>
+{% endif %}
