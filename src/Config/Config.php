@@ -21,6 +21,7 @@ final readonly class Config
      * @param list<TypeInitializer\TypeInitializer> $typeInitializers
      * @param null|object|(Closure(): object) $introspectionClient
      * @param list<string> $inlineProcessingDirectories
+     * @param list<string> $twigProcessingDirectories
      */
     private function __construct(
         public Schema | string $schema,
@@ -48,6 +49,7 @@ final readonly class Config
         public bool $dumpEnumIsMethods = false,
         public ?object $introspectionClient = null,
         public array $inlineProcessingDirectories = [],
+        public array $twigProcessingDirectories = [],
         public bool $formatOperationFiles = false,
     ) {}
 
@@ -185,6 +187,11 @@ final readonly class Config
     public function withInlineProcessingDirectory(string $directory, string ...$directories) : self
     {
         return $this->with('inlineProcessingDirectories', [...$this->inlineProcessingDirectories, $directory, ...$directories]);
+    }
+
+    public function withTwigProcessingDirectory(string $directory, string ...$directories) : self
+    {
+        return $this->with('twigProcessingDirectories', [...$this->twigProcessingDirectories, $directory, ...$directories]);
     }
 
     /**

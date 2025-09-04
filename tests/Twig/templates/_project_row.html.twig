@@ -1,0 +1,19 @@
+{% types {
+    project: '\\Ruudk\\GraphQLCodeGenerator\\Twig\\Generated\\Fragment\\AdminProjectRow',
+} %}
+
+{% graphql %}
+fragment AdminProjectRow on Project {
+    id
+    name
+    description
+    ...AdminProjectOptions
+}
+{% endgraphql %}
+
+<li>
+    #{{ project.id }} - {{ project.name }}<br>
+    {{ project.description }}
+    <hr>
+    {{ include('_project_options.html.twig', {project: project.adminProjectOptions}) }}
+</li>

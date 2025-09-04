@@ -50,6 +50,9 @@ jobs:
       - name: Run PHP CS Fixer
         run: vendor/bin/php-cs-fixer check --diff
 
+      - name: Run Twig CS Fixer
+        run: vendor/bin/twig-cs-fixer lint
+
       - name: Run PHPStan
         run: vendor/bin/phpstan analyse
 

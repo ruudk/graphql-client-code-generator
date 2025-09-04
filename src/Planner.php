@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 namespace Ruudk\GraphQLCodeGenerator;
 
+use Composer\InstalledVersions;
 use Exception;
 use GraphQL\Error\InvariantViolation;
 use GraphQL\Language\AST\DocumentNode;
+use GraphQL\Language\AST\FragmentDefinitionNode;
 use GraphQL\Language\AST\NodeList;
 use GraphQL\Language\AST\OperationDefinitionNode;
 use GraphQL\Language\Parser;
@@ -76,6 +78,8 @@ use Ruudk\GraphQLCodeGenerator\Planner\PlannerResult;
 use Ruudk\GraphQLCodeGenerator\Planner\SelectionSetPlanner;
 use Ruudk\GraphQLCodeGenerator\Planner\Source\FileSource;
 use Ruudk\GraphQLCodeGenerator\Planner\Source\InlineSource;
+use Ruudk\GraphQLCodeGenerator\Twig\GraphQLExtension;
+use Ruudk\GraphQLCodeGenerator\Twig\GraphQLNodeFinder;
 use Ruudk\GraphQLCodeGenerator\Type\TypeHelper;
 use Ruudk\GraphQLCodeGenerator\Validator\IndexByValidator;
 use Ruudk\GraphQLCodeGenerator\Visitor\DefinedFragmentsVisitor;
@@ -89,6 +93,8 @@ use Symfony\Component\String\Inflector\EnglishInflector;
 use Symfony\Component\TypeInfo\Type as SymfonyType;
 use Symfony\Component\TypeInfo\Type\BackedEnumType;
 use Symfony\Component\TypeInfo\TypeIdentifier;
+use Twig\Environment;
+use Twig\Loader\ArrayLoader;
 use Webmozart\Assert\Assert;
 use Webmozart\Assert\InvalidArgumentException;
 
@@ -287,6 +293,8 @@ final class Planner
 
                             Assert::notNull($definition->name, 'Expected operation to have a name');
 
+                            $usedTypesCollector->analyze($document);
+
                             $operationType = $definition->operation;
                             $operationName = $definition->name->value;
 
@@ -308,6 +316,36 @@ final class Planner
                             );
                         }
                     }
+                }
+            }
+        }
+
+        if ($this->config->twigProcessingDirectories !== []) {
+            Assert::true(InstalledVersions::isInstalled('twig/twig'), 'Twig is required to use twigProcessingDirectories');
+
+            $twig = new Environment(new ArrayLoader([]));
+            $twig->addExtension(new GraphQLExtension());
+            $nodeFinder = new GraphQLNodeFinder($twig);
+
+            $finder = Finder::create()
+                ->files()
+                ->in($this->config->inlineProcessingDirectories)
+                ->name('*.twig')
+                ->contains('{% graphql %}');
+
+            foreach ($finder as $file) {
+                foreach ($nodeFinder->find($file->getContents()) as $operation) {
+                    $document = Parser::parse($operation);
+
+                    Assert::minCount($document->definitions, 1);
+                    Assert::allIsInstanceOf($document->definitions, FragmentDefinitionNode::class, 'Only fragment definitions are supported in Twig templates');
+
+                    $usedTypesCollector->analyze($document);
+
+                    $operations[$file->getPathname()][] = DocumentNodeWithSource::create(
+                        $document,
+                        new FileSource(Path::makeRelative($file->getPathname(), $this->config->projectDir)),
+                    );
                 }
             }
         }
