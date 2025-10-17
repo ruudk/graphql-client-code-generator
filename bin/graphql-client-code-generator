@@ -32,6 +32,10 @@ if ( ! $autoloaderFound) {
 $input = new ArgvInput();
 
 if ($input->getFirstArgument() === null) {
+    /**
+     * @var list<string> $argv
+     */
+    $argv = $_SERVER['argv'] ?? [__FILE__];
     $input = new ArgvInput([$argv[0], 'generate', ...array_slice($argv, 1)]);
 }
 
