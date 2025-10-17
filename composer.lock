@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "e357fd1bba34de529f2ac8f9c8f89a9c",
+    "content-hash": "bc708324c8ddb6a5526641cff6068e1e",
     "packages": [
         {
             "name": "nikic/php-parser",
@@ -5515,6 +5515,58 @@
                 }
             ],
             "time": "2024-06-11T12:45:25+00:00"
+        },
+        {
+            "name": "ruudk/readme-examples-sync-hook",
+            "version": "1.1.1",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/ruudk/readme-examples-sync-hook.git",
+                "reference": "b2c935a2a6efe37faa96d982207288d345fbfe5e"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/ruudk/readme-examples-sync-hook/zipball/b2c935a2a6efe37faa96d982207288d345fbfe5e",
+                "reference": "b2c935a2a6efe37faa96d982207288d345fbfe5e",
+                "shasum": ""
+            },
+            "require": {
+                "php": "^8.4"
+            },
+            "require-dev": {
+                "captainhook/captainhook": "^5.25",
+                "ergebnis/composer-normalize": "^2.48",
+                "friendsofphp/php-cs-fixer": "^3.85",
+                "phpstan/extension-installer": "^1.4",
+                "phpstan/phpstan": "^2.1",
+                "ticketswap/php-cs-fixer-config": "^1.0",
+                "ticketswap/phpstan-error-formatter": "^1.1"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "Ruudk\\ReadmeExamplesSyncHook\\": "src/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Ruud Kamphuis",
+                    "email": "ruudk@users.noreply.github.com"
+                }
+            ],
+            "description": "Automatically sync PHP code examples with readme file",
+            "keywords": [
+                "dev"
+            ],
+            "support": {
+                "issues": "https://github.com/ruudk/readme-examples-sync-hook/issues",
+                "source": "https://github.com/ruudk/readme-examples-sync-hook/tree/1.1.1"
+            },
+            "time": "2025-10-17T07:34:33+00:00"
         },
         {
             "name": "sebastian/cli-parser",

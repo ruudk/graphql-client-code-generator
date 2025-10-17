@@ -10,6 +10,9 @@
                 "action": "bin/graphql-client-code-generator --config=examples/config.php --config=tests/config.php --ensure-sync"
             },
             {
+                "action": "\\Ruudk\\ReadmeExamplesSyncHook\\SyncReadmeExamples"
+            },
+            {
                 "action": "composer validate --strict"
             },
             {
