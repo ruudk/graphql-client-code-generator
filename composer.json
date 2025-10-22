@@ -18,7 +18,6 @@
         "webonyx/graphql-php": "^15.24.0"
     },
     "require-dev": {
-        "captainhook/captainhook-phar": "^5.25",
         "ergebnis/composer-normalize": "^2.47",
         "friendsofphp/php-cs-fixer": "^3.85",
         "guzzlehttp/psr7": "^2.7",
@@ -34,7 +33,7 @@
         "phpunit/phpunit": "^12.3",
         "psr/http-client": "^1.0",
         "psr/http-message": "^2.0",
-        "ruudk/readme-examples-sync-hook": "^1.0",
+        "ruudk/readme-examples-sync-hook": "^2.0",
         "shipmonk/composer-dependency-analyser": "^1.8",
         "shipmonk/dead-code-detector": "^0.13.2",
         "staabm/phpstan-todo-by": "^0.3.0",
@@ -65,7 +64,6 @@
     ],
     "config": {
         "allow-plugins": {
-            "captainhook/captainhook-phar": true,
             "ergebnis/composer-normalize": true,
             "php-http/discovery": true,
             "phpstan/extension-installer": true
@@ -77,5 +75,10 @@
                 "extension.neon"
             ]
         }
+    },
+    "scripts": {
+        "post-install-cmd": [
+            "command -v lefthook >/dev/null 2>&1 && lefthook install || true"
+        ]
     }
 }

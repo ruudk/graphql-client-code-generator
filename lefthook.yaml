@@ -1,0 +1,51 @@
+pre-commit:
+  parallel: false
+  commands:
+    ensure-sync:
+      glob: "*.php"
+      run: bin/graphql-client-code-generator --config=examples/config.php --config=tests/config.php --ensure-sync
+
+    sync-readme-examples:
+      glob:
+        - "*.php"
+        - "*.md"
+      run: vendor/bin/readme-examples-sync
+      stage_fixed: true
+
+    composer-validate:
+      glob:
+        - "composer.json"
+        - "composer.lock"
+      run: composer validate --strict
+
+    composer-normalize:
+      glob: "composer.json"
+      run: composer normalize --diff
+      stage_fixed: true
+
+    composer-dependency-analyser:
+      glob:
+        - "*.php"
+        - "composer.json"
+        - "composer.lock"
+      run: vendor/bin/composer-dependency-analyser
+
+    php-cs-fixer:
+      glob: "*.php"
+      run: vendor/bin/php-cs-fixer fix --config .php-cs-fixer.php -- {staged_files}
+      stage_fixed: true
+
+    twig-cs-fixer:
+      glob: "*.twig"
+      run: vendor/bin/twig-cs-fixer fix -- {staged_files}
+      stage_fixed: true
+
+    phpstan:
+      glob:
+      - "*.php"
+      - "*.neon"
+      run: vendor/bin/phpstan
+
+    phpunit:
+      glob: "*.php"
+      run: vendor/bin/phpunit
