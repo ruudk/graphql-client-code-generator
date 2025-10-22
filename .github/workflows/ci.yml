@@ -44,6 +44,11 @@ jobs:
       - name: Check composer.json normalization
         run: composer normalize --diff --dry-run
 
+      - name: Check README examples are in sync
+        run: |
+          vendor/bin/readme-examples-sync
+          git diff --exit-code README.md || (echo "README.md is out of sync with example files. Run 'vendor/bin/readme-examples-sync' and commit the changes." && exit 1)
+
       - name: Check dependencies
         run: vendor/bin/composer-dependency-analyser
 
