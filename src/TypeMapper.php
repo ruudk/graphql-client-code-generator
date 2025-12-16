@@ -93,7 +93,7 @@ final readonly class TypeMapper
         }
 
         if ($type instanceof ListOfType) {
-            return SymfonyType::list($this->mapGraphQLTypeToPHPType($type->getWrappedType(), $builtInOnly));
+            return SymfonyType::list($this->mapGraphQLTypeToPHPType($type->getWrappedType(), null, $builtInOnly));
         }
 
         if ($type instanceof ScalarType) {

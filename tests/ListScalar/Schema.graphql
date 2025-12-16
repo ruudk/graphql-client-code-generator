@@ -1,0 +1,11 @@
+scalar Currency
+
+type Query {
+    supportedCurrencies: [Currency!]!
+    wallet: Wallet!
+}
+
+type Wallet {
+    name: String!
+    currencies: [Currency!]!
+}
