@@ -7,10 +7,11 @@ on:
     branches: [ main ]
 
 jobs:
-  test:
+  tests:
     runs-on: ubuntu-latest
 
     strategy:
+      fail-fast: false
       matrix:
         php-version:
             - '8.4'
@@ -29,13 +30,32 @@ jobs:
         with:
           php-version: ${{ matrix.php-version }}
 
+      - name: Install dependencies
+        uses: "ramsey/composer-install@v3"
+        with:
+          dependency-versions: ${{ matrix.dependency-versions }}
+
+      - name: Run tests
+        run: vendor/bin/phpunit
+
+  checks:
+    runs-on: ubuntu-latest
+
+    name: Checks
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.5'
+
       - name: Validate composer.json and composer.lock
         run: composer validate --strict
 
       - name: Install dependencies
         uses: "ramsey/composer-install@v3"
-        with:
-          dependency-versions: ${{ matrix.dependency-versions }}
 
       - name: Check composer.json normalization
         run: composer normalize --diff --dry-run
@@ -56,6 +76,3 @@ jobs:
 
       - name: Run PHPStan
         run: vendor/bin/phpstan analyse
-
-      - name: Run tests
-        run: vendor/bin/phpunit
