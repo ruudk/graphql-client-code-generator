@@ -78,10 +78,10 @@ jobs:
         run: vendor/bin/composer-dependency-analyser
 
       - name: Run PHP CS Fixer
-        run: vendor/bin/php-cs-fixer check --diff
+        run: vendor/bin/php-cs-fixer check --diff --ansi
 
       - name: Run Twig CS Fixer
-        run: vendor/bin/twig-cs-fixer lint
+        run: vendor/bin/twig-cs-fixer lint --ansi
 
       - name: Run PHPStan
-        run: vendor/bin/phpstan analyse
+        run: vendor/bin/phpstan analyse --ansi
