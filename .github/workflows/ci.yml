@@ -30,6 +30,12 @@ jobs:
         with:
           php-version: ${{ matrix.php-version }}
 
+      - name: Setup problem matchers for PHP
+        run: echo "::add-matcher::${{ runner.tool_cache }}/php.json"
+
+      - name: Setup problem matchers for PHPUnit
+        run: echo "::add-matcher::${{ runner.tool_cache }}/phpunit.json"
+
       - name: Install dependencies
         uses: "ramsey/composer-install@v3"
         with:
@@ -50,6 +56,9 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: '8.5'
+
+      - name: Setup problem matchers for PHP
+        run: echo "::add-matcher::${{ runner.tool_cache }}/php.json"
 
       - name: Validate composer.json and composer.lock
         run: composer validate --strict
