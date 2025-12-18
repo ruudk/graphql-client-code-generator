@@ -7,16 +7,20 @@ on:
     branches: [ main ]
 
 jobs:
-  test:
+  tests:
     runs-on: ubuntu-latest
 
     strategy:
+      fail-fast: false
       matrix:
         php-version:
             - '8.4'
             - '8.5'
+        dependency-versions:
+            - 'lowest'
+            - 'highest'
 
-    name: PHP ${{ matrix.php-version }}
+    name: PHP ${{ matrix.php-version }} ${{ matrix.dependency-versions }}
 
     steps:
       - uses: actions/checkout@v4
@@ -26,20 +30,41 @@ jobs:
         with:
           php-version: ${{ matrix.php-version }}
 
+      - name: Setup problem matchers for PHP
+        run: echo "::add-matcher::${{ runner.tool_cache }}/php.json"
+
+      - name: Setup problem matchers for PHPUnit
+        run: echo "::add-matcher::${{ runner.tool_cache }}/phpunit.json"
+
+      - name: Install dependencies
+        uses: "ramsey/composer-install@v3"
+        with:
+          dependency-versions: ${{ matrix.dependency-versions }}
+
+      - name: Run tests
+        run: vendor/bin/phpunit
+
+  checks:
+    runs-on: ubuntu-latest
+
+    name: Checks
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.5'
+
+      - name: Setup problem matchers for PHP
+        run: echo "::add-matcher::${{ runner.tool_cache }}/php.json"
+
       - name: Validate composer.json and composer.lock
         run: composer validate --strict
 
-      - name: Cache Composer packages
-        id: composer-cache
-        uses: actions/cache@v4
-        with:
-          path: vendor
-          key: ${{ runner.os }}-php-${{ matrix.php-version }}-${{ hashFiles('**/composer.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-php-${{ matrix.php-version }}-
-
       - name: Install dependencies
-        run: composer install --prefer-dist --no-progress
+        uses: "ramsey/composer-install@v3"
 
       - name: Check composer.json normalization
         run: composer normalize --diff --dry-run
@@ -53,13 +78,10 @@ jobs:
         run: vendor/bin/composer-dependency-analyser
 
       - name: Run PHP CS Fixer
-        run: vendor/bin/php-cs-fixer check --diff
+        run: vendor/bin/php-cs-fixer check --diff --ansi
 
       - name: Run Twig CS Fixer
-        run: vendor/bin/twig-cs-fixer lint
+        run: vendor/bin/twig-cs-fixer lint --ansi
 
       - name: Run PHPStan
-        run: vendor/bin/phpstan analyse
-
-      - name: Run tests
-        run: vendor/bin/phpunit
+        run: vendor/bin/phpstan analyse --ansi
