@@ -41,5 +41,5 @@ if ($input->getFirstArgument() === null) {
 
 $application = new Application('graphql-client-code-generator', '1.0.0');
 
-$application->addCommand(new Command()->setCode(new GenerateCommand(new Filesystem())));
+$application->addCommand(new Command('generate')->setCode(new GenerateCommand(new Filesystem())));
 $application->run($input);
