@@ -25,7 +25,6 @@ use Ruudk\GraphQLCodeGenerator\Generator\NodeNotFoundExceptionGenerator;
 use Ruudk\GraphQLCodeGenerator\Generator\OperationClassGenerator;
 use Ruudk\GraphQLCodeGenerator\GraphQL\AST\Printer;
 use Ruudk\GraphQLCodeGenerator\PHP\Visitor\OperationInjector;
-use Ruudk\GraphQLCodeGenerator\PHP\Visitor\StaleImportRemover;
 use Ruudk\GraphQLCodeGenerator\PHP\Visitor\UseStatementInserter;
 use Ruudk\GraphQLCodeGenerator\Planner\OperationPlan;
 use Ruudk\GraphQLCodeGenerator\Planner\Plan\DataClassPlan;
@@ -139,7 +138,6 @@ final class PlanExecutor
 
             $newStmts = new NodeTraverser(
                 new NodeConnectingVisitor(),
-                new StaleImportRemover($this->config->namespace, $fqcns),
                 new UseStatementInserter($fqcns),
             )->traverse($newStmts);
 
