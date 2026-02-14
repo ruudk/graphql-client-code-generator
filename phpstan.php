@@ -63,14 +63,6 @@ return [
             ],
             [
                 'identifiers' => [
-                    'shipmonk.deadMethod',
-                ],
-                'paths' => [
-                    __DIR__ . '/tests/StaleImportRemoval/ControllerWithStaleImport.php',
-                ],
-            ],
-            [
-                'identifiers' => [
                     'shipmonk.deadConstant',
                 ],
                 'paths' => [
