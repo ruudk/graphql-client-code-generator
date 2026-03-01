@@ -602,39 +602,6 @@ final class Data
 }
 ```
 
-## Configuration
-
-The fluent configuration API gives you full control:
-
-```php
-<?php
-
-use GraphQLClientCodeGenerator\Config\Config;
-
-return Config::create('src/Generated/GraphQL')
-    // 📄 Schema source (pick one)
-    ->withSchema(__DIR__ . '/schema.graphql')  // Local file
-    ->withSchemaIntrospection('https://api.github.com/graphql')  // Live endpoint
-
-    // 🔍 Where to find operations
-    ->withOperations(__DIR__ . '/queries')      // .graphql files
-    ->withPhpOperations(__DIR__ . '/src')       // Inline PHP operations
-    ->withTwigOperations(__DIR__ . '/templates') // Twig templates
-
-    // 📦 Namespace & naming
-    ->withNamespace('App\\Generated\\GitHub')
-
-    // ⚙️ Customization
-    ->withConnectionNaming()     // Use Connection/Edge/Node naming
-    ->withAutoFormatting()       // Format generated .graphql files
-    ->withCustomScalar('DateTime', 'DateTimeImmutable')
-    ->withCustomScalar('JSON', 'array')
-
-    // 🔌 Client integration
-    ->withClientInterface('App\\GraphQL\\ClientInterface')
-    ->withClientVariable('client');
-```
-
 ## Requirements
 
 - **PHP 8.4+** (uses property hooks, readonly classes, and other modern features)
