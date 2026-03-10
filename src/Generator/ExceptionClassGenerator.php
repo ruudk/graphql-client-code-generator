@@ -22,7 +22,10 @@ final class ExceptionClassGenerator extends AbstractGenerator
             yield '{';
             yield $generator->indent(function () use ($generator, $plan) {
                 yield 'public function __construct(';
-                yield $generator->indent('public readonly Data $data,');
+                yield $generator->indent(function () use ($generator) {
+                    yield from $generator->docComment('@api');
+                    yield 'public readonly Data $data,';
+                });
                 yield ') {';
                 yield $generator->indent(function () use ($generator, $plan) {
                     yield 'parent::__construct(sprintf(';

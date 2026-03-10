@@ -11,6 +11,9 @@ use Exception;
 final class TestQueryFailedException extends Exception
 {
     public function __construct(
+        /**
+         * @api
+         */
         public readonly Data $data,
     ) {
         parent::__construct(sprintf(
