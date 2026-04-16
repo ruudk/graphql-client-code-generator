@@ -12,7 +12,8 @@ use Ruudk\GraphQLCodeGenerator\Attribute\Generated;
 use Ruudk\GraphQLCodeGenerator\Config\Config;
 use Ruudk\GraphQLCodeGenerator\GraphQL\AST\Printer;
 use Ruudk\GraphQLCodeGenerator\Planner\Plan\DataClassPlan;
-use Ruudk\GraphQLCodeGenerator\Planner\Source\FileSource;
+use Ruudk\GraphQLCodeGenerator\Planner\Source\GraphQLFileSource;
+use Ruudk\GraphQLCodeGenerator\Planner\Source\TwigFileSource;
 use Ruudk\GraphQLCodeGenerator\Type\FragmentObjectType;
 use Ruudk\GraphQLCodeGenerator\Type\IndexByCollectionType;
 use Ruudk\GraphQLCodeGenerator\Type\StringLiteralType;
@@ -86,8 +87,16 @@ final class DataClassGenerator extends AbstractGenerator
 
             if ($this->config->addGeneratedAttribute) {
                 yield from $generator->dumpAttribute(Generated::class, function () use ($generator, $plan) {
-                    if ($plan->source instanceof FileSource) {
+                    if ($plan->source instanceof GraphQLFileSource) {
                         yield sprintf('source: %s', var_export($plan->source->relativeFilePath, true));
+
+                        return;
+                    }
+
+                    if ($plan->source instanceof TwigFileSource) {
+                        yield sprintf('source: %s', var_export($plan->source->relativeFilePath, true));
+                        yield 'restricted: true';
+                        yield 'restrictInstantiation: true';
 
                         return;
                     }

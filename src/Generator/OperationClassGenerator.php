@@ -8,7 +8,7 @@ use JsonException;
 use Ruudk\CodeGenerator\CodeGenerator;
 use Ruudk\GraphQLCodeGenerator\Attribute\Generated;
 use Ruudk\GraphQLCodeGenerator\Planner\Plan\OperationClassPlan;
-use Ruudk\GraphQLCodeGenerator\Planner\Source\FileSource;
+use Ruudk\GraphQLCodeGenerator\Planner\Source\GraphQLFileSource;
 use Ruudk\GraphQLCodeGenerator\Type\TypeDumper;
 use Symfony\Component\TypeInfo\Type as SymfonyType;
 use Symfony\Component\TypeInfo\TypeIdentifier;
@@ -36,7 +36,7 @@ final class OperationClassGenerator extends AbstractGenerator
 
             if ($this->config->addGeneratedAttribute) {
                 yield from $generator->dumpAttribute(Generated::class, function () use ($generator, $plan) {
-                    if ($plan->source instanceof FileSource) {
+                    if ($plan->source instanceof GraphQLFileSource) {
                         yield sprintf('source: %s', var_export($plan->source->relativeFilePath, true));
 
                         return;

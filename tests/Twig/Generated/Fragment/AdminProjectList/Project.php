@@ -9,7 +9,11 @@ use Ruudk\GraphQLCodeGenerator\Twig\Generated\Fragment\AdminProjectRow;
 
 // This file was automatically generated and should not be edited.
 
-#[Generated(source: 'tests/Twig/templates/list.html.twig')]
+#[Generated(
+    source: 'tests/Twig/templates/list.html.twig',
+    restricted: true,
+    restrictInstantiation: true,
+)]
 final class Project
 {
     public AdminProjectRow $adminProjectRow {

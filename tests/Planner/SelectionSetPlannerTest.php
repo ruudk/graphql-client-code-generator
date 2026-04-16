@@ -15,7 +15,7 @@ use Ruudk\GraphQLCodeGenerator\GraphQL\FragmentDefinitionNodeWithSource;
 use Ruudk\GraphQLCodeGenerator\Planner\Plan\DataClassPlan;
 use Ruudk\GraphQLCodeGenerator\Planner\PlannerResult;
 use Ruudk\GraphQLCodeGenerator\Planner\SelectionSetPlanner;
-use Ruudk\GraphQLCodeGenerator\Planner\Source\FileSource;
+use Ruudk\GraphQLCodeGenerator\Planner\Source\GraphQLFileSource;
 use Ruudk\GraphQLCodeGenerator\TypeMapper;
 use Symfony\Component\String\Inflector\EnglishInflector;
 use Symfony\Component\TypeInfo\Type as SymfonyType;
@@ -43,7 +43,7 @@ final class SelectionSetPlannerTest extends TestCase
                 metadata { key }
             }
         ');
-        $document = DocumentNodeWithSource::create($document, new FileSource(''));
+        $document = DocumentNodeWithSource::create($document, new GraphQLFileSource(''));
         // Collect fragments
         $fragments = [];
         $fragmentTypes = [];
@@ -104,7 +104,7 @@ final class SelectionSetPlannerTest extends TestCase
         $itemFragment = $fragments['ItemWithDetails'];
         $itemType = $fragmentTypes['ItemWithDetails'];
         $planner->plan(
-            new FileSource(''),
+            new GraphQLFileSource(''),
             $itemFragment->selectionSet,
             $itemType,
             '/tmp/generated/Fragment/ItemWithDetails',
@@ -162,7 +162,7 @@ final class SelectionSetPlannerTest extends TestCase
                 }
             }
         ');
-        $document = DocumentNodeWithSource::create($document, new FileSource(''));
+        $document = DocumentNodeWithSource::create($document, new GraphQLFileSource(''));
         // Collect fragments
         $fragments = [];
         $fragmentTypes = [];
@@ -223,7 +223,7 @@ final class SelectionSetPlannerTest extends TestCase
         $paymentFragment = $fragments['PaymentDetails'];
         $paymentType = $fragmentTypes['PaymentDetails'];
         $planner->plan(
-            new FileSource(''),
+            new GraphQLFileSource(''),
             $paymentFragment->selectionSet,
             $paymentType,
             '/tmp/generated/Fragment/PaymentDetails',

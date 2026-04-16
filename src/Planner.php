@@ -76,8 +76,9 @@ use Ruudk\GraphQLCodeGenerator\Planner\Plan\NodeNotFoundExceptionPlan;
 use Ruudk\GraphQLCodeGenerator\Planner\Plan\OperationClassPlan;
 use Ruudk\GraphQLCodeGenerator\Planner\PlannerResult;
 use Ruudk\GraphQLCodeGenerator\Planner\SelectionSetPlanner;
-use Ruudk\GraphQLCodeGenerator\Planner\Source\FileSource;
+use Ruudk\GraphQLCodeGenerator\Planner\Source\GraphQLFileSource;
 use Ruudk\GraphQLCodeGenerator\Planner\Source\InlineSource;
+use Ruudk\GraphQLCodeGenerator\Planner\Source\TwigFileSource;
 use Ruudk\GraphQLCodeGenerator\Twig\GraphQLExtension;
 use Ruudk\GraphQLCodeGenerator\Twig\GraphQLNodeFinder;
 use Ruudk\GraphQLCodeGenerator\Type\TypeHelper;
@@ -252,7 +253,7 @@ final class Planner
 
             $operations[$file->getPathname()][] = DocumentNodeWithSource::create(
                 $document,
-                new FileSource(Path::makeRelative($file->getPathname(), $this->config->projectDir)),
+                new GraphQLFileSource(Path::makeRelative($file->getPathname(), $this->config->projectDir)),
             );
         }
 
@@ -344,7 +345,7 @@ final class Planner
 
                     $operations[$file->getPathname()][] = DocumentNodeWithSource::create(
                         $document,
-                        new FileSource(Path::makeRelative($file->getPathname(), $this->config->projectDir)),
+                        new TwigFileSource(Path::makeRelative($file->getPathname(), $this->config->projectDir)),
                     );
                 }
             }
@@ -615,14 +616,20 @@ final class Planner
 
         Assert::notNull($operation->name, 'Expected operation to have a name');
 
+        if ($document->source instanceof TwigFileSource) {
+            throw new Exception('Twig templates may only contain fragment definitions');
+        }
+
+        $source = $document->source;
+
         $operationName = $operation->name->value;
         $operationNamespaceName = $operationName;
 
-        if ($document->source instanceof InlineSource) {
+        if ($source instanceof InlineSource) {
             $operationNamespaceName = sprintf(
                 '%s%s',
                 $operationName,
-                $document->source->hash,
+                $source->hash,
             );
         }
 
@@ -650,7 +657,7 @@ final class Planner
 
         // Plan the data class and its nested classes
         $planResult = $planner->plan(
-            $document->source,
+            $source,
             $operation->selectionSet,
             $rootType,
             $operationDir . '/Data',
@@ -660,7 +667,7 @@ final class Planner
 
         // Create the data class plan
         $dataClassPlan = new DataClassPlan(
-            $document->source,
+            $source,
             $operationDir . '/Data.php',
             $fqcn,
             $rootType,
@@ -684,7 +691,7 @@ final class Planner
             $operationType,
             $operationDefinition,
             $variables,
-            $document->source,
+            $source,
         );
 
         // Create the error class plan

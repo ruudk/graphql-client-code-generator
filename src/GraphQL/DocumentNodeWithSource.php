@@ -7,14 +7,15 @@ namespace Ruudk\GraphQLCodeGenerator\GraphQL;
 use GraphQL\Language\AST\DocumentNode;
 use GraphQL\Language\AST\FragmentDefinitionNode;
 use GraphQL\Language\AST\NodeList;
-use Ruudk\GraphQLCodeGenerator\Planner\Source\FileSource;
+use Ruudk\GraphQLCodeGenerator\Planner\Source\GraphQLFileSource;
 use Ruudk\GraphQLCodeGenerator\Planner\Source\InlineSource;
+use Ruudk\GraphQLCodeGenerator\Planner\Source\TwigFileSource;
 
 final class DocumentNodeWithSource extends DocumentNode
 {
-    public FileSource | InlineSource $source;
+    public GraphQLFileSource | InlineSource | TwigFileSource $source;
 
-    public static function create(DocumentNode $documentNode, FileSource | InlineSource $source) : self
+    public static function create(DocumentNode $documentNode, GraphQLFileSource | InlineSource | TwigFileSource $source) : self
     {
         $definitions = [];
         foreach ($documentNode->definitions as $definition) {
