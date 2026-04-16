@@ -63,6 +63,14 @@ return [
             ],
             [
                 'identifiers' => [
+                    'shipmonk.deadMethod',
+                ],
+                'paths' => [
+                    __DIR__ . '/tests/PHPStan/Fixtures/*',
+                ],
+            ],
+            [
+                'identifiers' => [
                     'shipmonk.deadConstant',
                 ],
                 'paths' => [
