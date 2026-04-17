@@ -42,6 +42,10 @@ final class OperationFinder extends NodeVisitorAbstract
             return null;
         }
 
+        if ($this->className === null) {
+            return null;
+        }
+
         foreach ($node->params as $param) {
             if ( ! $param->var instanceof Node\Expr\Variable) {
                 continue;

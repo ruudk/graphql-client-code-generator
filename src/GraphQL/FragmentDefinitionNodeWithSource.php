@@ -5,14 +5,15 @@ declare(strict_types=1);
 namespace Ruudk\GraphQLCodeGenerator\GraphQL;
 
 use GraphQL\Language\AST\FragmentDefinitionNode;
-use Ruudk\GraphQLCodeGenerator\Planner\Source\FileSource;
+use Ruudk\GraphQLCodeGenerator\Planner\Source\GraphQLFileSource;
 use Ruudk\GraphQLCodeGenerator\Planner\Source\InlineSource;
+use Ruudk\GraphQLCodeGenerator\Planner\Source\TwigFileSource;
 
 final class FragmentDefinitionNodeWithSource extends FragmentDefinitionNode
 {
-    public FileSource | InlineSource $source;
+    public GraphQLFileSource | InlineSource | TwigFileSource $source;
 
-    public static function create(FragmentDefinitionNode $fragmentNode, FileSource | InlineSource $source) : self
+    public static function create(FragmentDefinitionNode $fragmentNode, GraphQLFileSource | InlineSource | TwigFileSource $source) : self
     {
         return new self([
             'name' => $fragmentNode->name,

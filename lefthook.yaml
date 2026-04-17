@@ -32,6 +32,8 @@ pre-commit:
 
     php-cs-fixer:
       glob: "*.php"
+      exclude:
+        - "**/Generated/**"
       run: vendor/bin/php-cs-fixer fix --config .php-cs-fixer.php -- {staged_files}
       stage_fixed: true
 

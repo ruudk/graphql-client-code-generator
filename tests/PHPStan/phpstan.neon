@@ -1,0 +1,35 @@
+includes:
+    - ../../extension.neon
+
+parameters:
+    level: max
+    paths:
+        - Fixtures
+
+    graphQLClientCodeGenerator:
+        configs:
+            - config.php
+
+    ignoreErrors:
+        # Fixtures aren't wired into a real app; silence dead-code detection here.
+        -
+            identifier: shipmonk.deadMethod
+            paths:
+                - Fixtures/*.php
+
+        # Expected restricted-usage errors from NotAllowedController. With
+        # reportUnmatchedIgnoredErrors (default true) the run fails if any
+        # pattern below stops matching — i.e. if the extension regresses and
+        # fails to emit one of the expected restricted-usage errors.
+        -
+            message: '#^Instantiation of Ruudk\\GraphQLCodeGenerator\\PHPStan\\Generated\\Data is only allowed to be used from within Ruudk\\GraphQLCodeGenerator\\PHPStan\\Fixtures\\AllowedController$#'
+            path: Fixtures/NotAllowedController.php
+            count: 1
+        -
+            message: '#^Method execute from Ruudk\\GraphQLCodeGenerator\\PHPStan\\Generated\\SomeQuery is only allowed to be used from within Ruudk\\GraphQLCodeGenerator\\PHPStan\\Fixtures\\AllowedController$#'
+            path: Fixtures/NotAllowedController.php
+            count: 1
+        -
+            message: '#^Property name from Ruudk\\GraphQLCodeGenerator\\PHPStan\\Generated\\Data is only allowed to be used from within Ruudk\\GraphQLCodeGenerator\\PHPStan\\Fixtures\\AllowedController$#'
+            path: Fixtures/NotAllowedController.php
+            count: 2

@@ -30,8 +30,9 @@ use Ruudk\GraphQLCodeGenerator\DirectiveProcessor;
 use Ruudk\GraphQLCodeGenerator\GraphQL\FragmentDefinitionNodeWithSource;
 use Ruudk\GraphQLCodeGenerator\GraphQL\PossibleTypesFinder;
 use Ruudk\GraphQLCodeGenerator\Planner\Plan\DataClassPlan;
-use Ruudk\GraphQLCodeGenerator\Planner\Source\FileSource;
+use Ruudk\GraphQLCodeGenerator\Planner\Source\GraphQLFileSource;
 use Ruudk\GraphQLCodeGenerator\Planner\Source\InlineSource;
+use Ruudk\GraphQLCodeGenerator\Planner\Source\TwigFileSource;
 use Ruudk\GraphQLCodeGenerator\RecursiveTypeFinder;
 use Ruudk\GraphQLCodeGenerator\Type\FragmentObjectType;
 use Ruudk\GraphQLCodeGenerator\Type\IndexByCollectionType;
@@ -93,7 +94,7 @@ final class SelectionSetPlanner
      * @throws LogicException
      */
     public function plan(
-        FileSource | InlineSource $source,
+        GraphQLFileSource | InlineSource | TwigFileSource $source,
         SelectionSetNode $selectionSet,
         Type $parent,
         string $outputDirectory,
@@ -150,7 +151,7 @@ final class SelectionSetPlanner
      * @throws LogicException
      */
     public function planSelectionSet(
-        FileSource | InlineSource $source,
+        GraphQLFileSource | InlineSource | TwigFileSource $source,
         SelectionSetNode $selectionSet,
         Type $type,
         PlanningContext $context,
@@ -228,7 +229,7 @@ final class SelectionSetPlanner
      * @throws LogicException
      */
     private function planNamedTypeSelectionSet(
-        FileSource | InlineSource $source,
+        GraphQLFileSource | InlineSource | TwigFileSource $source,
         SelectionSetNode $selectionSet,
         NamedType & Type $type,
         PlanningContext $context,
@@ -324,7 +325,7 @@ final class SelectionSetPlanner
      * @throws LogicException
      */
     private function processFieldSelection(
-        FileSource | InlineSource $source,
+        GraphQLFileSource | InlineSource | TwigFileSource $source,
         FieldNode $selection,
         Type $parent,
         PlanningContext $context,
@@ -401,7 +402,7 @@ final class SelectionSetPlanner
      * @throws LogicException
      */
     private function processNestedSelection(
-        FileSource | InlineSource $source,
+        GraphQLFileSource | InlineSource | TwigFileSource $source,
         FieldNode $selection,
         string $fieldName,
         Type $fieldType,
@@ -474,7 +475,7 @@ final class SelectionSetPlanner
      * @throws LogicException
      */
     private function processInlineFragment(
-        FileSource | InlineSource $source,
+        GraphQLFileSource | InlineSource | TwigFileSource $source,
         InlineFragmentNode $selection,
         Type $parent,
         PlanningContext $context,
@@ -729,9 +730,7 @@ final class SelectionSetPlanner
             }
 
             // Merge path fields from fragment
-            if (isset($fragmentResult->pathFields)) {
-                $pathFields->merge($fragmentResult->pathFields);
-            }
+            $pathFields->merge($fragmentResult->pathFields);
         }
 
         // Note: PayloadShapeBuilder already handles merging fields from fragment spreads
@@ -1030,7 +1029,7 @@ final class SelectionSetPlanner
      * @throws InvariantViolation
      */
     private function createDataClassPlan(
-        FileSource | InlineSource $source,
+        GraphQLFileSource | InlineSource | TwigFileSource $source,
         NamedType & Type $parentType,
         SelectionSetResult $result,
         PlanningContext $context,
@@ -1076,7 +1075,7 @@ final class SelectionSetPlanner
     }
 
     private function createInlineFragmentClassPlan(
-        FileSource | InlineSource $source,
+        GraphQLFileSource | InlineSource | TwigFileSource $source,
         NamedType & Type $fragmentType,
         FieldCollection $fields,
         PayloadShape $payloadShape,

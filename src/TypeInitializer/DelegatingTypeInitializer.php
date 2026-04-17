@@ -21,10 +21,13 @@ final readonly class DelegatingTypeInitializer
     public function __construct(
         TypeInitializer ...$initializers,
     ) {
-        $this->initializers = array_combine(
-            array_map(fn(TypeInitializer $initializer) => $initializer::class, $initializers),
-            $initializers,
-        );
+        $indexed = [];
+
+        foreach ($initializers as $initializer) {
+            $indexed[$initializer::class] = $initializer;
+        }
+
+        $this->initializers = $indexed;
     }
 
     /**

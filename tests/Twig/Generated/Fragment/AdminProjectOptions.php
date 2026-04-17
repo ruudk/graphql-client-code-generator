@@ -10,7 +10,11 @@ use Ruudk\GraphQLCodeGenerator\Twig\Generated\NodeNotFoundException;
 
 // This file was automatically generated and should not be edited.
 
-#[Generated(source: 'tests/Twig/templates/_project_options.html.twig')]
+#[Generated(
+    source: 'tests/Twig/templates/_project_options.html.twig',
+    restricted: true,
+    restrictInstantiation: true,
+)]
 final class AdminProjectOptions
 {
     public ?ProjectState $state {
