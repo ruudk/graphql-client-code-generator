@@ -29,7 +29,9 @@ abstract class GraphQLTestCase extends TestCase
         $parts = explode('\\', static::class);
         array_pop($parts);
         $this->namespace = implode('\\', $parts);
-        $this->directory = __DIR__ . '/' . $parts[array_key_last($parts)];
+        $directoryName = end($parts);
+        Assert::string($directoryName);
+        $this->directory = __DIR__ . '/' . $directoryName;
         $this->client = new Client();
     }
 

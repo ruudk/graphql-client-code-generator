@@ -730,9 +730,7 @@ final class SelectionSetPlanner
             }
 
             // Merge path fields from fragment
-            if (isset($fragmentResult->pathFields)) {
-                $pathFields->merge($fragmentResult->pathFields);
-            }
+            $pathFields->merge($fragmentResult->pathFields);
         }
 
         // Note: PayloadShapeBuilder already handles merging fields from fragment spreads
