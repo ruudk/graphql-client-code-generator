@@ -20,6 +20,12 @@ enum SearchType: string
     // Returns results matching issues in repositories.
     case IssueAdvanced = 'ISSUE_ADVANCED';
 
+    // Returns results matching issues using hybrid (lexical + semantic) search.
+    case IssueHybrid = 'ISSUE_HYBRID';
+
+    // Returns results matching issues using semantic search.
+    case IssueSemantic = 'ISSUE_SEMANTIC';
+
     // Returns results matching repositories.
     case Repository = 'REPOSITORY';
 
