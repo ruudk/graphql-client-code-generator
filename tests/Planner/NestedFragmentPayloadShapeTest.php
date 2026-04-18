@@ -23,11 +23,10 @@ final class NestedFragmentPayloadShapeTest extends TestCase
         $config = Config::create(
             schema: $tempDir . '/schema.graphql',
             projectDir: $tempDir,
-            queriesDir: $tempDir,
             outputDir: $tempDir . '/generated',
             namespace: 'Test\\Generated',
             client: 'TestClient',
-        );
+        )->withQueriesDir($tempDir);
         register_shutdown_function(function () use ($tempDir) : void {
             // Clean up temp files
             $files = new RecursiveIteratorIterator(

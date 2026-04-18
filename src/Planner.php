@@ -221,42 +221,47 @@ final class Planner
      */
     public function plan() : PlannerResult
     {
-        $finder = Finder::create()->files()
-            ->in($this->config->queriesDir)
-            ->name('*.graphql')
-            ->sortByName();
-
-        if ($this->schemaLoader->schemaPath !== null) {
-            $finder->notPath(Path::makeRelative($this->schemaLoader->schemaPath, $this->config->queriesDir));
-        }
-
         $operations = [];
         $usedTypesCollector = new UsedTypesCollector($this->schema);
         $definedFragments = [];
 
-        // First pass: parse all queries to find what types are actually used
-        foreach ($finder as $file) {
-            $document = Parser::parse($file->getContents());
+        // Skip the .graphql finder when no queriesDir is configured — the caller
+        // only uses inline/Twig sources (e.g. `GeneratedGraphQLClient`), so there
+        // are no query files to discover.
+        if ($this->config->queriesDir !== null) {
+            $finder = Finder::create()->files()
+                ->in($this->config->queriesDir)
+                ->name('*.graphql')
+                ->sortByName();
 
-            $usedTypesCollector->analyze($document);
-
-            foreach (DefinedFragmentsVisitor::getDefinedFragments($document) as $name => $fragmentNode) {
-                if (isset($definedFragments[$name])) {
-                    throw new Exception(sprintf(
-                        'File "%s" defined fragment "%s" but it is already defined in "%s".',
-                        $definedFragments[$name],
-                        $name,
-                        $file->getPathname(),
-                    ));
-                }
-
-                $definedFragments[$name] = $file->getPathname();
+            if ($this->schemaLoader->schemaPath !== null) {
+                $finder->notPath(Path::makeRelative($this->schemaLoader->schemaPath, $this->config->queriesDir));
             }
 
-            $operations[$file->getPathname()][] = DocumentNodeWithSource::create(
-                $document,
-                new GraphQLFileSource(Path::makeRelative($file->getPathname(), $this->config->projectDir)),
-            );
+            // First pass: parse all queries to find what types are actually used
+            foreach ($finder as $file) {
+                $document = Parser::parse($file->getContents());
+
+                $usedTypesCollector->analyze($document);
+
+                foreach (DefinedFragmentsVisitor::getDefinedFragments($document) as $name => $fragmentNode) {
+                    if (isset($definedFragments[$name])) {
+                        throw new Exception(sprintf(
+                            'File "%s" defined fragment "%s" but it is already defined in "%s".',
+                            $definedFragments[$name],
+                            $name,
+                            $file->getPathname(),
+                        ));
+                    }
+
+                    $definedFragments[$name] = $file->getPathname();
+                }
+
+                $operations[$file->getPathname()][] = DocumentNodeWithSource::create(
+                    $document,
+                    new GraphQLFileSource(Path::makeRelative($file->getPathname(), $this->config->projectDir)),
+                );
+            }
         }
 
         $operationsToInject = [];
