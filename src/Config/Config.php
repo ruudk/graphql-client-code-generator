@@ -34,10 +34,10 @@ final readonly class Config
     private function __construct(
         public Schema | string $schema,
         public string $projectDir,
-        public string $queriesDir,
         public string $outputDir,
         public string $namespace,
         public string $client,
+        public ?string $queriesDir = null,
         public bool $dumpOrThrows = false,
         public bool $dumpDefinition = false,
         public bool $useNodeNameForEdgeNodes = false,
@@ -66,18 +66,16 @@ final readonly class Config
     public static function create(
         Schema | string $schema,
         string $projectDir,
-        string $queriesDir,
         string $outputDir,
         string $namespace,
         string $client,
     ) : self {
         return new self(
-            $schema,
-            $projectDir,
-            $queriesDir,
-            $outputDir,
-            $namespace,
-            $client,
+            schema: $schema,
+            projectDir: $projectDir,
+            outputDir: $outputDir,
+            namespace: $namespace,
+            client: $client,
         );
     }
 
@@ -240,6 +238,13 @@ final readonly class Config
     {
         return clone ($this, [
             'introspectionClient' => $client,
+        ]);
+    }
+
+    public function withQueriesDir(string $queriesDir) : self
+    {
+        return clone ($this, [
+            'queriesDir' => $queriesDir,
         ]);
     }
 

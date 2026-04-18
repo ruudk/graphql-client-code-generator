@@ -13,7 +13,7 @@ final class AbstractGeneratorTest extends TestCase
 {
     public function testNullableCustomScalarUsesExplicitNullUnionInsteadOfNullableShorthand() : void
     {
-        $generator = new class(Config::create(schema: '', projectDir: '', queriesDir: '', outputDir: '', namespace: 'Test\\Generated', client: 'Test\\Client')) extends AbstractGenerator {
+        $generator = new class(Config::create(schema: '', projectDir: '', outputDir: '', namespace: 'Test\\Generated', client: 'Test\\Client')) extends AbstractGenerator {
             public function dump(SymfonyType $type) : string
             {
                 return $this->dumpPHPType($type, static fn(string $className) => $className);

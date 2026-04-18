@@ -40,11 +40,10 @@ abstract class GraphQLTestCase extends TestCase
         return Config::create(
             schema: $this->directory . '/Schema.graphql',
             projectDir: dirname(__DIR__),
-            queriesDir: $this->directory,
             outputDir: $this->directory . '/Generated',
             namespace: $this->namespace . '\\Generated',
             client: TestClient::class,
-        );
+        )->withQueriesDir($this->directory);
     }
 
     protected function assertActualMatchesExpected() : void

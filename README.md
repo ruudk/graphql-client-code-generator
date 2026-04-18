@@ -124,11 +124,11 @@ return Config::create(
     // https://docs.github.com/public/fpt/schema.docs.graphql
     schema: __DIR__ . '/schema.docs.graphql',
     projectDir: __DIR__,
-    queriesDir: __DIR__,
     outputDir: __DIR__ . '/Generated',
     namespace: 'Ruudk\GraphQLCodeGenerator\Examples\Generated',
     client: GitHubClient::class,
 )
+    ->withQueriesDir(__DIR__)
     ->withIntrospectionClient(function () {
         $dotenv = new Dotenv();
         $dotenv->bootEnv(__DIR__ . '/.env.local');

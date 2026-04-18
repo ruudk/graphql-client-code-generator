@@ -118,7 +118,7 @@ final class PlanExecutor
             }
         }
 
-        if ($this->config->formatOperationFiles) {
+        if ($this->config->formatOperationFiles && $this->config->queriesDir !== null) {
             $finder = Finder::create()->files()
                 ->in($this->config->queriesDir)
                 ->name('*.graphql')
