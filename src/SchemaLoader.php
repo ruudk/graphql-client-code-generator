@@ -28,7 +28,7 @@ final class SchemaLoader
      * @throws \Symfony\Component\Filesystem\Exception\IOException
      * @throws \Webmozart\Assert\InvalidArgumentException
      */
-    public function load(Schema | string $schema, bool $indexByDirective) : Schema
+    public function load(Schema | string $schema, bool $indexByDirective, bool $hookDirective) : Schema
     {
         if (is_string($schema) && str_ends_with($schema, '.graphql')) {
             $this->schemaPath = $schema;
@@ -49,6 +49,10 @@ final class SchemaLoader
 
         if ($indexByDirective) {
             $schema = GraphQL\IndexByDirectiveSchemaExtender::extend($schema);
+        }
+
+        if ($hookDirective) {
+            $schema = GraphQL\HookDirectiveSchemaExtender::extend($schema);
         }
 
         return $schema;

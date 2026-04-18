@@ -7,14 +7,23 @@ namespace Ruudk\GraphQLCodeGenerator\Generator;
 use JsonException;
 use Ruudk\CodeGenerator\CodeGenerator;
 use Ruudk\GraphQLCodeGenerator\Attribute\Generated;
+use Ruudk\GraphQLCodeGenerator\Config\Config;
 use Ruudk\GraphQLCodeGenerator\Planner\Plan\OperationClassPlan;
 use Ruudk\GraphQLCodeGenerator\Planner\Source\GraphQLFileSource;
 use Ruudk\GraphQLCodeGenerator\Type\TypeDumper;
+use Ruudk\GraphQLCodeGenerator\TypeInitializer\ClassHookUsageRegistry;
 use Symfony\Component\TypeInfo\Type as SymfonyType;
 use Symfony\Component\TypeInfo\TypeIdentifier;
 
 final class OperationClassGenerator extends AbstractGenerator
 {
+    public function __construct(
+        Config $config,
+        private readonly ClassHookUsageRegistry $hookUsageRegistry,
+    ) {
+        parent::__construct($config);
+    }
+
     /**
      * @throws JsonException
      */
@@ -27,9 +36,12 @@ final class OperationClassGenerator extends AbstractGenerator
             $plan->operationName . $plan->operationType . 'FailedException',
         );
 
+        $dataFqcn = $namespace . '\\Data';
+        $usedHooks = $this->hookUsageRegistry->getHooksForClass($dataFqcn);
+
         $generator = new CodeGenerator($namespace);
 
-        return $generator->dumpFile(function () use ($generator, $plan, $namespace, $failedException) {
+        return $generator->dumpFile(function () use ($generator, $plan, $namespace, $failedException, $usedHooks) {
             yield $this->dumpHeader();
 
             yield '';
@@ -49,7 +61,7 @@ final class OperationClassGenerator extends AbstractGenerator
 
             yield sprintf('final readonly class %s {', $plan->className);
             yield $generator->indent(
-                function () use ($plan, $failedException, $namespace, $generator) {
+                function () use ($plan, $failedException, $namespace, $generator, $usedHooks) {
                     yield sprintf('public const string OPERATION_NAME = %s;', var_export($plan->operationName, true));
                     yield sprintf(
                         'public const string OPERATION_DEFINITION = %s;',
@@ -57,10 +69,45 @@ final class OperationClassGenerator extends AbstractGenerator
                     );
 
                     yield '';
+
+                    if ($usedHooks !== []) {
+                        yield from $generator->docComment(function () use ($usedHooks, $generator) {
+                            yield sprintf(
+                                '@param %s $hooks',
+                                TypeDumper::dump($this->buildHooksShape($usedHooks), $generator->import(...)),
+                            );
+                        });
+                    }
+
                     yield 'public function __construct(';
-                    yield $generator->indent([
-                        sprintf('private %s $client,', $generator->import($this->config->client)),
-                    ]);
+                    yield $generator->indent(function () use ($generator, $usedHooks) {
+                        yield sprintf('private %s $client,', $generator->import($this->config->client));
+
+                        if ($usedHooks === []) {
+                            return;
+                        }
+
+                        if ($this->config->symfonyAutowireHooks) {
+                            $autowire = $generator->import('Symfony\Component\DependencyInjection\Attribute\Autowire');
+                            yield sprintf('#[%s([', $autowire);
+                            yield $generator->indent(function () use ($usedHooks, $autowire, $generator) {
+                                $lines = [];
+                                foreach (array_keys($usedHooks) as $name) {
+                                    $lines[] = sprintf(
+                                        '%s => new %s(service: %s::class)',
+                                        var_export($name, true),
+                                        $autowire,
+                                        $generator->import($this->config->hooks[$name]->class),
+                                    );
+                                }
+
+                                yield implode(",\n", $lines);
+                            });
+                            yield '])]';
+                        }
+
+                        yield 'private array $hooks,';
+                    });
                     yield ') {}';
 
                     $parameters = $generator->indent(function () use ($plan, $generator) {
@@ -104,7 +151,7 @@ final class OperationClassGenerator extends AbstractGenerator
                         yield '{';
                     }
 
-                    yield $generator->indent(function () use ($plan, $generator) {
+                    yield $generator->indent(function () use ($plan, $generator, $usedHooks) {
                         yield '$data = $this->client->graphql(';
                         yield $generator->indent(function () use ($plan, $generator) {
                             yield 'self::OPERATION_DEFINITION,';
@@ -141,10 +188,18 @@ final class OperationClassGenerator extends AbstractGenerator
                         yield ');';
                         yield '';
                         yield 'return new Data(';
-                        yield $generator->indent([
-                            "\$data['data'] ?? [], // @phpstan-ignore argument.type",
-                            "\$data['errors'] ?? [] // @phpstan-ignore argument.type",
-                        ]);
+                        $trailingComma = $usedHooks !== [] ? ',' : '';
+                        yield $generator->indent(function () use ($trailingComma, $usedHooks) {
+                            yield "\$data['data'] ?? [], // @phpstan-ignore argument.type";
+                            yield sprintf(
+                                "\$data['errors'] ?? []%s // @phpstan-ignore argument.type",
+                                $trailingComma,
+                            );
+
+                            if ($usedHooks !== []) {
+                                yield '$this->hooks,';
+                            }
+                        });
                         yield ');';
                     });
                     yield '}';

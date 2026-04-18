@@ -141,6 +141,10 @@ final readonly class PayloadShapeBuilder
         // First pass: collect all direct field selections
         foreach ($selectionSet->selections as $selection) {
             if ($selection instanceof FieldNode) {
+                if ($this->hasHookDirective($selection)) {
+                    continue;
+                }
+
                 $fieldName = $selection->alias->value ?? $selection->name->value;
                 $fieldGroups[$fieldName] ??= [];
                 $fieldGroups[$fieldName][] = $selection;
@@ -454,6 +458,17 @@ final readonly class PayloadShapeBuilder
             $name = $directive->name->value;
 
             if ($name === 'include' || $name === 'skip') {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private function hasHookDirective(FieldNode $node) : bool
+    {
+        foreach ($node->directives as $directive) {
+            if ($directive->name->value === 'hook') {
                 return true;
             }
         }

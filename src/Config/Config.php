@@ -6,8 +6,16 @@ namespace Ruudk\GraphQLCodeGenerator\Config;
 
 use Closure;
 use GraphQL\Type\Schema;
+use InvalidArgumentException;
+use ReflectionClass;
+use ReflectionException;
+use ReflectionMethod;
+use Ruudk\GraphQLCodeGenerator\Attribute\Hook;
 use Ruudk\GraphQLCodeGenerator\TypeInitializer;
+use Symfony\Component\TypeInfo\Exception\UnsupportedException;
 use Symfony\Component\TypeInfo\Type;
+use Symfony\Component\TypeInfo\TypeResolver\TypeResolver;
+use Webmozart\Assert\Assert;
 
 final readonly class Config
 {
@@ -21,6 +29,7 @@ final readonly class Config
      * @param null|object|(Closure(): object) $introspectionClient
      * @param list<string> $inlineProcessingDirectories
      * @param list<string> $twigProcessingDirectories
+     * @param array<string, HookDefinition> $hooks
      */
     private function __construct(
         public Schema | string $schema,
@@ -50,6 +59,8 @@ final readonly class Config
         public array $inlineProcessingDirectories = [],
         public array $twigProcessingDirectories = [],
         public bool $formatOperationFiles = false,
+        public array $hooks = [],
+        public bool $symfonyAutowireHooks = false,
     ) {}
 
     public static function create(
@@ -154,6 +165,17 @@ final readonly class Config
         ]);
     }
 
+    /**
+     * Emit Symfony `#[Autowire([...])]` on the generated query class's `$hooks`
+     * constructor argument so the DI container can inject each hook service by class name.
+     */
+    public function enableSymfonyAutowireHooks() : self
+    {
+        return clone ($this, [
+            'symfonyAutowireHooks' => true,
+        ]);
+    }
+
     public function withScalar(string $name, Type $type, ?Type $payloadType = null) : self
     {
         $scalars = $this->scalars;
@@ -232,6 +254,58 @@ final readonly class Config
     {
         return clone ($this, [
             'twigProcessingDirectories' => array_merge($this->twigProcessingDirectories, [$directory], array_values($directories)),
+        ]);
+    }
+
+    /**
+     * Register a hook. The class must be invokable (`__invoke`) and must carry
+     * `#[Hook(name: '...')]` naming the hook for use in `@hook(name: ...)` directives.
+     * The return type is inferred from the `__invoke` signature.
+     *
+     * @param class-string $class
+     * @throws InvalidArgumentException
+     * @throws \Webmozart\Assert\InvalidArgumentException
+     * @throws ReflectionException
+     */
+    public function withHook(string $class) : self
+    {
+        Assert::classExists($class, sprintf('Hook class "%s" does not exist.', $class));
+        Assert::methodExists($class, '__invoke', sprintf('Hook class "%s" must be invokable (define __invoke).', $class));
+
+        $attributes = new ReflectionClass($class)->getAttributes(Hook::class);
+
+        Assert::notEmpty($attributes, sprintf(
+            'Hook class "%s" must carry a #[Hook(name: "...")] attribute.',
+            $class,
+        ));
+
+        $hookName = $attributes[0]->newInstance()->name;
+        $method = new ReflectionMethod($class, '__invoke');
+
+        Assert::keyNotExists($this->hooks, $hookName, sprintf(
+            'Hook "%s" is already registered (at %s).',
+            $hookName,
+            $this->hooks[$hookName]->class ?? '?',
+        ));
+
+        try {
+            $returnType = TypeResolver::create()->resolve($method);
+        } catch (UnsupportedException $exception) {
+            throw new InvalidArgumentException(
+                sprintf(
+                    'Could not infer return type for hook "%s" from %s::__invoke(). Declare an explicit return type.',
+                    $hookName,
+                    $class,
+                ),
+                previous: $exception,
+            );
+        }
+
+        $hooks = $this->hooks;
+        $hooks[$hookName] = new HookDefinition($hookName, $class, $returnType);
+
+        return clone ($this, [
+            'hooks' => $hooks,
         ]);
     }
 }

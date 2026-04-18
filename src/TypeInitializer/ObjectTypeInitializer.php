@@ -19,11 +19,19 @@ final class ObjectTypeInitializer implements TypeInitializer
      * @var list<TypeInitializer>
      */
     private array $initializers;
+    private ?ClassHookUsageRegistry $hookUsageRegistry = null;
 
     public function __construct(
         TypeInitializer ...$initializers,
     ) {
         $this->initializers = array_values($initializers);
+    }
+
+    public function setHookUsageRegistry(ClassHookUsageRegistry $registry) : self
+    {
+        $this->hookUsageRegistry = $registry;
+
+        return $this;
     }
 
     #[Override]
@@ -47,6 +55,10 @@ final class ObjectTypeInitializer implements TypeInitializer
             return $initializer->initialize($type, $generator, $variable, $delegator);
         }
 
-        return sprintf('new %s(%s)', $generator->import($type->getClassName()), $variable);
+        $arguments = $this->hookUsageRegistry?->usesHooks($type->getClassName()) === true
+            ? sprintf('%s, $this->hooks', $variable)
+            : $variable;
+
+        return sprintf('new %s(%s)', $generator->import($type->getClassName()), $arguments);
     }
 }

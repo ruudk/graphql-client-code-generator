@@ -81,9 +81,11 @@ use Ruudk\GraphQLCodeGenerator\Planner\Source\InlineSource;
 use Ruudk\GraphQLCodeGenerator\Planner\Source\TwigFileSource;
 use Ruudk\GraphQLCodeGenerator\Twig\GraphQLExtension;
 use Ruudk\GraphQLCodeGenerator\Twig\GraphQLNodeFinder;
+use Ruudk\GraphQLCodeGenerator\Type\HookPropertyType;
 use Ruudk\GraphQLCodeGenerator\Type\TypeHelper;
 use Ruudk\GraphQLCodeGenerator\Validator\IndexByValidator;
 use Ruudk\GraphQLCodeGenerator\Visitor\DefinedFragmentsVisitor;
+use Ruudk\GraphQLCodeGenerator\Visitor\HookFieldRemover;
 use Ruudk\GraphQLCodeGenerator\Visitor\IndexByRemover;
 use Ruudk\GraphQLCodeGenerator\Visitor\UsedFragmentsVisitor;
 use Stringable;
@@ -160,7 +162,7 @@ final class Planner
         ];
 
         $this->schemaLoader = new SchemaLoader(new Filesystem());
-        $this->schema = $this->schemaLoader->load($config->schema, $config->indexByDirective);
+        $this->schema = $this->schemaLoader->load($config->schema, $config->indexByDirective, $config->hooks !== []);
         $this->optimizer = new Optimizer($this->schema);
         $this->possibleTypesFinder = new PossibleTypesFinder($this->schema);
 
@@ -502,9 +504,15 @@ final class Planner
          */
         $fragmentsToProcess = [];
         foreach (array_reverse($ordered) as $fragment) {
-            $errors = DocumentValidator::validate($this->schema, new DocumentNode([
+            $validationDocument = new DocumentNode([
                 'definitions' => new NodeList([$fragment]),
-            ]), $this->validatorRules);
+            ]);
+
+            if ($this->config->hooks !== []) {
+                $validationDocument = new HookFieldRemover()->__invoke($validationDocument);
+            }
+
+            $errors = DocumentValidator::validate($this->schema, $validationDocument, $this->validatorRules);
 
             if ($errors !== []) {
                 throw new Exception(sprintf('Fragment validation failed: %s', implode(PHP_EOL, array_map(fn($error) => $error->getMessage(), $errors))));
@@ -579,7 +587,126 @@ final class Planner
 
         $result->setOperationsToInject($operationsToInject);
 
+        if ($this->config->hooks !== []) {
+            $this->propagateUsedHooks($result);
+        }
+
         return $result;
+    }
+
+    /**
+     * Populate `usedHooks` on every DataClassPlan: each plan's own hook fields union the
+     * `usedHooks` sets of every child DataClassPlan it constructs (transitively).
+     *
+     * Iterates to a fixed point instead of topologically sorting — planner-emitted class
+     * graphs are small and may contain back-references via fragments, which makes a fixed
+     * point simpler than computing a correct order.
+     */
+    private function propagateUsedHooks(PlannerResult $result) : void
+    {
+        /**
+         * @var array<string, DataClassPlan> $plansByFqcn
+         */
+        $plansByFqcn = [];
+        /**
+         * @var array<string, list<string>> $childFqcnsByPlan
+         */
+        $childFqcnsByPlan = [];
+
+        foreach ($result->classes as $plan) {
+            if ( ! $plan instanceof DataClassPlan) {
+                continue;
+            }
+
+            $plansByFqcn[$plan->fqcn] = $plan;
+            $plan->usedHooks = [];
+            $childFqcnsByPlan[$plan->fqcn] = [];
+
+            foreach ($this->fieldTypesIn($plan->fields) as $fieldType) {
+                if ($fieldType instanceof HookPropertyType) {
+                    $plan->usedHooks[$fieldType->hookName] = true;
+
+                    continue;
+                }
+
+                $nakedObject = $this->unwrapToObjectType($fieldType);
+
+                if ($nakedObject !== null) {
+                    $childFqcnsByPlan[$plan->fqcn][] = $nakedObject;
+                }
+            }
+        }
+
+        $changed = true;
+        while ($changed) {
+            $changed = false;
+
+            foreach ($plansByFqcn as $plan) {
+                $before = $plan->usedHooks;
+
+                foreach ($childFqcnsByPlan[$plan->fqcn] as $childFqcn) {
+                    $child = $plansByFqcn[$childFqcn] ?? null;
+
+                    if ($child === null) {
+                        continue;
+                    }
+
+                    foreach ($child->usedHooks as $hookName => $_) {
+                        $plan->usedHooks[$hookName] = true;
+                    }
+                }
+
+                if ($plan->usedHooks !== $before) {
+                    $changed = true;
+                }
+            }
+        }
+    }
+
+    /**
+     * Yield each field's type from a class's fields shape (after unwrapping any
+     * outer nullable wrappers).
+     *
+     * @return iterable<SymfonyType>
+     */
+    private function fieldTypesIn(SymfonyType $type) : iterable
+    {
+        while ($type instanceof SymfonyType\NullableType) {
+            $type = $type->getWrappedType();
+        }
+
+        if ( ! $type instanceof SymfonyType\ArrayShapeType) {
+            return;
+        }
+
+        foreach ($type->getShape() as $entry) {
+            yield $entry['type'];
+        }
+    }
+
+    /**
+     * Peel off nullable/collection wrappers; return the FQCN of the nested ObjectType
+     * if that's what we find, otherwise null.
+     */
+    private function unwrapToObjectType(SymfonyType $type) : ?string
+    {
+        while (true) {
+            if ($type instanceof SymfonyType\NullableType) {
+                $type = $type->getWrappedType();
+
+                continue;
+            }
+
+            if ($type instanceof SymfonyType\CollectionType) {
+                $type = $type->getCollectionValueType();
+
+                continue;
+            }
+
+            break;
+        }
+
+        return $type instanceof SymfonyType\ObjectType ? $type->getClassName() : null;
     }
 
     /**
@@ -592,7 +719,13 @@ final class Planner
     {
         $document = $this->optimizer->optimize($document, $planner->fragmentDefinitions);
 
-        $errors = DocumentValidator::validate($this->schema, $document, $this->validatorRules);
+        $validationDocument = $document;
+
+        if ($this->config->hooks !== []) {
+            $validationDocument = new HookFieldRemover()->__invoke($validationDocument);
+        }
+
+        $errors = DocumentValidator::validate($this->schema, $validationDocument, $this->validatorRules);
 
         if ($errors !== []) {
             throw new Exception(sprintf(
@@ -637,6 +770,10 @@ final class Planner
 
         if ($this->config->indexByDirective) {
             $document = new IndexByRemover()->__invoke($document);
+        }
+
+        if ($this->config->hooks !== []) {
+            $document = new HookFieldRemover()->__invoke($document);
         }
 
         $operationDefinition = Printer::doPrint($document);
