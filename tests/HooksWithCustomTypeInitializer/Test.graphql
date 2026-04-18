@@ -1,0 +1,16 @@
+query Test {
+    viewer {
+        login
+        homepage {
+            href
+        }
+        projects {
+            name
+            creator {
+                id
+            }
+
+            user @hook(name: "findUserById", input: ["creator.id"])
+        }
+    }
+}

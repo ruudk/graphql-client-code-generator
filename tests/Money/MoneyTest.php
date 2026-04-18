@@ -15,7 +15,6 @@ use Ruudk\GraphQLCodeGenerator\Money\ValueObjects\Currency;
 use Ruudk\GraphQLCodeGenerator\Money\ValueObjects\Money;
 use Ruudk\GraphQLCodeGenerator\Type\PseudoType;
 use Ruudk\GraphQLCodeGenerator\TypeInitializer\DelegatingTypeInitializer;
-use Ruudk\GraphQLCodeGenerator\TypeInitializer\ObjectTypeInitializer;
 use Ruudk\GraphQLCodeGenerator\TypeInitializer\TypeInitializer;
 use Symfony\Component\TypeInfo\Type;
 use Symfony\Component\TypeInfo\Type\ObjectType;
@@ -45,29 +44,27 @@ final class MoneyTest extends GraphQLTestCase
             ->withIgnoreType('MoneyInput')
             ->withIgnoreType('Money')
             ->withTypeInitializer(
-                new ObjectTypeInitializer(
-                    new class implements TypeInitializer {
-                        #[Override]
-                        public function supports(Type $type) : bool
-                        {
-                            return $type instanceof ObjectType && $type->getClassName() === Money::class;
-                        }
+                new class implements TypeInitializer {
+                    #[Override]
+                    public function supports(Type $type) : bool
+                    {
+                        return $type instanceof ObjectType && $type->getClassName() === Money::class;
+                    }
 
-                        /**
-                         * @return Generator<\Ruudk\CodeGenerator\Group|string>
-                         */
-                        #[Override]
-                        public function initialize(Type $type, CodeGenerator $generator, string $variable, DelegatingTypeInitializer $delegator) : Generator
-                        {
-                            yield sprintf('new %s(', $generator->import(Money::class));
-                            yield $generator->indent(function () use ($generator, $variable) {
-                                yield sprintf("%s['amount'],", $variable);
-                                yield sprintf("new %s(%s['currency']),", $generator->import(Currency::class), $variable);
-                            });
-                            yield ')';
-                        }
-                    },
-                ),
+                    /**
+                     * @return Generator<\Ruudk\CodeGenerator\Group|string>
+                     */
+                    #[Override]
+                    public function initialize(Type $type, CodeGenerator $generator, string $variable, DelegatingTypeInitializer $delegator) : Generator
+                    {
+                        yield sprintf('new %s(', $generator->import(Money::class));
+                        yield $generator->indent(function () use ($generator, $variable) {
+                            yield sprintf("%s['amount'],", $variable);
+                            yield sprintf("new %s(%s['currency']),", $generator->import(Currency::class), $variable);
+                        });
+                        yield ')';
+                    }
+                },
             );
     }
 

@@ -4,35 +4,23 @@ declare(strict_types=1);
 
 namespace Ruudk\GraphQLCodeGenerator\TypeInitializer;
 
-use Generator;
 use Override;
 use Ruudk\CodeGenerator\CodeGenerator;
 use Symfony\Component\TypeInfo\Type;
 use Symfony\Component\TypeInfo\Type\ObjectType;
 
 /**
+ * @internal Catch-all fallback owned by `PlanExecutor`. Userland should register
+ *           type-specific `TypeInitializer` instances via `Config::withTypeInitializer()`;
+ *           they run before this one.
+ *
  * @implements TypeInitializer<Type\ObjectType<*>>
  */
-final class ObjectTypeInitializer implements TypeInitializer
+final readonly class ObjectTypeInitializer implements TypeInitializer
 {
-    /**
-     * @var list<TypeInitializer>
-     */
-    private array $initializers;
-    private ?ClassHookUsageRegistry $hookUsageRegistry = null;
-
     public function __construct(
-        TypeInitializer ...$initializers,
-    ) {
-        $this->initializers = array_values($initializers);
-    }
-
-    public function setHookUsageRegistry(ClassHookUsageRegistry $registry) : self
-    {
-        $this->hookUsageRegistry = $registry;
-
-        return $this;
-    }
+        private ClassHookUsageRegistry $hookUsageRegistry,
+    ) {}
 
     #[Override]
     public function supports(Type $type) : bool
@@ -46,16 +34,8 @@ final class ObjectTypeInitializer implements TypeInitializer
         CodeGenerator $generator,
         string $variable,
         DelegatingTypeInitializer $delegator,
-    ) : Generator | string {
-        foreach ($this->initializers as $initializer) {
-            if ( ! $initializer->supports($type)) {
-                continue;
-            }
-
-            return $initializer->initialize($type, $generator, $variable, $delegator);
-        }
-
-        $arguments = $this->hookUsageRegistry?->usesHooks($type->getClassName()) === true
+    ) : string {
+        $arguments = $this->hookUsageRegistry->usesHooks($type->getClassName())
             ? sprintf('%s, $this->hooks', $variable)
             : $variable;
 

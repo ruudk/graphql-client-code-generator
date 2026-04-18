@@ -1,0 +1,23 @@
+type Query {
+    viewer: Viewer!
+}
+
+type Viewer {
+    login: String!
+    homepage: Url!
+    projects: [Project!]!
+}
+
+type Project {
+    id: ID!
+    name: String!
+    creator: Creator!
+}
+
+type Creator {
+    id: ID!
+}
+
+type Url {
+    href: String!
+}
