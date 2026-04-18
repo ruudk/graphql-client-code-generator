@@ -1,0 +1,4 @@
+fragment ProjectListing on Project {
+    ...ProjectSummary
+    description
+}

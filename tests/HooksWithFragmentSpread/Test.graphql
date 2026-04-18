@@ -1,0 +1,8 @@
+query Test {
+    viewer {
+        login
+        projects {
+            ...ProjectListing
+        }
+    }
+}

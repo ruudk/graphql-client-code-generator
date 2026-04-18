@@ -1,0 +1,8 @@
+fragment ProjectSummary on Project {
+    name
+    creator {
+        id
+    }
+
+    user @hook(name: "findUserById", input: ["creator.id"])
+}
