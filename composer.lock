@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "5f6bc3ba7bce6cf23db62cefc152178d",
+    "content-hash": "d1507ef00cde3ddeeaf1e4104363ddd2",
     "packages": [
         {
             "name": "nikic/php-parser",
@@ -219,20 +219,20 @@
         },
         {
             "name": "ruudk/code-generator",
-            "version": "0.4.6",
+            "version": "0.4.7",
             "source": {
                 "type": "git",
                 "url": "https://github.com/ruudk/code-generator.git",
-                "reference": "5fd237520da1c448490b21136d01ba32afab6ad0"
+                "reference": "638615160b43cbc3b5da52d3f5e169536a6ed52f"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/ruudk/code-generator/zipball/5fd237520da1c448490b21136d01ba32afab6ad0",
-                "reference": "5fd237520da1c448490b21136d01ba32afab6ad0",
+                "url": "https://api.github.com/repos/ruudk/code-generator/zipball/638615160b43cbc3b5da52d3f5e169536a6ed52f",
+                "reference": "638615160b43cbc3b5da52d3f5e169536a6ed52f",
                 "shasum": ""
             },
             "require": {
-                "php": "^8.4"
+                "php": "^8.5"
             },
             "require-dev": {
                 "ergebnis/composer-normalize": "^2.47",
@@ -269,7 +269,7 @@
             ],
             "support": {
                 "issues": "https://github.com/ruudk/code-generator/issues",
-                "source": "https://github.com/ruudk/code-generator/tree/0.4.6"
+                "source": "https://github.com/ruudk/code-generator/tree/0.4.7"
             },
             "funding": [
                 {
@@ -277,7 +277,7 @@
                     "type": "github"
                 }
             ],
-            "time": "2026-03-15T09:28:33+00:00"
+            "time": "2026-04-18T17:44:05+00:00"
         },
         {
             "name": "sebastian/diff",
