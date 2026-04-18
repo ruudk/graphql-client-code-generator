@@ -63,15 +63,18 @@ final class PlanExecutor
     ) {
         $this->hookUsageRegistry = new ClassHookUsageRegistry();
 
-        // Initialize type initializer
-        $typeInitializer = new DelegatingTypeInitializer(
+        // User-registered initializers run before the catch-all `ObjectTypeInitializer`
+        // so type-specific handlers (e.g. Money) match ahead of the generic fallback.
+        $initializers = [
             new NullableTypeInitializer(),
             new IndexByCollectionTypeInitializer(),
             new CollectionTypeInitializer(),
             new BackedEnumTypeInitializer($config->addUnknownCaseToEnums, $config->namespace),
-            new ObjectTypeInitializer()->setHookUsageRegistry($this->hookUsageRegistry),
             ...$config->typeInitializers,
-        );
+            new ObjectTypeInitializer($this->hookUsageRegistry),
+        ];
+
+        $typeInitializer = new DelegatingTypeInitializer(...$initializers);
 
         // Initialize all generators
         $this->dataClassGenerator = new DataClassGenerator($config, $typeInitializer);
