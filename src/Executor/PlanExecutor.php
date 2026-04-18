@@ -25,6 +25,7 @@ use Ruudk\GraphQLCodeGenerator\Generator\NodeNotFoundExceptionGenerator;
 use Ruudk\GraphQLCodeGenerator\Generator\OperationClassGenerator;
 use Ruudk\GraphQLCodeGenerator\GraphQL\AST\Printer;
 use Ruudk\GraphQLCodeGenerator\PHP\Visitor\OperationInjector;
+use Ruudk\GraphQLCodeGenerator\PHP\Visitor\StaleImportRemover;
 use Ruudk\GraphQLCodeGenerator\PHP\Visitor\UseStatementInserter;
 use Ruudk\GraphQLCodeGenerator\Planner\OperationPlan;
 use Ruudk\GraphQLCodeGenerator\Planner\Plan\DataClassPlan;
@@ -116,6 +117,24 @@ final class PlanExecutor
         }
 
         $printer = new Standard();
+
+        // Build the global set of valid operation FQCNs so StaleImportRemover
+        // only removes imports whose hash no longer corresponds to any planned
+        // operation — regardless of whether the operation is defined in the
+        // current file or elsewhere (e.g. an exception documented via @throws).
+        $validFqcns = [];
+        foreach ($plan->operations as $operation) {
+            $operationFqcn = sprintf(
+                '%s\\%s\\%s\\%s',
+                $this->config->namespace,
+                $operation->operationClass->operationType,
+                $operation->operationClass->operationNamepaceName,
+                $operation->operationClass->className,
+            );
+            $validFqcns[] = $operationFqcn;
+            $validFqcns[] = $operationFqcn . 'FailedException';
+        }
+
         foreach ($plan->operationsToInject as $path => $operations) {
             $oldStmts = $this->phpParser->parse($this->filesystem->readFile($path));
             Assert::notNull($oldStmts, 'Failed to parse PHP file');
@@ -138,6 +157,7 @@ final class PlanExecutor
 
             $newStmts = new NodeTraverser(
                 new NodeConnectingVisitor(),
+                new StaleImportRemover($this->config->namespace, $validFqcns),
                 new UseStatementInserter($fqcns),
             )->traverse($newStmts);
 

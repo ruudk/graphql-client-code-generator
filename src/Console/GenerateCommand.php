@@ -14,9 +14,12 @@ use Ruudk\GraphQLCodeGenerator\Config\ConfigLoader;
 use Ruudk\GraphQLCodeGenerator\Executor\PlanExecutor;
 use Ruudk\GraphQLCodeGenerator\GraphQL\IndexByDirectiveSchemaExtender;
 use Ruudk\GraphQLCodeGenerator\Planner;
+use SebastianBergmann\Diff\Differ;
+use SebastianBergmann\Diff\Output\UnifiedDiffOutputBuilder;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Attribute\Option;
 use Symfony\Component\Console\Command\Command;
+use Symfony\Component\Console\Formatter\OutputFormatter;
 use Symfony\Component\Console\Style\SymfonyStyle;
 use Symfony\Component\Filesystem\Exception\IOException;
 use Symfony\Component\Filesystem\Filesystem;
@@ -161,13 +164,17 @@ final class GenerateCommand
 
                     $errors = false;
 
+                    $differ = new Differ(new UnifiedDiffOutputBuilder("--- Actual\n+++ Expected\n"));
+
                     foreach ($files as $path => $content) {
                         if (isset($actual[$path]) && $content !== $actual[$path]) {
                             $errors = true;
-                            $io->writeln(sprintf('%s content does not match expectations', Path::makeRelative($path, $configItem->projectDir)));
+                            $relativePath = Path::makeRelative($path, $configItem->projectDir);
+                            $io->writeln(sprintf('<error>%s content does not match expectations</error>', $relativePath));
+                            $io->writeln($this->formatDiff($differ->diff($actual[$path], $content)));
                         } elseif ( ! isset($actual[$path])) {
                             $errors = true;
-                            $io->writeln(sprintf('%s does not exist', Path::makeRelative($path, $configItem->projectDir)));
+                            $io->writeln(sprintf('<error>%s does not exist</error>', Path::makeRelative($path, $configItem->projectDir)));
                         }
                     }
 
@@ -213,5 +220,26 @@ final class GenerateCommand
         }
 
         return $exitCode;
+    }
+
+    private function formatDiff(string $diff) : string
+    {
+        $lines = explode("\n", $diff);
+
+        foreach ($lines as $index => $line) {
+            if (str_starts_with($line, '+++') || str_starts_with($line, '---')) {
+                $lines[$index] = sprintf('<comment>%s</comment>', OutputFormatter::escape($line));
+            } elseif (str_starts_with($line, '@@')) {
+                $lines[$index] = sprintf('<fg=cyan>%s</>', OutputFormatter::escape($line));
+            } elseif (str_starts_with($line, '+')) {
+                $lines[$index] = sprintf('<fg=green>%s</>', OutputFormatter::escape($line));
+            } elseif (str_starts_with($line, '-')) {
+                $lines[$index] = sprintf('<fg=red>%s</>', OutputFormatter::escape($line));
+            } else {
+                $lines[$index] = OutputFormatter::escape($line);
+            }
+        }
+
+        return implode("\n", $lines);
     }
 }
