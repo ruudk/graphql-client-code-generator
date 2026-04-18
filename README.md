@@ -399,6 +399,7 @@ enum SearchType: string
 - **Lazy-loading** for nested objects (only instantiated when accessed)
 - **Connection pattern awareness** (edges, nodes, pageInfo) for Relay-style APIs
 - **Custom `@indexBy` directive** for O(1) lookups instead of O(n) searching
+- **Custom `@hook` directive** - enrich responses with local data resolved lazily at access time
 - **Fragment dependency injection** - automatically includes required fragments
 - **Automatic query optimization** - merges fragments, simplifies inline fragments
 
@@ -607,6 +608,96 @@ final class Data
     }
 }
 ```
+
+### 🪝 Local Resolution with `@hook` Directive
+
+Enrich query results with data that does not come from the GraphQL server.
+Common case: the backend returns an ID, and you want the generated response to also expose the
+fully hydrated local entity (from your database, cache, etc.) lazily on first access.
+
+**Step 1 — write an invokable hook class** and tag it with `#[Hook(name: ...)]`:
+
+```php
+namespace App\Hooks;
+
+use App\Entity\User;
+use App\Repository\UserRepository;
+use Ruudk\GraphQLCodeGenerator\Attribute\Hook;
+
+#[Hook(name: 'findUserById')]
+final readonly class FindUserByIdHook
+{
+    public function __construct(private UserRepository $users) {}
+
+    public function __invoke(string $id): ?User
+    {
+        return $this->users->find($id);
+    }
+}
+```
+
+The class must define `__invoke`. The return type is inferred from that signature — no need to
+declare it in config.
+
+**Step 2 — register the hook** in your config:
+
+```php
+Config::create(/* ... */)
+    ->withHook(App\Hooks\FindUserByIdHook::class);
+```
+
+**Step 3 — use `@hook` in your query**:
+
+```graphql
+query Project {
+    project(id: "42") {
+        name
+        creator {
+            id
+        }
+
+        # Synthetic field populated by the hook. Positional arguments are
+        # resolved against the surrounding selection set.
+        user @hook(name: "findUserById", input: ["creator.id"])
+    }
+}
+```
+
+The `user` field doesn't exist in the schema — it's a generator-only marker. The `input` list
+holds dotted paths into the enclosing selection; each becomes a positional argument to
+`__invoke` at runtime.
+
+**Step 4 — pass hook instances when executing**:
+
+```php
+$project = new ProjectQuery($client, [
+    'findUserById' => new FindUserByIdHook($userRepository),
+])->execute()->project;
+
+$project->user; // ?User, resolved lazily by the hook on first access
+```
+
+The generator does not strip the `@hook` directive from validation inputs — it removes hook
+fields from the outgoing operation, so the server never sees them. Fragment spreads and `@indexBy`
+are unaffected.
+
+**Symfony autowire shortcut.** Call `enableSymfonyAutowireHooks()` on the config and the
+generated query class's `$hooks` parameter is annotated with `#[Autowire([...])]`, so the DI
+container wires the map automatically:
+
+```php
+// Generated ProjectQuery.php
+public function __construct(
+    private TestClient $client,
+    #[Autowire([
+        'findUserById' => new Autowire(FindUserByIdHook::class)
+    ])]
+    private array $hooks,
+) {}
+```
+
+Hook signature mismatches are caught at generation (return type inference) and by PHPStan at
+call sites — if you pass the wrong shape, CI fails before production.
 
 ## Requirements
 

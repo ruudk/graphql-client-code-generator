@@ -14,24 +14,32 @@ use Ruudk\GraphQLCodeGenerator\Planner\Source\InlineSource;
 use Ruudk\GraphQLCodeGenerator\Planner\Source\TwigFileSource;
 use Symfony\Component\TypeInfo\Type as SymfonyType;
 
-final readonly class DataClassPlan
+final class DataClassPlan
 {
+    /**
+     * Set of hook names this class transitively needs. Populated by the planner.
+     * Empty means this class does not accept a `$hooks` constructor argument.
+     *
+     * @var array<string, true>
+     */
+    public array $usedHooks = [];
+
     /**
      * @param list<string> $possibleTypes
      * @param array<string, list<string>> $inlineFragmentRequiredFields
      */
     public function __construct(
-        public GraphQLFileSource | InlineSource | TwigFileSource $source,
-        public string $path,
-        public string $fqcn,
-        public NamedType & Type $parentType,
-        public SymfonyType $fields,
-        public SymfonyType $payloadShape,
-        public array $possibleTypes,
-        public null | FragmentDefinitionNode | InlineFragmentNode | OperationDefinitionNode $definitionNode,
-        public ?SymfonyType $nodesType,
-        public array $inlineFragmentRequiredFields,
-        public bool $isData,
-        public bool $isFragment,
+        public readonly GraphQLFileSource | InlineSource | TwigFileSource $source,
+        public readonly string $path,
+        public readonly string $fqcn,
+        public readonly NamedType & Type $parentType,
+        public readonly SymfonyType $fields,
+        public readonly SymfonyType $payloadShape,
+        public readonly array $possibleTypes,
+        public readonly null | FragmentDefinitionNode | InlineFragmentNode | OperationDefinitionNode $definitionNode,
+        public readonly ?SymfonyType $nodesType,
+        public readonly array $inlineFragmentRequiredFields,
+        public readonly bool $isData,
+        public readonly bool $isFragment,
     ) {}
 }

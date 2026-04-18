@@ -5,8 +5,10 @@ declare(strict_types=1);
 namespace Ruudk\GraphQLCodeGenerator\Generator;
 
 use Ruudk\GraphQLCodeGenerator\Config\Config;
+use Ruudk\GraphQLCodeGenerator\Type\HookPropertyType;
 use Ruudk\GraphQLCodeGenerator\Type\ScalarType;
 use Symfony\Component\TypeInfo\Type;
+use Webmozart\Assert\Assert;
 
 abstract class AbstractGenerator
 {
@@ -33,6 +35,10 @@ abstract class AbstractGenerator
      */
     protected function dumpPHPType(Type $type, callable $importer) : string
     {
+        if ($type instanceof HookPropertyType) {
+            return $this->dumpPHPType($type->getWrappedType(), $importer);
+        }
+
         if ($type instanceof Type\NullableType) {
             $wrappedType = $type->getWrappedType();
 
@@ -77,5 +83,28 @@ abstract class AbstractGenerator
         }
 
         return $type;
+    }
+
+    /**
+     * Build the PHPDoc `array{hookName: HookClass, ...}` shape used to annotate
+     * the `$hooks` constructor argument threaded through generated classes.
+     *
+     * @param array<string, true> $usedHooks
+     * @throws \Webmozart\Assert\InvalidArgumentException
+     */
+    protected function buildHooksShape(array $usedHooks) : Type
+    {
+        $shape = [];
+
+        foreach (array_keys($usedHooks) as $name) {
+            Assert::keyExists(
+                $this->config->hooks,
+                $name,
+                sprintf('Hook "%s" is not registered in config.', $name),
+            );
+            $shape[$name] = Type::object($this->config->hooks[$name]->class);
+        }
+
+        return Type::arrayShape($shape);
     }
 }

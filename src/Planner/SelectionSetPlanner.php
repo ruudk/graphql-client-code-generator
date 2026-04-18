@@ -35,6 +35,7 @@ use Ruudk\GraphQLCodeGenerator\Planner\Source\InlineSource;
 use Ruudk\GraphQLCodeGenerator\Planner\Source\TwigFileSource;
 use Ruudk\GraphQLCodeGenerator\RecursiveTypeFinder;
 use Ruudk\GraphQLCodeGenerator\Type\FragmentObjectType;
+use Ruudk\GraphQLCodeGenerator\Type\HookPropertyType;
 use Ruudk\GraphQLCodeGenerator\Type\IndexByCollectionType;
 use Ruudk\GraphQLCodeGenerator\Type\StringLiteralType;
 use Ruudk\GraphQLCodeGenerator\TypeMapper;
@@ -334,6 +335,28 @@ final class SelectionSetPlanner
         PayloadShape $payloadShape,
     ) : void {
         $fieldName = $selection->alias->value ?? $selection->name->value;
+
+        // Hook fields are synthetic — they don't exist in the schema and their value comes from
+        // a user-supplied callable at runtime rather than from the server response.
+        $hookDirective = $this->directiveProcessor->getHookDirective($selection->directives);
+
+        if ($hookDirective !== null) {
+            Assert::keyExists(
+                $this->config->hooks,
+                $hookDirective['name'],
+                sprintf('Hook "%s" used in selection is not registered via Config::withHook().', $hookDirective['name']),
+            );
+
+            $hook = $this->config->hooks[$hookDirective['name']];
+
+            $fields->add($fieldName, new HookPropertyType(
+                $hook->name,
+                $hookDirective['input'],
+                $hook->returnType,
+            ));
+
+            return;
+        }
 
         // Handle __typename specially
         if ($fieldName === '__typename') {

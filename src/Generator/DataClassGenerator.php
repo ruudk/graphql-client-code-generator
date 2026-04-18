@@ -15,6 +15,7 @@ use Ruudk\GraphQLCodeGenerator\Planner\Plan\DataClassPlan;
 use Ruudk\GraphQLCodeGenerator\Planner\Source\GraphQLFileSource;
 use Ruudk\GraphQLCodeGenerator\Planner\Source\TwigFileSource;
 use Ruudk\GraphQLCodeGenerator\Type\FragmentObjectType;
+use Ruudk\GraphQLCodeGenerator\Type\HookPropertyType;
 use Ruudk\GraphQLCodeGenerator\Type\IndexByCollectionType;
 use Ruudk\GraphQLCodeGenerator\Type\StringLiteralType;
 use Ruudk\GraphQLCodeGenerator\Type\TypeDumper;
@@ -115,7 +116,7 @@ final class DataClassGenerator extends AbstractGenerator
             $requiredFieldsMap = $inlineFragmentRequiredFields;
 
             yield $generator->indent(
-                function () use ($parentType, $nodesType, $possibleTypes, $fields, $isData, $payloadShape, $generator, $requiredFieldsMap) {
+                function () use ($plan, $parentType, $nodesType, $possibleTypes, $fields, $isData, $payloadShape, $generator, $requiredFieldsMap) {
                     if ($possibleTypes !== []) {
                         yield from $generator->docComment('@var list<string>');
                         yield sprintf(
@@ -158,6 +159,44 @@ final class DataClassGenerator extends AbstractGenerator
                             $nakedFieldType = $this->getNakedType($fieldType);
 
                             yield '';
+
+                            // Hook-backed synthetic property: not stored in $this->data, resolved
+                            // at access time by invoking the user-supplied hook (an invokable
+                            // class) with positional arguments in the order declared by the
+                            // directive.
+                            if ($fieldType instanceof HookPropertyType) {
+                                yield sprintf(
+                                    'public %s $%s {',
+                                    $this->dumpPHPType($fieldType, $generator->import(...)),
+                                    $fieldName,
+                                );
+                                yield $generator->indent(function () use ($fieldType, $fieldName, $generator) {
+                                    $args = [];
+
+                                    foreach ($fieldType->inputPaths as $path) {
+                                        $accessor = '$this->data';
+
+                                        foreach (explode('.', $path) as $segment) {
+                                            $accessor .= '[' . var_export($segment, true) . ']';
+                                        }
+
+                                        $args[] = $accessor;
+                                    }
+
+                                    yield from $generator->wrap(
+                                        sprintf('get => $this->%s ??= ', $fieldName),
+                                        $generator->dumpCall(
+                                            sprintf('$this->hooks[%s]', var_export($fieldType->hookName, true)),
+                                            '__invoke',
+                                            $args,
+                                        ),
+                                        ';',
+                                    );
+                                });
+                                yield '}';
+
+                                continue;
+                            }
 
                             // Check the payload shape to properly handle nullability
                             $payloadType = $payloadFieldTypes[$fieldName] ?? null;
@@ -480,8 +519,10 @@ final class DataClassGenerator extends AbstractGenerator
                         yield 'public readonly array $errors;';
                     }
 
+                    $usesHooks = $plan->usedHooks !== [];
+
                     yield '';
-                    yield from $generator->docComment(function () use ($isData, $generator, $payloadShape) {
+                    yield from $generator->docComment(function () use ($plan, $isData, $usesHooks, $generator, $payloadShape) {
                         yield sprintf(
                             '@param %s $data',
                             TypeDumper::dump($payloadShape, $generator->import(...)),
@@ -500,9 +541,16 @@ final class DataClassGenerator extends AbstractGenerator
                                 ])), $generator->import(...)),
                             );
                         }
+
+                        if ($usesHooks) {
+                            yield sprintf(
+                                '@param %s $hooks',
+                                TypeDumper::dump($this->buildHooksShape($plan->usedHooks), $generator->import(...)),
+                            );
+                        }
                     });
                     yield 'public function __construct(';
-                    yield $generator->indent(function () use ($generator, $payloadShape, $isData) {
+                    yield $generator->indent(function () use ($generator, $payloadShape, $isData, $usesHooks) {
                         yield sprintf(
                             'private readonly %s $data,',
                             $this->dumpPHPType($payloadShape, $generator->import(...)),
@@ -510,6 +558,10 @@ final class DataClassGenerator extends AbstractGenerator
 
                         if ($isData) {
                             yield 'array $errors,';
+                        }
+
+                        if ($usesHooks) {
+                            yield 'private readonly array $hooks,';
                         }
                     });
 

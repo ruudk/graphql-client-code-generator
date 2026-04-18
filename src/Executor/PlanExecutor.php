@@ -34,6 +34,7 @@ use Ruudk\GraphQLCodeGenerator\Planner\Plan\InputClassPlan;
 use Ruudk\GraphQLCodeGenerator\Planner\Plan\NodeNotFoundExceptionPlan;
 use Ruudk\GraphQLCodeGenerator\Planner\PlannerResult;
 use Ruudk\GraphQLCodeGenerator\TypeInitializer\BackedEnumTypeInitializer;
+use Ruudk\GraphQLCodeGenerator\TypeInitializer\ClassHookUsageRegistry;
 use Ruudk\GraphQLCodeGenerator\TypeInitializer\CollectionTypeInitializer;
 use Ruudk\GraphQLCodeGenerator\TypeInitializer\DelegatingTypeInitializer;
 use Ruudk\GraphQLCodeGenerator\TypeInitializer\IndexByCollectionTypeInitializer;
@@ -53,26 +54,29 @@ final class PlanExecutor
     private readonly ExceptionClassGenerator $exceptionClassGenerator;
     private readonly InputTypeGenerator $inputTypeGenerator;
     private readonly NodeNotFoundExceptionGenerator $nodeNotFoundExceptionGenerator;
+    private readonly ClassHookUsageRegistry $hookUsageRegistry;
     private Parser $phpParser;
     private Filesystem $filesystem;
 
     public function __construct(
         private Config $config,
     ) {
+        $this->hookUsageRegistry = new ClassHookUsageRegistry();
+
         // Initialize type initializer
         $typeInitializer = new DelegatingTypeInitializer(
             new NullableTypeInitializer(),
             new IndexByCollectionTypeInitializer(),
             new CollectionTypeInitializer(),
             new BackedEnumTypeInitializer($config->addUnknownCaseToEnums, $config->namespace),
-            new ObjectTypeInitializer(),
+            new ObjectTypeInitializer()->setHookUsageRegistry($this->hookUsageRegistry),
             ...$config->typeInitializers,
         );
 
         // Initialize all generators
         $this->dataClassGenerator = new DataClassGenerator($config, $typeInitializer);
         $this->enumTypeGenerator = new EnumTypeGenerator($config);
-        $this->operationClassGenerator = new OperationClassGenerator($config);
+        $this->operationClassGenerator = new OperationClassGenerator($config, $this->hookUsageRegistry);
         $this->errorClassGenerator = new ErrorClassGenerator($config);
         $this->exceptionClassGenerator = new ExceptionClassGenerator($config);
         $this->inputTypeGenerator = new InputTypeGenerator($config);
@@ -91,6 +95,14 @@ final class PlanExecutor
      */
     public function execute(PlannerResult $plan) : array
     {
+        $this->hookUsageRegistry->classHooks = [];
+
+        foreach ($plan->classes as $class) {
+            if ($class instanceof DataClassPlan && $class->usedHooks !== []) {
+                $this->hookUsageRegistry->classHooks[$class->fqcn] = $class->usedHooks;
+            }
+        }
+
         $files = [];
 
         foreach ($plan->classes as $path => $class) {
