@@ -1,0 +1,11 @@
+query Test {
+    viewer {
+        login
+        projects {
+            name
+            contributorIds
+
+            contributors @hook(name: "findUsersByIds", input: ["contributorIds"])
+        }
+    }
+}

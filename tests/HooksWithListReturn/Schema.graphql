@@ -1,0 +1,18 @@
+type Query {
+    viewer: Viewer!
+}
+
+type Viewer {
+    login: String!
+    projects: [Project!]!
+}
+
+type Project {
+    id: ID!
+    name: String!
+    contributorIds: [ID!]!
+}
+
+type User {
+    id: ID!
+}

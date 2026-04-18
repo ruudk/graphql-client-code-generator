@@ -180,6 +180,16 @@ final class DataClassGenerator extends AbstractGenerator
                             // class) with positional arguments in the order declared by the
                             // directive.
                             if ($fieldType instanceof HookPropertyType) {
+                                $wrappedReturnType = $fieldType->getWrappedType();
+
+                                yield from $generator->docComment(function () use ($wrappedReturnType, $generator) {
+                                    if ($this->getNakedType($wrappedReturnType) instanceof SymfonyType\CollectionType) {
+                                        yield sprintf(
+                                            '@var %s',
+                                            TypeDumper::dump($wrappedReturnType, $generator->import(...)),
+                                        );
+                                    }
+                                });
                                 yield sprintf(
                                     'public %s $%s {',
                                     $this->dumpPHPType($fieldType, $generator->import(...)),
