@@ -9,6 +9,7 @@
         "nikic/php-parser": "^5.6",
         "phpstan/phpstan": "^2.1.18",
         "ruudk/code-generator": "^0.4.4",
+        "sebastian/diff": "^7.0",
         "symfony/console": "^7.4 || ^8.0",
         "symfony/filesystem": "^7.4 || ^8.0",
         "symfony/finder": "^7.4 || ^8.0",
