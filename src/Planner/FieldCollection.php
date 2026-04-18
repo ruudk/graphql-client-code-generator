@@ -39,10 +39,7 @@ final class FieldCollection
 
     public function clone() : self
     {
-        $clone = new self();
-        $clone->fields = $this->fields;
-
-        return $clone;
+        return clone $this;
     }
 
     /**

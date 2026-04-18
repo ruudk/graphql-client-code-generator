@@ -133,9 +133,6 @@ final class PayloadShape
 
     public function clone() : self
     {
-        $clone = new self();
-        $clone->shape = $this->shape;
-
-        return $clone;
+        return clone $this;
     }
 }
