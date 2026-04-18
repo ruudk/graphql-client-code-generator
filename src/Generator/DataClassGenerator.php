@@ -33,6 +33,21 @@ final class DataClassGenerator extends AbstractGenerator
         parent::__construct($config);
     }
 
+    /**
+     * Delegates fragment-spread construction to the type initializer so the
+     * single source of truth (`ObjectTypeInitializer` + `ClassHookUsageRegistry`)
+     * decides whether to forward `$this->hooks` into the child constructor.
+     *
+     * @throws \Webmozart\Assert\InvalidArgumentException
+     */
+    private function initializeFragmentObject(FragmentObjectType $type, CodeGenerator $generator) : string
+    {
+        $result = $this->typeInitializer->__invoke($type, $generator, '$this->data');
+        Assert::string($result);
+
+        return $result;
+    }
+
     public function generate(DataClassPlan $plan) : string
     {
         $parentType = $plan->parentType;
@@ -238,13 +253,15 @@ final class DataClassGenerator extends AbstractGenerator
                                          */
                                         $requiredFields = $requiredFieldsMap[$fragmentClassName] ?? [];
 
+                                        $construct = $this->initializeFragmentObject($nakedFieldType, $generator);
+
                                         // For fragments on interface/union types themselves
                                         if ($nakedFieldType->fragmentType instanceof InterfaceType || $nakedFieldType->fragmentType instanceof UnionType) {
                                             yield sprintf(
-                                                'get => $this->%s ??= in_array($this->data[\'__typename\'], %s::POSSIBLE_TYPES, true) ? new %s($this->data) : null;',
+                                                'get => $this->%s ??= in_array($this->data[\'__typename\'], %s::POSSIBLE_TYPES, true) ? %s : null;',
                                                 $fieldName,
                                                 $generator->import($nakedFieldType->getClassName()),
-                                                $generator->import($nakedFieldType->getClassName()),
+                                                $construct,
                                             );
 
                                             return;
@@ -255,15 +272,15 @@ final class DataClassGenerator extends AbstractGenerator
                                         if ($requiredFields === []) {
                                             // No required fields to check, only typename
                                             yield sprintf(
-                                                'get => $this->%s ??= $this->data[\'__typename\'] === %s ? new %s($this->data) : null;',
+                                                'get => $this->%s ??= $this->data[\'__typename\'] === %s ? %s : null;',
                                                 $fieldName,
                                                 var_export($nakedFieldType->fragmentType->name(), true),
-                                                $generator->import($nakedFieldType->getClassName()),
+                                                $construct,
                                             );
                                         } else {
                                             // Generate verbose getter with field checks for PHPStan type safety
                                             yield 'get {';
-                                            yield $generator->indent(function () use ($fieldName, $nakedFieldType, $generator, $requiredFields) {
+                                            yield $generator->indent(function () use ($fieldName, $nakedFieldType, $requiredFields, $construct) {
                                                 yield sprintf('if (isset($this->%s)) {', $fieldName);
                                                 yield '    return $this->' . $fieldName . ';';
                                                 yield '}';
@@ -288,9 +305,9 @@ final class DataClassGenerator extends AbstractGenerator
 
                                                 yield '';
                                                 yield sprintf(
-                                                    'return $this->%s = new %s($this->data);',
+                                                    'return $this->%s = %s;',
                                                     $fieldName,
-                                                    $generator->import($nakedFieldType->getClassName()),
+                                                    $construct,
                                                 );
                                             });
                                             yield '}';
@@ -301,9 +318,9 @@ final class DataClassGenerator extends AbstractGenerator
 
                                     // For ObjectType parents, fragments don't need field checking
                                     yield sprintf(
-                                        'get => $this->%s ??= new %s($this->data);',
+                                        'get => $this->%s ??= %s;',
                                         $fieldName,
-                                        $generator->import($nakedFieldType->getClassName()),
+                                        $this->initializeFragmentObject($nakedFieldType, $generator),
                                     );
 
                                     return;
