@@ -4,7 +4,7 @@
     "license": "MIT",
     "type": "library",
     "require": {
-        "php": "^8.4",
+        "php": "^8.5",
         "composer-runtime-api": "^2.0",
         "nikic/php-parser": "^5.6",
         "phpstan/phpstan": "^2.1.18",
