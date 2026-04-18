@@ -35,7 +35,9 @@ final class NestedFragmentPayloadShapeTest extends TestCase
                 RecursiveIteratorIterator::CHILD_FIRST,
             );
             foreach ($files as $file) {
-                /** @var SplFileInfo $file */
+                /**
+                 * @var SplFileInfo $file
+                 */
                 $file->isDir() ? rmdir($file->getPathname()) : unlink($file->getPathname());
             }
 

@@ -43,7 +43,9 @@ final class DataClassGenerator extends AbstractGenerator
         $isFragment = $plan->isFragment;
         $definitionNode = $plan->definitionNode;
         $nodesType = $plan->nodesType;
-        /** @var array<string, list<string>> */
+        /**
+         * @var array<string, list<string>>
+         */
         $inlineFragmentRequiredFields = $plan->inlineFragmentRequiredFields;
 
         if ($fields instanceof SymfonyType\NullableType) {
@@ -192,7 +194,9 @@ final class DataClassGenerator extends AbstractGenerator
                                     if ( ! $parentType instanceof ObjectType) {
                                         // Check if we have required fields for this fragment
                                         $fragmentClassName = $nakedFieldType->getClassName();
-                                        /** @var list<string> $requiredFields */
+                                        /**
+                                         * @var list<string> $requiredFields
+                                         */
                                         $requiredFields = $requiredFieldsMap[$fragmentClassName] ?? [];
 
                                         // For fragments on interface/union types themselves
