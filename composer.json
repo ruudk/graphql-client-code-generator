@@ -7,6 +7,7 @@
         "php": "^8.5",
         "composer-runtime-api": "^2.0",
         "nikic/php-parser": "^5.7",
+        "phpstan/phpdoc-parser": "^2.3",
         "phpstan/phpstan": "^2.1.18",
         "ruudk/code-generator": "^0.4.6",
         "sebastian/diff": "^7.0",
