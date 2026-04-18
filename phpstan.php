@@ -67,6 +67,7 @@ return [
                 ],
                 'paths' => [
                     __DIR__ . '/tests/PHPStan/Fixtures/*',
+                    __DIR__ . '/tests/StaleImportRemoval/ControllerWithStaleImport.php',
                 ],
             ],
             [
