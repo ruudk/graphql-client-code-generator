@@ -42,7 +42,11 @@ final readonly class ConfigLoader
             // Validate array items
             foreach ($configData as $index => $configItem) {
                 if ( ! $configItem instanceof Config) {
-                    throw new ConfigException(sprintf('Invalid configuration at index %d in %s: expected Config object', $index, $configFile));
+                    throw new ConfigException(sprintf(
+                        'Invalid configuration at index %s in %s: expected Config object',
+                        $index,
+                        $configFile,
+                    ));
                 }
 
                 $allConfigs[] = $configItem;

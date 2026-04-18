@@ -41,7 +41,9 @@ final class PlannerResult
      */
     public function addClass(object $class) : void
     {
-        /** @var object{path: string} $class */
+        /**
+         * @var object{path: string} $class
+         */
         $this->classes[$class->path] = $class;
     }
 
