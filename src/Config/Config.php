@@ -6,7 +6,6 @@ namespace Ruudk\GraphQLCodeGenerator\Config;
 
 use Closure;
 use GraphQL\Type\Schema;
-use ReflectionClass;
 use Ruudk\GraphQLCodeGenerator\TypeInitializer;
 use Symfony\Component\TypeInfo\Type;
 
@@ -73,62 +72,86 @@ final readonly class Config
 
     public function enableDumpOrThrows() : self
     {
-        return $this->with('dumpOrThrows', true);
+        return clone ($this, [
+            'dumpOrThrows' => true,
+        ]);
     }
 
     public function enableDumpDefinition() : self
     {
-        return $this->with('dumpDefinition', true);
+        return clone ($this, [
+            'dumpDefinition' => true,
+        ]);
     }
 
     public function enableUseNodeNameForEdgeNodes() : self
     {
-        return $this->with('useNodeNameForEdgeNodes', true);
+        return clone ($this, [
+            'useNodeNameForEdgeNodes' => true,
+        ]);
     }
 
     public function enableUseConnectionNameForConnections() : self
     {
-        return $this->with('useConnectionNameForConnections', true);
+        return clone ($this, [
+            'useConnectionNameForConnections' => true,
+        ]);
     }
 
     public function enableUseEdgeNameForEdges() : self
     {
-        return $this->with('useEdgeNameForEdges', true);
+        return clone ($this, [
+            'useEdgeNameForEdges' => true,
+        ]);
     }
 
     public function enableAddNodesOnConnections() : self
     {
-        return $this->with('addNodesOnConnections', true);
+        return clone ($this, [
+            'addNodesOnConnections' => true,
+        ]);
     }
 
     public function enableSymfonyExcludeAttribute() : self
     {
-        return $this->with('addSymfonyExcludeAttribute', true);
+        return clone ($this, [
+            'addSymfonyExcludeAttribute' => true,
+        ]);
     }
 
     public function enableGeneratedAttribute() : self
     {
-        return $this->with('addGeneratedAttribute', true);
+        return clone ($this, [
+            'addGeneratedAttribute' => true,
+        ]);
     }
 
     public function enableIndexByDirective() : self
     {
-        return $this->with('indexByDirective', true);
+        return clone ($this, [
+            'indexByDirective' => true,
+        ]);
     }
 
     public function enableAddUnknownCaseToEnums() : self
     {
-        return $this->with('addUnknownCaseToEnums', true);
+        return clone ($this, [
+            'addUnknownCaseToEnums' => true,
+        ]);
     }
 
     public function enableDumpEnumIsMethods() : self
     {
-        return $this->with('dumpEnumIsMethods', true);
+        return clone ($this, [
+            'dumpEnumIsMethods' => true,
+        ]);
     }
 
     public function enableFormatOperationFiles() : self
     {
-        return $this->with('formatOperationFiles', true);
+        return clone ($this, [
+            'formatOperationFiles' => true,
+        ]);
     }
 
     public function withScalar(string $name, Type $type, ?Type $payloadType = null) : self
@@ -136,7 +159,9 @@ final readonly class Config
         $scalars = $this->scalars;
         $scalars[$name] = [$type, $payloadType ?? $type];
 
-        return $this->with('scalars', $scalars);
+        return clone ($this, [
+            'scalars' => $scalars,
+        ]);
     }
 
     public function withInputObjectType(string $name, Type $type) : self
@@ -144,7 +169,9 @@ final readonly class Config
         $inputObjectTypes = $this->inputObjectTypes;
         $inputObjectTypes[$name] = $type;
 
-        return $this->with('inputObjectTypes', $inputObjectTypes);
+        return clone ($this, [
+            'inputObjectTypes' => $inputObjectTypes,
+        ]);
     }
 
     public function withObjectType(string $name, Type $payloadShape, Type $payloadType) : self
@@ -152,7 +179,9 @@ final readonly class Config
         $objectTypes = $this->objectTypes;
         $objectTypes[$name] = [$payloadShape, $payloadType];
 
-        return $this->with('objectTypes', $objectTypes);
+        return clone ($this, [
+            'objectTypes' => $objectTypes,
+        ]);
     }
 
     public function withEnumType(string $name, Type $type) : self
@@ -160,7 +189,9 @@ final readonly class Config
         $enumTypes = $this->enumTypes;
         $enumTypes[$name] = $type;
 
-        return $this->with('enumTypes', $enumTypes);
+        return clone ($this, [
+            'enumTypes' => $enumTypes,
+        ]);
     }
 
     public function withIgnoreType(string $type) : self
@@ -168,7 +199,9 @@ final readonly class Config
         $ignoreTypes = $this->ignoreTypes;
         $ignoreTypes[] = $type;
 
-        return $this->with('ignoreTypes', $ignoreTypes);
+        return clone ($this, [
+            'ignoreTypes' => $ignoreTypes,
+        ]);
     }
 
     public function withTypeInitializer(TypeInitializer\TypeInitializer $typeInitializer) : self
@@ -176,39 +209,29 @@ final readonly class Config
         $typeInitializers = $this->typeInitializers;
         $typeInitializers[] = $typeInitializer;
 
-        return $this->with('typeInitializers', $typeInitializers);
+        return clone ($this, [
+            'typeInitializers' => $typeInitializers,
+        ]);
     }
 
     public function withIntrospectionClient(object $client) : self
     {
-        return $this->with('introspectionClient', $client);
+        return clone ($this, [
+            'introspectionClient' => $client,
+        ]);
     }
 
     public function withInlineProcessingDirectory(string $directory, string ...$directories) : self
     {
-        return $this->with('inlineProcessingDirectories', [...$this->inlineProcessingDirectories, $directory, ...$directories]);
+        return clone ($this, [
+            'inlineProcessingDirectories' => array_merge($this->inlineProcessingDirectories, [$directory], array_values($directories)),
+        ]);
     }
 
     public function withTwigProcessingDirectory(string $directory, string ...$directories) : self
     {
-        return $this->with('twigProcessingDirectories', [...$this->twigProcessingDirectories, $directory, ...$directories]);
-    }
-
-    /**
-     * Replace with clone with when in PHP 8.5
-     */
-    private function with(string $name, mixed $value) : self
-    {
-        $clone = new ReflectionClass($this)->newInstanceWithoutConstructor();
-
-        $vars = get_object_vars($this);
-        $vars[$name] = $value;
-
-        foreach ($vars as $varName => $varValue) {
-            // @phpstan-ignore property.dynamicName
-            $clone->$varName = $varValue;
-        }
-
-        return $clone;
+        return clone ($this, [
+            'twigProcessingDirectories' => array_merge($this->twigProcessingDirectories, [$directory], array_values($directories)),
+        ]);
     }
 }

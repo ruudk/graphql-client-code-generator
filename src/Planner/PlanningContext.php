@@ -27,28 +27,20 @@ final readonly class PlanningContext
 
     public function withPath(string $path) : self
     {
-        return new self(
-            $this->outputDirectory,
-            $this->fqcn,
-            $path,
-            $this->indexByType,
-            $this->indexBy,
-            $this->isGeneratingTopLevelFragment,
-            $this->isInsideFragmentContext,
-        );
+        return clone ($this, [
+            'path' => $path,
+        ]);
     }
 
     public function withSubDirectory(string $className) : self
     {
-        return new self(
-            $this->outputDirectory . '/' . $className,
-            $this->fqcn . '\\' . $className,
-            $this->path,
-            null, // Reset indexBy - it should not be inherited by nested fields
-            [], // Reset indexBy - it should not be inherited by nested fields
-            false, // Reset flag for nested classes - they are not top-level fragments
-            $this->isInsideFragmentContext, // Preserve fragment context flag
-        );
+        return clone ($this, [
+            'outputDirectory' => $this->outputDirectory . '/' . $className,
+            'fqcn' => $this->fqcn . '\\' . $className,
+            'indexByType' => null,
+            'indexBy' => [],
+            'isGeneratingTopLevelFragment' => false,
+        ]);
     }
 
     /**
@@ -57,14 +49,9 @@ final readonly class PlanningContext
      */
     public function withIndexBy(?array $indexByType, array $indexBy) : self
     {
-        return new self(
-            $this->outputDirectory,
-            $this->fqcn,
-            $this->path,
-            $indexByType,
-            $indexBy,
-            $this->isGeneratingTopLevelFragment,
-            $this->isInsideFragmentContext,
-        );
+        return clone ($this, [
+            'indexByType' => $indexByType,
+            'indexBy' => $indexBy,
+        ]);
     }
 }
