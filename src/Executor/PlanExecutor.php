@@ -100,8 +100,19 @@ final class PlanExecutor
     {
         $this->hookUsageRegistry->classHooks = [];
 
+        /**
+         * @var array<string, DataClassPlan> $plansByFqcn
+         */
+        $plansByFqcn = [];
+
         foreach ($plan->classes as $class) {
-            if ($class instanceof DataClassPlan && $class->usedHooks !== []) {
+            if ( ! $class instanceof DataClassPlan) {
+                continue;
+            }
+
+            $plansByFqcn[$class->fqcn] = $class;
+
+            if ($class->usedHooks !== []) {
                 $this->hookUsageRegistry->classHooks[$class->fqcn] = $class->usedHooks;
             }
         }
@@ -109,7 +120,7 @@ final class PlanExecutor
         $files = [];
 
         foreach ($plan->classes as $path => $class) {
-            $files[$path] = $this->generateClass($class);
+            $files[$path] = $this->generateClass($class, $plansByFqcn);
         }
 
         foreach ($plan->operations as $operation) {
@@ -183,12 +194,13 @@ final class PlanExecutor
     }
 
     /**
+     * @param array<string, DataClassPlan> $plansByFqcn
      * @throws LogicException
      */
-    private function generateClass(object $class) : string
+    private function generateClass(object $class, array $plansByFqcn) : string
     {
         return match ($class::class) {
-            DataClassPlan::class => $this->dataClassGenerator->generate($class),
+            DataClassPlan::class => $this->dataClassGenerator->generate($class, $plansByFqcn),
 
             EnumClassPlan::class => $this->enumTypeGenerator->generate($class),
 

@@ -48,7 +48,83 @@ final class DataClassGenerator extends AbstractGenerator
         return $result;
     }
 
-    public function generate(DataClassPlan $plan) : string
+    /**
+     * Walks a dotted `@hook` input path through the current class's field shape
+     * (and the nested classes referenced along the way), emitting a property-
+     * chain accessor like `$this->creator->id`. Nullable intermediates get
+     * promoted to `?->` so the chain's static type stays accurate.
+     *
+     * @param array<string, DataClassPlan> $plansByFqcn
+     * @throws \Webmozart\Assert\InvalidArgumentException
+     */
+    private function buildHookInputAccessor(string $path, SymfonyType $fields, array $plansByFqcn) : string
+    {
+        $segments = explode('.', $path);
+        $accessor = '$this';
+        $chainNullable = false;
+        $shape = $this->unwrapShape($fields);
+
+        $last = count($segments) - 1;
+
+        foreach ($segments as $i => $segment) {
+            $shapeArray = $shape->getShape();
+
+            Assert::keyExists($shapeArray, $segment, sprintf(
+                'Hook input path "%s" references unknown field "%s".',
+                $path,
+                $segment,
+            ));
+
+            $segmentType = $shapeArray[$segment]['type'];
+
+            $accessor .= ($chainNullable ? '?->' : '->') . $segment;
+
+            if ($i === $last) {
+                break;
+            }
+
+            $isNullable = $segmentType instanceof SymfonyType\NullableType;
+            $naked = $isNullable ? $segmentType->getWrappedType() : $segmentType;
+
+            Assert::isInstanceOf($naked, SymfonyType\ObjectType::class, sprintf(
+                'Hook input path "%s" cannot descend through non-object segment "%s".',
+                $path,
+                $segment,
+            ));
+
+            $nextFqcn = $naked->getClassName();
+
+            Assert::keyExists($plansByFqcn, $nextFqcn, sprintf(
+                'Hook input path "%s" references class "%s" that has no generated plan.',
+                $path,
+                $nextFqcn,
+            ));
+
+            $shape = $this->unwrapShape($plansByFqcn[$nextFqcn]->fields);
+            $chainNullable = $chainNullable || $isNullable;
+        }
+
+        return $accessor;
+    }
+
+    /**
+     * @throws \Webmozart\Assert\InvalidArgumentException
+     */
+    private function unwrapShape(SymfonyType $type) : ArrayShapeType
+    {
+        if ($type instanceof SymfonyType\NullableType) {
+            $type = $type->getWrappedType();
+        }
+
+        Assert::isInstanceOf($type, ArrayShapeType::class);
+
+        return $type;
+    }
+
+    /**
+     * @param array<string, DataClassPlan> $plansByFqcn
+     */
+    public function generate(DataClassPlan $plan, array $plansByFqcn = []) : string
     {
         $parentType = $plan->parentType;
         $fields = $plan->fields;
@@ -89,7 +165,7 @@ final class DataClassGenerator extends AbstractGenerator
 
         $generator = new CodeGenerator($namespace);
 
-        return $generator->dumpFile(function () use ($plan, $definitionNode, $parentType, $nodesType, $fqcn, $payloadShape, $isData, $fields, $possibleTypes, $generator, $inlineFragmentRequiredFields) {
+        return $generator->dumpFile(function () use ($plan, $definitionNode, $parentType, $nodesType, $fqcn, $payloadShape, $isData, $fields, $possibleTypes, $generator, $inlineFragmentRequiredFields, $plansByFqcn) {
             yield $this->dumpHeader();
             yield '';
 
@@ -131,7 +207,7 @@ final class DataClassGenerator extends AbstractGenerator
             $requiredFieldsMap = $inlineFragmentRequiredFields;
 
             yield $generator->indent(
-                function () use ($plan, $parentType, $nodesType, $possibleTypes, $fields, $isData, $payloadShape, $generator, $requiredFieldsMap) {
+                function () use ($plan, $parentType, $nodesType, $possibleTypes, $fields, $isData, $payloadShape, $generator, $requiredFieldsMap, $plansByFqcn) {
                     if ($possibleTypes !== []) {
                         yield from $generator->docComment('@var list<string>');
                         yield sprintf(
@@ -195,17 +271,11 @@ final class DataClassGenerator extends AbstractGenerator
                                     $this->dumpPHPType($fieldType, $generator->import(...)),
                                     $fieldName,
                                 );
-                                yield $generator->indent(function () use ($fieldType, $fieldName, $generator) {
+                                yield $generator->indent(function () use ($fieldType, $fieldName, $fields, $plansByFqcn, $generator) {
                                     $args = [];
 
                                     foreach ($fieldType->inputPaths as $path) {
-                                        $accessor = '$this->data';
-
-                                        foreach (explode('.', $path) as $segment) {
-                                            $accessor .= '[' . var_export($segment, true) . ']';
-                                        }
-
-                                        $args[] = $accessor;
+                                        $args[] = $this->buildHookInputAccessor($path, $fields, $plansByFqcn);
                                     }
 
                                     yield from $generator->wrap(
