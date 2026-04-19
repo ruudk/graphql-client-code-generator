@@ -14,6 +14,7 @@ use Ruudk\GraphQLCodeGenerator\Config\ConfigLoader;
 use Ruudk\GraphQLCodeGenerator\Executor\PlanExecutor;
 use Ruudk\GraphQLCodeGenerator\GraphQL\IndexByDirectiveSchemaExtender;
 use Ruudk\GraphQLCodeGenerator\Planner;
+use Ruudk\GraphQLCodeGenerator\Planner\Plan\DataClassPlan;
 use SebastianBergmann\Diff\Differ;
 use SebastianBergmann\Diff\Output\UnifiedDiffOutputBuilder;
 use Symfony\Component\Console\Attribute\AsCommand;
@@ -189,7 +190,40 @@ final class GenerateCommand
                         $io->error('Generated files are not in sync');
 
                         $exitCode = Command::FAILURE;
+                    }
 
+                    $usedHookNames = [];
+                    foreach ($plan->classes as $class) {
+                        if ( ! $class instanceof DataClassPlan) {
+                            continue;
+                        }
+
+                        foreach (array_keys($class->usedHooks) as $hookName) {
+                            $usedHookNames[$hookName] = true;
+                        }
+                    }
+
+                    $unusedHooks = false;
+                    foreach ($configItem->hooks as $hookName => $hookDefinition) {
+                        if (isset($usedHookNames[$hookName])) {
+                            continue;
+                        }
+
+                        $unusedHooks = true;
+                        $io->warning(sprintf(
+                            'Hook "%s" (%s) is registered but is not used by any generated code',
+                            $hookName,
+                            $hookDefinition->class,
+                        ));
+                    }
+
+                    if ($unusedHooks) {
+                        $exitCode = Command::FAILURE;
+
+                        continue;
+                    }
+
+                    if ($errors) {
                         continue;
                     }
 
