@@ -1,0 +1,17 @@
+type Query {
+    things: [Thing!]!
+}
+
+interface Thing {
+    id: ID!
+}
+
+type VariantA implements Thing {
+    id: ID!
+    realFieldA: String!
+}
+
+type VariantB implements Thing {
+    id: ID!
+    realFieldB: String!
+}

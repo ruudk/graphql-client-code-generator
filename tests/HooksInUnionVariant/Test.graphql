@@ -1,0 +1,13 @@
+query Test {
+    things {
+        __typename
+        id
+        ... on VariantA {
+            realFieldA
+            user @hook(name: "findUserById", input: ["id"])
+        }
+        ... on VariantB {
+            realFieldB
+        }
+    }
+}

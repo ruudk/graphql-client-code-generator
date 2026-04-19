@@ -1142,6 +1142,12 @@ final class SelectionSetPlanner
     ) : void {
         foreach ($selectionSet->selections as $selection) {
             if ($selection instanceof FieldNode && $selection->name->value !== '__typename') {
+                // Hook fields are synthesized client-side and never present in the raw response,
+                // so they must not be used as presence guards for discriminating union/interface variants.
+                if ($this->directiveProcessor->getHookDirective($selection->directives) !== null) {
+                    continue;
+                }
+
                 $fieldName = $selection->alias->value ?? $selection->name->value;
 
                 if ( ! in_array($fieldName, $requiredFields, true)) {
