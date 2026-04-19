@@ -33,6 +33,7 @@ final class FragmentsTest extends GraphQLTestCase
             ],
         ]))->execute();
 
+        self::assertSame('User', $result->viewer->__typename);
         self::assertNotNull($result->viewer->viewerName);
         self::assertTrue($result->viewer->isViewerName);
         self::assertSame('Ruud Kamphuis', $result->viewer->viewerName->name);

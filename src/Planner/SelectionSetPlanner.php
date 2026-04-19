@@ -65,11 +65,6 @@ final class SelectionSetPlanner
     public private(set) array $inlineFragmentRequiredFields = [];
 
     /**
-     * @var array<string, SelectionSetResult> Fragment name to selection set result mapping
-     */
-    public private(set) array $fragmentSelectionResults = [];
-
-    /**
      * @var array<string, array{FragmentDefinitionNodeWithSource, list<string>}> Fragment name to definition mapping
      */
     public private(set) array $fragmentDefinitions = [];
@@ -104,7 +99,6 @@ final class SelectionSetPlanner
         ?bool $nullable = null,
         ?array $indexByType = null,
         array $indexBy = [],
-        bool $isGeneratingTopLevelFragment = false,
     ) : SelectionSetPlanResult {
         $context = new PlanningContext(
             outputDirectory: $outputDirectory,
@@ -112,8 +106,6 @@ final class SelectionSetPlanner
             path: $path,
             indexByType: $indexByType,
             indexBy: $indexBy,
-            isGeneratingTopLevelFragment: $isGeneratingTopLevelFragment,
-            isInsideFragmentContext: $isGeneratingTopLevelFragment, // If we're generating a fragment, we're in fragment context
         );
 
         $result = $this->planSelectionSet(
@@ -123,17 +115,6 @@ final class SelectionSetPlanner
             $context,
             $nullable,
         );
-
-        // Store fragment results for later use
-        // Only cache results from top-level fragment generation to ensure clean, unmerged results
-        if ($path === 'fragment' && $isGeneratingTopLevelFragment && str_contains($fqcn, '\\Fragment\\')) {
-            // Extract fragment name from FQCN
-            $parts = explode('\\', $fqcn);
-            $fragmentName = end($parts);
-
-            // Store the fragment result
-            $this->fragmentSelectionResults[$fragmentName] = $result;
-        }
 
         return new SelectionSetPlanResult(
             fields: $result->fields->toArrayShape(),
@@ -669,91 +650,6 @@ final class SelectionSetPlanner
             if ($requiredFields !== []) {
                 $this->inlineFragmentRequiredFields[$fragmentObjectType->getClassName()] = $requiredFields;
             }
-        }
-
-        // Only merge fragment fields when:
-        // 1. We're NOT generating a top-level fragment itself (to avoid fragments affecting each other)
-        // 2. The fragment is on the SAME type as the parent (not a conditional fragment)
-        // 3. There are other direct fields selected
-        // 4. We have the fragment result available
-        // Check if fragment type matches parent type
-        // This handles both object types and interfaces
-        // $fragmentType is already typed as Type&NamedType
-        $isFragmentOnSameType = false;
-
-        if ($parent instanceof NamedType) {
-            $isFragmentOnSameType = $parent->name() === $fragmentType->name();
-        }
-
-        $hasDirectFields = false;
-        $currentFields = $fields->getFields();
-        foreach ($currentFields as $name => $type) {
-            if ( ! str_starts_with($name, 'as') && $name !== '__typename') {
-                $hasDirectFields = true;
-
-                break;
-            }
-        }
-
-        // Fragment field merging is context-dependent:
-        // - In fragment context: strict isolation (no merging)
-        // - In query context with same type AND no conflicting direct selections: merge for convenience
-        // - When there are ANY direct field selections, maintain isolation per SPEC.md principle #3
-        $hasAnyDirectFields = false;
-        foreach ($fields->getFields() as $fName => $fType) {
-            // Skip special fields and fragment accessors
-            // TODO This is fragile, breaks easily
-            if ($fName === '__typename' || str_starts_with($fName, 'as') || str_starts_with($fName, 'is')) {
-                continue;
-            }
-
-            $nakedType = $this->typeMapper->getNakedType($fType);
-
-            if ( ! $nakedType instanceof FragmentObjectType) {
-                $hasAnyDirectFields = true;
-
-                break;
-            }
-        }
-
-        if ($isFragmentOnSameType && ! $context->isInsideFragmentContext && ! $hasAnyDirectFields && isset($this->fragmentSelectionResults[$selection->name->value])) {
-            $fragmentResult = $this->fragmentSelectionResults[$selection->name->value];
-            $fragmentFields = $fragmentResult->fields->getFields();
-
-            // Merge fragment fields directly into the parent for direct access
-            $currentFields = $fields->getFields();
-            foreach ($fragmentFields as $fragmentFieldName => $fragmentFieldType) {
-                // Skip the fragment wrapper field itself
-                if ($fragmentFieldName === $fieldName) {
-                    continue;
-                }
-
-                // Get the naked type to check what kind of field this is
-                $nakedType = $this->typeMapper->getNakedType($fragmentFieldType);
-
-                // Skip fragment accessors (both inline and named)
-                if ($nakedType instanceof FragmentObjectType) {
-                    continue;
-                }
-
-                // Skip boolean helper properties for fragments
-                // Check if the type is boolean using TypeIdentifier
-                // TODO This is fragile, breaks easily
-                if (str_starts_with($fragmentFieldName, 'is') && $fragmentFieldType->isIdentifiedBy(\Symfony\Component\TypeInfo\TypeIdentifier::BOOL)) {
-                    continue;
-                }
-
-                // Skip if field already exists (direct selection takes precedence)
-                if (isset($currentFields[$fragmentFieldName])) {
-                    continue;
-                }
-
-                // Add the field for direct access
-                $fields->add($fragmentFieldName, $fragmentFieldType);
-            }
-
-            // Merge path fields from fragment
-            $pathFields->merge($fragmentResult->pathFields);
         }
 
         // Note: PayloadShapeBuilder already handles merging fields from fragment spreads

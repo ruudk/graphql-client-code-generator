@@ -110,7 +110,6 @@ final class SelectionSetPlannerTest extends TestCase
             '/tmp/generated/Fragment/ItemWithDetails',
             'Test\\Generated\\Fragment\\ItemWithDetails',
             'fragment',
-            isGeneratingTopLevelFragment: true,
         );
         // Find the Detail class plan in the result
         $detailClassPlan = null;
@@ -229,7 +228,6 @@ final class SelectionSetPlannerTest extends TestCase
             '/tmp/generated/Fragment/PaymentDetails',
             'Test\\Generated\\Fragment\\PaymentDetails',
             'fragment',
-            isGeneratingTopLevelFragment: true,
         );
         // Find the Payout class plan in the result
         $payoutClassPlan = null;

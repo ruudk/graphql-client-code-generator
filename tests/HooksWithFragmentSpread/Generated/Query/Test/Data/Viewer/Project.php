@@ -11,10 +11,6 @@ use Ruudk\GraphQLCodeGenerator\HooksWithFragmentSpread\Generated\Fragment\Projec
 
 final class Project
 {
-    public ?string $description {
-        get => $this->description ??= $this->data['description'] !== null ? $this->data['description'] : null;
-    }
-
     public ProjectListing $projectListing {
         get => $this->projectListing ??= new ProjectListing($this->data, $this->hooks);
     }

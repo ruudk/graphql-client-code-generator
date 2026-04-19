@@ -10,14 +10,6 @@ use Ruudk\GraphQLCodeGenerator\Fragments\Generated\Fragment\ProjectView;
 
 final class Project
 {
-    public ?string $description {
-        get => $this->description ??= $this->data['description'] !== null ? $this->data['description'] : null;
-    }
-
-    public string $name {
-        get => $this->name ??= $this->data['name'];
-    }
-
     public ProjectView $projectView {
         get => $this->projectView ??= new ProjectView($this->data);
     }

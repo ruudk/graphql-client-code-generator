@@ -556,7 +556,6 @@ final class Planner
                 $this->config->outputDir . '/Fragment/' . $name,
                 $fqcn,
                 'fragment',
-                isGeneratingTopLevelFragment: true,
             );
 
             $planner->setFragmentPayloadShape($name, $planResult->payloadShape);

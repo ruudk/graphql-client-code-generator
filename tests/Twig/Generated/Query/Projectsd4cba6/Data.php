@@ -6,8 +6,6 @@ namespace Ruudk\GraphQLCodeGenerator\Twig\Generated\Query\Projectsd4cba6;
 
 use Ruudk\GraphQLCodeGenerator\Attribute\Generated;
 use Ruudk\GraphQLCodeGenerator\Twig\Generated\Fragment\AdminProjectList;
-use Ruudk\GraphQLCodeGenerator\Twig\Generated\Fragment\AdminProjectList\Project;
-use Ruudk\GraphQLCodeGenerator\Twig\Generated\Fragment\AdminProjectList\Viewer;
 use Ruudk\GraphQLCodeGenerator\Twig\SomeController;
 
 // This file was automatically generated and should not be edited.
@@ -21,17 +19,6 @@ final class Data
 {
     public AdminProjectList $adminProjectList {
         get => $this->adminProjectList ??= new AdminProjectList($this->data);
-    }
-
-    /**
-     * @var list<Project>
-     */
-    public array $projects {
-        get => $this->projects ??= array_map(fn($item) => new Project($item), $this->data['projects']);
-    }
-
-    public Viewer $viewer {
-        get => $this->viewer ??= new Viewer($this->data['viewer']);
     }
 
     /**

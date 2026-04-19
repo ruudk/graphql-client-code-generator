@@ -21,8 +21,6 @@ final readonly class PlanningContext
         public string $path,
         public ?array $indexByType = null,
         public array $indexBy = [],
-        public bool $isGeneratingTopLevelFragment = false,
-        public bool $isInsideFragmentContext = false,
     ) {}
 
     public function withPath(string $path) : self
@@ -39,7 +37,6 @@ final readonly class PlanningContext
             'fqcn' => $this->fqcn . '\\' . $className,
             'indexByType' => null,
             'indexBy' => [],
-            'isGeneratingTopLevelFragment' => false,
         ]);
     }
 

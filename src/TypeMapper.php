@@ -126,13 +126,4 @@ final readonly class TypeMapper
 
         return SymfonyType::mixed();
     }
-
-    public function getNakedType(SymfonyType $type) : SymfonyType
-    {
-        if ($type instanceof SymfonyType\NullableType) {
-            return $type->getWrappedType();
-        }
-
-        return $type;
-    }
 }
