@@ -34,4 +34,20 @@ final class ClassHookUsageRegistry
     {
         return $this->classHooks[$fqcn] ?? [];
     }
+
+    /**
+     * Flat union of every hook name referenced by any generated class.
+     *
+     * @return array<string, true>
+     */
+    public function getAllUsedHookNames() : array
+    {
+        $names = [];
+
+        foreach ($this->classHooks as $hooks) {
+            $names += $hooks;
+        }
+
+        return $names;
+    }
 }

@@ -146,7 +146,8 @@ final class GenerateCommand
                 $plan = new Planner($configItem)->plan();
 
                 // Execution phase - uses discovered types from plan
-                $files = new PlanExecutor($configItem)->execute($plan);
+                $executor = new PlanExecutor($configItem);
+                $files = $executor->execute($plan);
 
                 if ($ensureSync) {
                     $actual = [];
@@ -189,7 +190,26 @@ final class GenerateCommand
                         $io->error('Generated files are not in sync');
 
                         $exitCode = Command::FAILURE;
+                    }
 
+                    $usedHookNames = $executor->hookUsageRegistry->getAllUsedHookNames();
+                    $unusedHooks = array_diff_key($configItem->hooks, $usedHookNames);
+
+                    foreach ($unusedHooks as $hookName => $hookDefinition) {
+                        $io->warning(sprintf(
+                            'Hook "%s" (%s) is registered but is not used by any generated code',
+                            $hookName,
+                            $hookDefinition->class,
+                        ));
+                    }
+
+                    if ($unusedHooks !== []) {
+                        $exitCode = Command::FAILURE;
+
+                        continue;
+                    }
+
+                    if ($errors) {
                         continue;
                     }
 
