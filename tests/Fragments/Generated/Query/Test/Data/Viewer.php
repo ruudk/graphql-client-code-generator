@@ -46,10 +46,6 @@ final class Viewer
         get => $this->isApplicationDetails ??= $this->data['__typename'] === 'Application';
     }
 
-    public string $name {
-        get => $this->name ??= $this->data['name'];
-    }
-
     public ?UserDetails $userDetails {
         get {
             if (isset($this->userDetails)) {

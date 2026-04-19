@@ -117,6 +117,7 @@ final class HooksWithFragmentSpreadTest extends GraphQLTestCase
 
         [$first, $second] = $result->viewer->projects;
 
+        self::assertNull($first->projectListing->description);
         self::assertSame('GraphQL Code Generator', $first->projectListing->projectSummary->name);
         self::assertNotNull($first->projectListing->projectSummary->user);
         self::assertSame('user-123', $first->projectListing->projectSummary->user->id);

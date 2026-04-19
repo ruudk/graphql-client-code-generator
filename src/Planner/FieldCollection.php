@@ -41,12 +41,4 @@ final class FieldCollection
     {
         return clone $this;
     }
-
-    /**
-     * @return array<string, SymfonyType>
-     */
-    public function getFields() : array
-    {
-        return $this->fields;
-    }
 }
