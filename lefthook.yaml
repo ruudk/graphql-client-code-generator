@@ -3,7 +3,9 @@ pre-commit:
   commands:
     ensure-sync:
       glob: "*.php"
-      run: bin/graphql-client-code-generator --config=examples/config.php --config=tests/config.php --ensure-sync
+      run: |
+        [ -f examples/schema.docs.graphql ] || curl -fsSL -o examples/schema.docs.graphql https://docs.github.com/public/fpt/schema.docs.graphql
+        bin/graphql-client-code-generator --config=examples/config.php --config=tests/config.php --ensure-sync
 
     sync-readme-examples:
       glob:

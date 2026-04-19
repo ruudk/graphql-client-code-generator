@@ -25,32 +25,61 @@ final class RestrictedUsageExtensionTest extends TestCase
         self::assertJsonStringEqualsJsonString(
             <<<'JSON'
                 {
-                    "totals": {"errors": 0, "file_errors": 4},
+                    "totals": {"errors": 0, "file_errors": 8},
                     "files": {
+                        "Fixtures/AllowedController.php": {
+                            "errors": 2,
+                            "messages": [
+                                {
+                                    "message": "Instantiation of Ruudk\\GraphQLCodeGenerator\\PHPStan\\Generated\\SomeFragment is only allowed to be used from within tests/PHPStan/templates/_some_fragment.html.twig",
+                                    "line": 23,
+                                    "ignorable": true,
+                                    "identifier": "new.graphql.inline.class.restricted"
+                                },
+                                {
+                                    "message": "Property title from Ruudk\\GraphQLCodeGenerator\\PHPStan\\Generated\\SomeFragment is only allowed to be used from within tests/PHPStan/templates/_some_fragment.html.twig",
+                                    "line": 25,
+                                    "ignorable": true,
+                                    "identifier": "graphql.inline.property.restricted"
+                                }
+                            ]
+                        },
                         "Fixtures/NotAllowedController.php": {
-                            "errors": 4,
+                            "errors": 6,
                             "messages": [
                                 {
                                     "message": "Method execute from Ruudk\\GraphQLCodeGenerator\\PHPStan\\Generated\\SomeQuery is only allowed to be used from within Ruudk\\GraphQLCodeGenerator\\PHPStan\\Fixtures\\AllowedController",
-                                    "line": 18,
+                                    "line": 19,
                                     "ignorable": true,
                                     "identifier": "graphql.inline.method.restricted"
                                 },
                                 {
                                     "message": "Instantiation of Ruudk\\GraphQLCodeGenerator\\PHPStan\\Generated\\Data is only allowed to be used from within Ruudk\\GraphQLCodeGenerator\\PHPStan\\Fixtures\\AllowedController",
-                                    "line": 19,
+                                    "line": 20,
+                                    "ignorable": true,
+                                    "identifier": "new.graphql.inline.class.restricted"
+                                },
+                                {
+                                    "message": "Instantiation of Ruudk\\GraphQLCodeGenerator\\PHPStan\\Generated\\SomeFragment is only allowed to be used from within tests/PHPStan/templates/_some_fragment.html.twig",
+                                    "line": 21,
                                     "ignorable": true,
                                     "identifier": "new.graphql.inline.class.restricted"
                                 },
                                 {
                                     "message": "Property name from Ruudk\\GraphQLCodeGenerator\\PHPStan\\Generated\\Data is only allowed to be used from within Ruudk\\GraphQLCodeGenerator\\PHPStan\\Fixtures\\AllowedController",
-                                    "line": 21,
+                                    "line": 23,
                                     "ignorable": true,
                                     "identifier": "graphql.inline.property.restricted"
                                 },
                                 {
                                     "message": "Property name from Ruudk\\GraphQLCodeGenerator\\PHPStan\\Generated\\Data is only allowed to be used from within Ruudk\\GraphQLCodeGenerator\\PHPStan\\Fixtures\\AllowedController",
-                                    "line": 21,
+                                    "line": 23,
+                                    "ignorable": true,
+                                    "identifier": "graphql.inline.property.restricted"
+                                },
+                                {
+                                    "message": "Property title from Ruudk\\GraphQLCodeGenerator\\PHPStan\\Generated\\SomeFragment is only allowed to be used from within tests/PHPStan/templates/_some_fragment.html.twig",
+                                    "line": 23,
                                     "ignorable": true,
                                     "identifier": "graphql.inline.property.restricted"
                                 }
