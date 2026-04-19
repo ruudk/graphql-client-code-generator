@@ -54,7 +54,7 @@ final class PlanExecutor
     private readonly ExceptionClassGenerator $exceptionClassGenerator;
     private readonly InputTypeGenerator $inputTypeGenerator;
     private readonly NodeNotFoundExceptionGenerator $nodeNotFoundExceptionGenerator;
-    private readonly ClassHookUsageRegistry $hookUsageRegistry;
+    public readonly ClassHookUsageRegistry $hookUsageRegistry;
     private Parser $phpParser;
     private Filesystem $filesystem;
 
