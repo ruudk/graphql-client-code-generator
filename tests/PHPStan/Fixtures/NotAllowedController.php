@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Ruudk\GraphQLCodeGenerator\PHPStan\Fixtures;
 
 use Ruudk\GraphQLCodeGenerator\PHPStan\Generated\Data;
+use Ruudk\GraphQLCodeGenerator\PHPStan\Generated\SomeFragment;
 use Ruudk\GraphQLCodeGenerator\PHPStan\Generated\SomeQuery;
 
 /**
@@ -17,7 +18,8 @@ final readonly class NotAllowedController
         $query = new SomeQuery('ruud');
         $data = $query->execute();
         $inline = new Data('inline');
+        $twig = new SomeFragment('from twig');
 
-        return $data->name . $inline->name;
+        return $data->name . $inline->name . $twig->title;
     }
 }
