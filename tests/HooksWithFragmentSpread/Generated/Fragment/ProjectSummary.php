@@ -21,7 +21,7 @@ final class ProjectSummary
     }
 
     public ?User $user {
-        get => $this->user ??= $this->hooks['findUserById']->__invoke($this->data['creator']['id']);
+        get => $this->user ??= $this->hooks['findUserById']->__invoke($this->creator->id);
     }
 
     /**

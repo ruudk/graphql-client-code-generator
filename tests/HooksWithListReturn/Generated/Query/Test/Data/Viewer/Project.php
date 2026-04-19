@@ -22,7 +22,7 @@ final class Project
      * @var list<User>
      */
     public array $contributors {
-        get => $this->contributors ??= $this->hooks['findUsersByIds']->__invoke($this->data['contributorIds']);
+        get => $this->contributors ??= $this->hooks['findUsersByIds']->__invoke($this->contributorIds);
     }
 
     public string $name {
