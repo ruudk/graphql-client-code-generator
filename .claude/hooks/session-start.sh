@@ -7,4 +7,4 @@ fi
 
 cd "$CLAUDE_PROJECT_DIR"
 
-composer install --no-interaction --prefer-dist --no-progress
+COMPOSER_ALLOW_SUPERUSER=1 composer install --no-interaction --prefer-dist --no-progress
