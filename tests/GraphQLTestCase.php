@@ -37,13 +37,25 @@ abstract class GraphQLTestCase extends TestCase
 
     public function getConfig() : Config
     {
-        return Config::create(
+        $config = Config::create(
             schema: $this->directory . '/Schema.graphql',
             projectDir: dirname(__DIR__),
             outputDir: $this->directory . '/Generated',
             namespace: $this->namespace . '\\Generated',
             client: TestClient::class,
-        )->withQueriesDir($this->directory);
+        );
+
+        $queryFiles = Finder::create()->files()
+            ->in($this->directory)
+            ->depth(0)
+            ->name('*.graphql')
+            ->notName('Schema.graphql');
+
+        if ($queryFiles->hasResults()) {
+            $config = $config->withQueriesDir($this->directory);
+        }
+
+        return $config;
     }
 
     protected function assertActualMatchesExpected() : void

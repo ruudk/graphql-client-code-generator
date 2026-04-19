@@ -229,6 +229,11 @@ final class Planner
         // only uses inline/Twig sources (e.g. `GeneratedGraphQLClient`), so there
         // are no query files to discover.
         if ($this->config->queriesDir !== null) {
+            Assert::directory(
+                $this->config->queriesDir,
+                sprintf('Configured queriesDir "%s" does not exist.', $this->config->queriesDir),
+            );
+
             $finder = Finder::create()->files()
                 ->in($this->config->queriesDir)
                 ->name('*.graphql')
@@ -236,6 +241,13 @@ final class Planner
 
             if ($this->schemaLoader->schemaPath !== null) {
                 $finder->notPath(Path::makeRelative($this->schemaLoader->schemaPath, $this->config->queriesDir));
+            }
+
+            if ( ! $finder->hasResults()) {
+                throw new Exception(sprintf(
+                    'Configured queriesDir "%s" does not contain any .graphql files. Remove the queriesDir config option if you don\'t have any query files.',
+                    $this->config->queriesDir,
+                ));
             }
 
             // First pass: parse all queries to find what types are actually used
