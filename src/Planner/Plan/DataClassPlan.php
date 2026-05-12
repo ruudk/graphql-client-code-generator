@@ -10,6 +10,7 @@ use GraphQL\Language\AST\OperationDefinitionNode;
 use GraphQL\Type\Definition\NamedType;
 use GraphQL\Type\Definition\Type;
 use Ruudk\GraphQLCodeGenerator\Planner\Source\GraphQLFileSource;
+use Ruudk\GraphQLCodeGenerator\Planner\Source\InlineFragmentSource;
 use Ruudk\GraphQLCodeGenerator\Planner\Source\InlineSource;
 use Ruudk\GraphQLCodeGenerator\Planner\Source\TwigFileSource;
 use Symfony\Component\TypeInfo\Type as SymfonyType;
@@ -29,7 +30,7 @@ final class DataClassPlan
      * @param array<string, list<string>> $inlineFragmentRequiredFields
      */
     public function __construct(
-        public readonly GraphQLFileSource | InlineSource | TwigFileSource $source,
+        public readonly GraphQLFileSource | InlineFragmentSource | InlineSource | TwigFileSource $source,
         public readonly string $path,
         public readonly string $fqcn,
         public readonly NamedType & Type $parentType,
