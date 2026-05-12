@@ -65,6 +65,7 @@ use Ruudk\GraphQLCodeGenerator\GraphQL\DocumentNodeWithSource;
 use Ruudk\GraphQLCodeGenerator\GraphQL\FragmentDefinitionNodeWithSource;
 use Ruudk\GraphQLCodeGenerator\GraphQL\PossibleTypesFinder;
 use Ruudk\GraphQLCodeGenerator\PHP\Visitor\ClassConstantFinder;
+use Ruudk\GraphQLCodeGenerator\PHP\Visitor\FragmentFinder;
 use Ruudk\GraphQLCodeGenerator\PHP\Visitor\OperationFinder;
 use Ruudk\GraphQLCodeGenerator\Planner\OperationPlan;
 use Ruudk\GraphQLCodeGenerator\Planner\Plan\DataClassPlan;
@@ -77,6 +78,7 @@ use Ruudk\GraphQLCodeGenerator\Planner\Plan\OperationClassPlan;
 use Ruudk\GraphQLCodeGenerator\Planner\PlannerResult;
 use Ruudk\GraphQLCodeGenerator\Planner\SelectionSetPlanner;
 use Ruudk\GraphQLCodeGenerator\Planner\Source\GraphQLFileSource;
+use Ruudk\GraphQLCodeGenerator\Planner\Source\InlineFragmentSource;
 use Ruudk\GraphQLCodeGenerator\Planner\Source\InlineSource;
 use Ruudk\GraphQLCodeGenerator\Planner\Source\TwigFileSource;
 use Ruudk\GraphQLCodeGenerator\Twig\GraphQLExtension;
@@ -271,7 +273,7 @@ final class Planner
                 ->files()
                 ->in($this->config->inlineProcessingDirectories)
                 ->name('*.php')
-                ->contains(GeneratedGraphQLClient::class);
+                ->contains('/GeneratedGraphQL(?:Client|Fragment)/');
 
             foreach ($finder as $file) {
                 $stmts = $this->phpParser->parse($this->filesystem->readFile($file->getPathname()));
@@ -319,6 +321,65 @@ final class Planner
                                 $document,
                                 new InlineSource(
                                     $className,
+                                    $shortHash,
+                                ),
+                            );
+                        }
+                    }
+                }
+
+                $fragmentFinder = new FragmentFinder($classConstants->constants);
+                new NodeTraverser($fragmentFinder)->traverse($stmts);
+
+                foreach ($fragmentFinder->fragments as $className => $methods) {
+                    foreach ($methods as $method => $properties) {
+                        foreach ($properties as $property => $fragmentString) {
+                            $hash = hash('sha256', implode(',', [
+                                $className,
+                                $method,
+                                $property,
+                            ]));
+                            $shortHash = substr($hash, 0, 6);
+
+                            $document = Parser::parse($fragmentString);
+                            Assert::count($document->definitions, 1, sprintf(
+                                'Expected %s::%s::$%s to declare exactly one fragment.',
+                                $className,
+                                $method,
+                                $property,
+                            ));
+
+                            [$definition] = $document->definitions;
+                            Assert::isInstanceOf($definition, FragmentDefinitionNode::class, sprintf(
+                                'Expected %s::%s::$%s to declare a fragment definition.',
+                                $className,
+                                $method,
+                                $property,
+                            ));
+
+                            $name = $definition->name->value;
+
+                            if (isset($definedFragments[$name])) {
+                                throw new Exception(sprintf(
+                                    'Class "%s::%s::$%s" defined fragment "%s" but it is already defined in "%s".',
+                                    $className,
+                                    $method,
+                                    $property,
+                                    $name,
+                                    $definedFragments[$name],
+                                ));
+                            }
+
+                            $definedFragments[$name] = sprintf('%s::%s::$%s', $className, $method, $property);
+
+                            $usedTypesCollector->analyze($document);
+
+                            $operations[$file->getPathname()][] = DocumentNodeWithSource::create(
+                                $document,
+                                new InlineFragmentSource(
+                                    $className,
+                                    $method,
+                                    $property,
                                     $shortHash,
                                 ),
                             );
@@ -504,7 +565,10 @@ final class Planner
          * @var list<array{
          *     name: string,
          *     fragment: FragmentDefinitionNodeWithSource,
-         *     type: NamedType&Type
+         *     type: NamedType&Type,
+         *     fqcn: string,
+         *     path: string,
+         *     nestedDir: string,
          * }> $fragmentsToProcess
          */
         $fragmentsToProcess = [];
@@ -531,7 +595,20 @@ final class Planner
 
             Assert::notNull($type, 'Fragment type is expected');
 
+            if ($fragment->source instanceof InlineFragmentSource) {
+                $namespacedName = sprintf('%s%s', $name, $fragment->source->hash);
+                $fqcn = $this->fullyQualified('Fragment', $namespacedName, $name);
+                $fragmentDir = $this->config->outputDir . '/Fragment/' . $namespacedName;
+                $path = $fragmentDir . '/' . $name . '.php';
+                $nestedDir = $fragmentDir . '/' . $name;
+            } else {
+                $fqcn = $this->fullyQualified('Fragment', $name);
+                $path = $this->config->outputDir . '/Fragment/' . $name . '.php';
+                $nestedDir = $this->config->outputDir . '/Fragment/' . $name;
+            }
+
             $planner->setFragmentType($name, $type);
+            $planner->setFragmentFqcn($name, $fqcn);
             $planner->setFragmentDefinition($name, $fragment, UsedFragmentsVisitor::getUsedFragments($fragment));
 
             // Store for processing after all are set
@@ -539,6 +616,9 @@ final class Planner
                 'name' => $name,
                 'fragment' => $fragment,
                 'type' => $type,
+                'fqcn' => $fqcn,
+                'path' => $path,
+                'nestedDir' => $nestedDir,
             ];
         }
 
@@ -547,13 +627,15 @@ final class Planner
             $name = $fragmentData['name'];
             $fragment = $fragmentData['fragment'];
             $type = $fragmentData['type'];
+            $fqcn = $fragmentData['fqcn'];
+            $path = $fragmentData['path'];
+            $nestedDir = $fragmentData['nestedDir'];
 
-            $fqcn = $this->fullyQualified('Fragment', $name);
             $planResult = $planner->plan(
                 $fragment->source,
                 $fragment->selectionSet,
                 $type,
-                $this->config->outputDir . '/Fragment/' . $name,
+                $nestedDir,
                 $fqcn,
                 'fragment',
             );
@@ -561,7 +643,6 @@ final class Planner
             $planner->setFragmentPayloadShape($name, $planResult->payloadShape);
 
             // Add the fragment class itself
-            $path = $this->config->outputDir . '/Fragment/' . $name . '.php';
             $result->addClass(new DataClassPlan(
                 $fragment->source,
                 $path,
@@ -755,6 +836,10 @@ final class Planner
 
         if ($document->source instanceof TwigFileSource) {
             throw new Exception('Twig templates may only contain fragment definitions');
+        }
+
+        if ($document->source instanceof InlineFragmentSource) {
+            throw new Exception('Inline fragment attributes may only declare fragment definitions');
         }
 
         $source = $document->source;

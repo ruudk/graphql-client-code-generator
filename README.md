@@ -408,6 +408,7 @@ enum SearchType: string
 - **Schema introspection** with auto-update from live endpoints
 - **Custom scalar mapping** (DateTime, JSON, UUID, etc.)
 - **Inline operations** - define GraphQL directly in PHP classes
+- **Inline fragments** - services publish their data contract via `#[GeneratedGraphQLFragment]`
 - **Twig template extraction** - extract fragments from Twig files
 - **Namespace customization** - organize generated code your way
 
@@ -472,6 +473,98 @@ final readonly class SomeController
 4. Commit the generated code—now your CI can verify the query class exists and matches
 
 **No separate `.graphql` files needed**—your GraphQL lives right next to where it's used, but you still get full type safety and validation!
+
+### 🧩 Inline GraphQL Fragments
+
+A service that operates on a slice of data can **publish its own data contract** as a fragment via `#[GeneratedGraphQLFragment]`. Callers spread the fragment into their queries and hand the resulting typed object back to the service — without having to know which fields the service reads internally.
+
+<!-- source: tests/InlineFragment/UserMapper.php -->
+```php
+<?php
+
+declare(strict_types=1);
+
+namespace Ruudk\GraphQLCodeGenerator\InlineFragment;
+
+use Ruudk\GraphQLCodeGenerator\Attribute\GeneratedGraphQLFragment;
+use Ruudk\GraphQLCodeGenerator\InlineFragment\Generated\Fragment\UserName56995d\UserName;
+
+final readonly class UserMapper
+{
+    private const string FRAGMENT = <<<'GRAPHQL'
+        fragment UserName on User {
+            id
+            firstName
+            lastName
+        }
+        GRAPHQL;
+
+    /**
+     * @param list<UserName> $users
+     * @return list<string>
+     */
+    public function mapMany(
+        #[GeneratedGraphQLFragment(self::FRAGMENT)]
+        array $users,
+    ) : array {
+        return array_map(
+            fn(UserName $u) => $u->firstName . ' ' . $u->lastName,
+            $users,
+        );
+    }
+}
+```
+
+**Multiple consumers spread the same fragment:**
+
+<!-- source: tests/InlineFragment/ListUsersClient.php -->
+```php
+<?php
+
+declare(strict_types=1);
+
+namespace Ruudk\GraphQLCodeGenerator\InlineFragment;
+
+use Ruudk\GraphQLCodeGenerator\Attribute\GeneratedGraphQLClient;
+use Ruudk\GraphQLCodeGenerator\InlineFragment\Generated\Query\ListUsers9908fe\ListUsersQuery;
+
+final readonly class ListUsersClient
+{
+    private const string OPERATION = <<<'GRAPHQL'
+        query ListUsers {
+            users {
+                ...UserName
+            }
+        }
+        GRAPHQL;
+
+    public function __construct(
+        #[GeneratedGraphQLClient(self::OPERATION)]
+        private ListUsersQuery $query,
+        private UserMapper $mapper,
+    ) {}
+
+    /**
+     * @return list<string>
+     */
+    public function getDisplayNames() : array
+    {
+        return $this->mapper->mapMany(
+            array_map(fn($user) => $user->userName, $this->query->execute()->users),
+        );
+    }
+}
+```
+
+**How it works:**
+
+1. The service tags a method parameter with `#[GeneratedGraphQLFragment(self::FRAGMENT)]`.
+2. The generator emits the fragment class at `Generated/Fragment/{Name}{hash}/{Name}.php` — hashed by the declaration site, like `#[GeneratedGraphQLClient]`.
+3. The fragment class is stamped with `#[Generated(source: …, restricted: true, restrictInstantiation: true)]`, so PHPStan only lets the declaring service consume it.
+4. Any query — `.graphql` file, Twig block, or another inline `#[GeneratedGraphQLClient]` — can spread `...UserName`; the generated Data class imports the same hashed fragment class.
+5. Callers hand fragment-shaped data back to the service, which is the only place allowed to read it.
+
+**Fragment names must be globally unique** across `.graphql` files, Twig templates, and PHP attributes — the generator throws on conflict, naming both source locations.
 
 ### 🎭 Twig Template Support
 

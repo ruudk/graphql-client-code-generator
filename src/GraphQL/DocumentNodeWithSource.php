@@ -8,14 +8,15 @@ use GraphQL\Language\AST\DocumentNode;
 use GraphQL\Language\AST\FragmentDefinitionNode;
 use GraphQL\Language\AST\NodeList;
 use Ruudk\GraphQLCodeGenerator\Planner\Source\GraphQLFileSource;
+use Ruudk\GraphQLCodeGenerator\Planner\Source\InlineFragmentSource;
 use Ruudk\GraphQLCodeGenerator\Planner\Source\InlineSource;
 use Ruudk\GraphQLCodeGenerator\Planner\Source\TwigFileSource;
 
 final class DocumentNodeWithSource extends DocumentNode
 {
-    public GraphQLFileSource | InlineSource | TwigFileSource $source;
+    public GraphQLFileSource | InlineFragmentSource | InlineSource | TwigFileSource $source;
 
-    public static function create(DocumentNode $documentNode, GraphQLFileSource | InlineSource | TwigFileSource $source) : self
+    public static function create(DocumentNode $documentNode, GraphQLFileSource | InlineFragmentSource | InlineSource | TwigFileSource $source) : self
     {
         $definitions = [];
         foreach ($documentNode->definitions as $definition) {

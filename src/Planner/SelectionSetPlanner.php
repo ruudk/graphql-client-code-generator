@@ -31,6 +31,7 @@ use Ruudk\GraphQLCodeGenerator\GraphQL\FragmentDefinitionNodeWithSource;
 use Ruudk\GraphQLCodeGenerator\GraphQL\PossibleTypesFinder;
 use Ruudk\GraphQLCodeGenerator\Planner\Plan\DataClassPlan;
 use Ruudk\GraphQLCodeGenerator\Planner\Source\GraphQLFileSource;
+use Ruudk\GraphQLCodeGenerator\Planner\Source\InlineFragmentSource;
 use Ruudk\GraphQLCodeGenerator\Planner\Source\InlineSource;
 use Ruudk\GraphQLCodeGenerator\Planner\Source\TwigFileSource;
 use Ruudk\GraphQLCodeGenerator\RecursiveTypeFinder;
@@ -68,6 +69,11 @@ final class SelectionSetPlanner
      * @var array<string, array{FragmentDefinitionNodeWithSource, list<string>}> Fragment name to definition mapping
      */
     public private(set) array $fragmentDefinitions = [];
+
+    /**
+     * @var array<string, string> Fragment name to fully-qualified class name mapping
+     */
+    public private(set) array $fragmentFqcns = [];
     private PossibleTypesFinder $possibleTypesFinder;
 
     public function __construct(
@@ -90,7 +96,7 @@ final class SelectionSetPlanner
      * @throws LogicException
      */
     public function plan(
-        GraphQLFileSource | InlineSource | TwigFileSource $source,
+        GraphQLFileSource | InlineFragmentSource | InlineSource | TwigFileSource $source,
         SelectionSetNode $selectionSet,
         Type $parent,
         string $outputDirectory,
@@ -133,7 +139,7 @@ final class SelectionSetPlanner
      * @throws LogicException
      */
     public function planSelectionSet(
-        GraphQLFileSource | InlineSource | TwigFileSource $source,
+        GraphQLFileSource | InlineFragmentSource | InlineSource | TwigFileSource $source,
         SelectionSetNode $selectionSet,
         Type $type,
         PlanningContext $context,
@@ -211,7 +217,7 @@ final class SelectionSetPlanner
      * @throws LogicException
      */
     private function planNamedTypeSelectionSet(
-        GraphQLFileSource | InlineSource | TwigFileSource $source,
+        GraphQLFileSource | InlineFragmentSource | InlineSource | TwigFileSource $source,
         SelectionSetNode $selectionSet,
         NamedType & Type $type,
         PlanningContext $context,
@@ -307,7 +313,7 @@ final class SelectionSetPlanner
      * @throws LogicException
      */
     private function processFieldSelection(
-        GraphQLFileSource | InlineSource | TwigFileSource $source,
+        GraphQLFileSource | InlineFragmentSource | InlineSource | TwigFileSource $source,
         FieldNode $selection,
         Type $parent,
         PlanningContext $context,
@@ -406,7 +412,7 @@ final class SelectionSetPlanner
      * @throws LogicException
      */
     private function processNestedSelection(
-        GraphQLFileSource | InlineSource | TwigFileSource $source,
+        GraphQLFileSource | InlineFragmentSource | InlineSource | TwigFileSource $source,
         FieldNode $selection,
         string $fieldName,
         Type $fieldType,
@@ -479,7 +485,7 @@ final class SelectionSetPlanner
      * @throws LogicException
      */
     private function processInlineFragment(
-        GraphQLFileSource | InlineSource | TwigFileSource $source,
+        GraphQLFileSource | InlineFragmentSource | InlineSource | TwigFileSource $source,
         InlineFragmentNode $selection,
         Type $parent,
         PlanningContext $context,
@@ -609,7 +615,7 @@ final class SelectionSetPlanner
 
         // Always add the fragment wrapper for backward compatibility
         $fragmentObjectType = new FragmentObjectType(
-            $this->fullyQualified('Fragment', $selection->name->value),
+            $this->fragmentFqcns[$selection->name->value] ?? $this->fullyQualified('Fragment', $selection->name->value),
             $selection->name->value,
             $fragmentType,
         );
@@ -948,7 +954,7 @@ final class SelectionSetPlanner
      * @throws InvariantViolation
      */
     private function createDataClassPlan(
-        GraphQLFileSource | InlineSource | TwigFileSource $source,
+        GraphQLFileSource | InlineFragmentSource | InlineSource | TwigFileSource $source,
         NamedType & Type $parentType,
         SelectionSetResult $result,
         PlanningContext $context,
@@ -994,7 +1000,7 @@ final class SelectionSetPlanner
     }
 
     private function createInlineFragmentClassPlan(
-        GraphQLFileSource | InlineSource | TwigFileSource $source,
+        GraphQLFileSource | InlineFragmentSource | InlineSource | TwigFileSource $source,
         NamedType & Type $fragmentType,
         FieldCollection $fields,
         PayloadShape $payloadShape,
@@ -1105,6 +1111,11 @@ final class SelectionSetPlanner
     public function setFragmentType(string $name, NamedType & Type $type) : void
     {
         $this->fragmentTypes[$name] = $type;
+    }
+
+    public function setFragmentFqcn(string $name, string $fqcn) : void
+    {
+        $this->fragmentFqcns[$name] = $fqcn;
     }
 
     /**
