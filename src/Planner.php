@@ -548,8 +548,7 @@ final class Planner
             }
         }
 
-        // Plan NodeNotFoundException only if dumpOrThrows is enabled
-        if ($this->config->dumpOrThrows) {
+        if ($this->config->dumpOrThrowProperties) {
             $queryType = $this->schema->getQueryType();
             Assert::notNull($queryType);
             $result->addClass(new NodeNotFoundExceptionPlan(
@@ -926,10 +925,9 @@ final class Planner
             $this->fullyQualified($operationType, $operationNamespaceName),
         );
 
-        // Create the exception class plan only if dumpOrThrows is enabled
         $exceptionClassPlan = null;
 
-        if ($this->config->dumpOrThrows) {
+        if ($this->config->dumpOrThrowMethods) {
             $exceptionClassPlan = new ExceptionClassPlan(
                 $operationDir . '/' . $operationName . $operationType . 'FailedException.php',
                 $this->fullyQualified($operationType, $operationNamespaceName),

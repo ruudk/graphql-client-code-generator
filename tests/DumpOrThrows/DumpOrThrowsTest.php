@@ -14,7 +14,9 @@ final class DumpOrThrowsTest extends GraphQLTestCase
     #[Override]
     public function getConfig() : Config
     {
-        return parent::getConfig()->enableDumpOrThrows();
+        return parent::getConfig()
+            ->enableDumpOrThrowMethods()
+            ->enableDumpOrThrowProperties();
     }
 
     public function testGenerate() : void
