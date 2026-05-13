@@ -8,11 +8,6 @@ namespace Ruudk\GraphQLCodeGenerator\InlineFragments\Generated\Query\Test\Data\V
 
 final class AsUser
 {
-    /**
-     * @var list<string>
-     */
-    public const array POSSIBLE_TYPES = ['User'];
-
     public string $__typename {
         get => $this->__typename ??= $this->data['__typename'];
     }

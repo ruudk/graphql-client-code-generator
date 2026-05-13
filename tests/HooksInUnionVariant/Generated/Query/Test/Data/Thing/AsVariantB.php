@@ -8,11 +8,6 @@ namespace Ruudk\GraphQLCodeGenerator\HooksInUnionVariant\Generated\Query\Test\Da
 
 final class AsVariantB
 {
-    /**
-     * @var list<string>
-     */
-    public const array POSSIBLE_TYPES = ['VariantB'];
-
     public string $__typename {
         get => $this->__typename ??= $this->data['__typename'];
     }

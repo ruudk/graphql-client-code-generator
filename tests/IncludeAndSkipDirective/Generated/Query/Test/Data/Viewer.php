@@ -8,11 +8,6 @@ namespace Ruudk\GraphQLCodeGenerator\IncludeAndSkipDirective\Generated\Query\Tes
 
 final class Viewer
 {
-    /**
-     * @var list<string>
-     */
-    public const array POSSIBLE_TYPES = ['User'];
-
     public string $name {
         get => $this->name ??= $this->data['name'];
     }
