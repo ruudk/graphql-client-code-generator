@@ -12,11 +12,6 @@ use Ruudk\GraphQLCodeGenerator\Fragments\Generated\Fragment\ViewerName;
 
 final class Viewer
 {
-    /**
-     * @var list<string>
-     */
-    public const array POSSIBLE_TYPES = ['Application', 'User'];
-
     public string $__typename {
         get => $this->__typename ??= $this->data['__typename'];
     }
@@ -72,14 +67,14 @@ final class Viewer
     }
 
     public ?ViewerName $viewerName {
-        get => $this->viewerName ??= in_array($this->data['__typename'], ViewerName::POSSIBLE_TYPES, true) ? new ViewerName($this->data) : null;
+        get => $this->viewerName ??= in_array($this->data['__typename'], ['Application', 'User'], true) ? new ViewerName($this->data) : null;
     }
 
     /**
      * @phpstan-assert-if-true !null $this->viewerName
      */
     public bool $isViewerName {
-        get => $this->isViewerName ??= in_array($this->data['__typename'], ViewerName::POSSIBLE_TYPES, true);
+        get => $this->isViewerName ??= in_array($this->data['__typename'], ['Application', 'User'], true);
     }
 
     /**

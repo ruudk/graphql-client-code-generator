@@ -8,11 +8,6 @@ namespace Ruudk\GraphQLCodeGenerator\Fragments\Generated\Fragment;
 
 final class ViewerName
 {
-    /**
-     * @var list<string>
-     */
-    public const array POSSIBLE_TYPES = ['Application', 'User'];
-
     public string $name {
         get => $this->name ??= $this->data['name'];
     }

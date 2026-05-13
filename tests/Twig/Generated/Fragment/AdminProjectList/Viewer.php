@@ -15,11 +15,6 @@ use Ruudk\GraphQLCodeGenerator\Attribute\Generated;
 )]
 final class Viewer
 {
-    /**
-     * @var list<string>
-     */
-    public const array POSSIBLE_TYPES = ['Application', 'User'];
-
     public string $name {
         get => $this->name ??= $this->data['name'];
     }

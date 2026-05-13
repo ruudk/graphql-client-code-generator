@@ -14,11 +14,6 @@ namespace Ruudk\GraphQLCodeGenerator\Examples\Generated\Query\Search\Data\Search
  */
 final class AsIssue
 {
-    /**
-     * @var list<string>
-     */
-    public const array POSSIBLE_TYPES = ['Issue'];
-
     public string $__typename {
         get => $this->__typename ??= $this->data['__typename'];
     }

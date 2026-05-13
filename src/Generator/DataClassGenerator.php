@@ -23,6 +23,7 @@ use Ruudk\GraphQLCodeGenerator\TypeInitializer\DelegatingTypeInitializer;
 use Symfony\Component\TypeInfo\Type\ArrayShapeType;
 use Symfony\Component\TypeInfo\Type as SymfonyType;
 use Webmozart\Assert\Assert;
+use Webmozart\Assert\InvalidArgumentException;
 
 final class DataClassGenerator extends AbstractGenerator
 {
@@ -38,7 +39,7 @@ final class DataClassGenerator extends AbstractGenerator
      * single source of truth (`ObjectTypeInitializer` + `ClassHookUsageRegistry`)
      * decides whether to forward `$this->hooks` into the child constructor.
      *
-     * @throws \Webmozart\Assert\InvalidArgumentException
+     * @throws InvalidArgumentException
      */
     private function initializeFragmentObject(FragmentObjectType $type, CodeGenerator $generator) : string
     {
@@ -55,7 +56,7 @@ final class DataClassGenerator extends AbstractGenerator
      * promoted to `?->` so the chain's static type stays accurate.
      *
      * @param array<string, DataClassPlan> $plansByFqcn
-     * @throws \Webmozart\Assert\InvalidArgumentException
+     * @throws InvalidArgumentException
      */
     private function buildHookInputAccessor(string $path, SymfonyType $fields, array $plansByFqcn) : string
     {
@@ -108,7 +109,24 @@ final class DataClassGenerator extends AbstractGenerator
     }
 
     /**
-     * @throws \Webmozart\Assert\InvalidArgumentException
+     * @param array<string, DataClassPlan> $plansByFqcn
+     * @throws InvalidArgumentException
+     */
+    private function dumpPossibleTypesList(array $plansByFqcn, string $fqcn) : string
+    {
+        Assert::keyExists($plansByFqcn, $fqcn);
+
+        return implode(
+            ', ',
+            array_map(
+                fn(string $type) => var_export($type, true),
+                $plansByFqcn[$fqcn]->possibleTypes,
+            ),
+        );
+    }
+
+    /**
+     * @throws InvalidArgumentException
      */
     private function unwrapShape(SymfonyType $type) : ArrayShapeType
     {
@@ -135,6 +153,7 @@ final class DataClassGenerator extends AbstractGenerator
         $isFragment = $plan->isFragment;
         $definitionNode = $plan->definitionNode;
         $nodesType = $plan->nodesType;
+
         /**
          * @var array<string, list<string>>
          */
@@ -149,7 +168,7 @@ final class DataClassGenerator extends AbstractGenerator
         }
 
         $parts = explode('\\', $fqcn);
-        $className = array_pop($parts);
+        array_pop($parts);
         $namespace = implode('\\', $parts);
 
         // For inline fragments with a single possible type, use literal type for __typename
@@ -165,7 +184,7 @@ final class DataClassGenerator extends AbstractGenerator
 
         $generator = new CodeGenerator($namespace);
 
-        return $generator->dumpFile(function () use ($plan, $definitionNode, $parentType, $nodesType, $fqcn, $payloadShape, $isData, $fields, $possibleTypes, $generator, $inlineFragmentRequiredFields, $plansByFqcn) {
+        return $generator->dumpFile(function () use ($plan, $definitionNode, $parentType, $nodesType, $fqcn, $payloadShape, $isData, $fields, $generator, $inlineFragmentRequiredFields, $plansByFqcn) {
             yield $this->dumpHeader();
             yield '';
 
@@ -207,18 +226,7 @@ final class DataClassGenerator extends AbstractGenerator
             $requiredFieldsMap = $inlineFragmentRequiredFields;
 
             yield $generator->indent(
-                function () use ($plan, $parentType, $nodesType, $possibleTypes, $fields, $isData, $payloadShape, $generator, $requiredFieldsMap, $plansByFqcn) {
-                    if ($possibleTypes !== []) {
-                        yield from $generator->docComment('@var list<string>');
-                        yield sprintf(
-                            'public const array POSSIBLE_TYPES = [%s];',
-                            $generator->join(
-                                ', ',
-                                array_map(fn(string $type) => var_export($type, true), $possibleTypes),
-                            ),
-                        );
-                    }
-
+                function () use ($plan, $parentType, $nodesType, $fields, $isData, $payloadShape, $generator, $requiredFieldsMap, $plansByFqcn) {
                     // Get optional flags and actual types from payloadShape
                     $optionalFields = [];
                     $payloadFieldTypes = [];
@@ -322,7 +330,7 @@ final class DataClassGenerator extends AbstractGenerator
                                 $this->dumpPHPType($propertyType, $generator->import(...)),
                                 $fieldName,
                             );
-                            yield $generator->indent(function () use ($parentType, $nakedFieldType, $fieldType, $generator, $fieldName, $requiredFieldsMap, $optional, $payloadFieldTypes, $propertyType) {
+                            yield $generator->indent(function () use ($parentType, $nakedFieldType, $fieldType, $generator, $fieldName, $requiredFieldsMap, $optional, $payloadFieldTypes, $propertyType, $plansByFqcn) {
                                 if ($nakedFieldType instanceof FragmentObjectType) {
                                     // For interface/union parent types, we need special handling
                                     if ( ! $parentType instanceof ObjectType) {
@@ -338,9 +346,9 @@ final class DataClassGenerator extends AbstractGenerator
                                         // For fragments on interface/union types themselves
                                         if ($nakedFieldType->fragmentType instanceof InterfaceType || $nakedFieldType->fragmentType instanceof UnionType) {
                                             yield sprintf(
-                                                'get => $this->%s ??= in_array($this->data[\'__typename\'], %s::POSSIBLE_TYPES, true) ? %s : null;',
+                                                'get => $this->%s ??= in_array($this->data[\'__typename\'], [%s], true) ? %s : null;',
                                                 $fieldName,
-                                                $generator->import($nakedFieldType->getClassName()),
+                                                $this->dumpPossibleTypesList($plansByFqcn, $nakedFieldType->getClassName()),
                                                 $construct,
                                             );
 
@@ -504,7 +512,7 @@ final class DataClassGenerator extends AbstractGenerator
                                     'public bool $is%s {',
                                     $nakedFieldType->fragmentName,
                                 );
-                                yield $generator->indent(function () use ($nakedFieldType, $generator) {
+                                yield $generator->indent(function () use ($nakedFieldType, $plansByFqcn) {
                                     if ($nakedFieldType->fragmentType instanceof ObjectType) {
                                         yield sprintf(
                                             'get => $this->is%s ??= $this->data[\'__typename\'] === %s;',
@@ -516,9 +524,9 @@ final class DataClassGenerator extends AbstractGenerator
                                     }
 
                                     yield sprintf(
-                                        'get => $this->is%s ??= in_array($this->data[\'__typename\'], %s::POSSIBLE_TYPES, true);',
+                                        'get => $this->is%s ??= in_array($this->data[\'__typename\'], [%s], true);',
                                         $nakedFieldType->fragmentName,
-                                        $generator->import($nakedFieldType->getClassName()),
+                                        $this->dumpPossibleTypesList($plansByFqcn, $nakedFieldType->getClassName()),
                                     );
                                 });
                                 yield '}';
