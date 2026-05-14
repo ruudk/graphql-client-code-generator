@@ -399,6 +399,7 @@ enum SearchType: string
 - **Lazy-loading** for nested objects (only instantiated when accessed)
 - **Connection pattern awareness** (edges, nodes, pageInfo) for Relay-style APIs
 - **Custom `@indexBy` directive** for O(1) lookups instead of O(n) searching
+- **Custom `@throwWhenNull` directive** - drop nullability per-field and throw a typed exception when the server returns null
 - **Custom `@hook` directive** - enrich responses with local data resolved lazily at access time
 - **Fragment dependency injection** - automatically includes required fragments
 - **Automatic query optimization** - merges fragments, simplifies inline fragments
@@ -701,6 +702,87 @@ final class Data
     }
 }
 ```
+
+### 💥 Throw on Null with `@throwWhenNull` Directive
+
+Some nullable fields are nullable only for legacy or convenience reasons — at the point you read
+them, you know they must be set, and you'd rather get a typed exception than a `TypeError` deep in
+your code.
+
+Enable the directive once with `enableThrowWhenNullDirective()`, then tag a selection with
+`@throwWhenNull` and the generated property loses its nullability and throws
+`NodeNotFoundException` if the server returns `null` for that field. Works on scalars and objects.
+The directive is local to your query — it is stripped from the operation sent to the server and
+does not need to be defined in your schema. It is independent from `enableDumpOrThrowProperties()`:
+the exception class is generated whenever any field uses the directive.
+
+<!-- source: tests/ThrowWhenNullDirective/Test.graphql -->
+```graphql
+query Test {
+    viewer @throwWhenNull {
+        login
+        description @throwWhenNull
+        project @throwWhenNull {
+            id
+            name
+        }
+    }
+}
+```
+
+**Generated code:**
+
+<!-- source: tests/ThrowWhenNullDirective/Generated/Query/Test/Data/Viewer.php -->
+```php
+<?php
+
+declare(strict_types=1);
+
+namespace Ruudk\GraphQLCodeGenerator\ThrowWhenNullDirective\Generated\Query\Test\Data;
+
+use Ruudk\GraphQLCodeGenerator\ThrowWhenNullDirective\Generated\NodeNotFoundException;
+use Ruudk\GraphQLCodeGenerator\ThrowWhenNullDirective\Generated\Query\Test\Data\Viewer\Project;
+
+// This file was automatically generated and should not be edited.
+
+final class Viewer
+{
+    public string $description {
+        /**
+         * @throws NodeNotFoundException
+         */
+        get => $this->description ??= $this->data['description'] !== null ? $this->data['description'] : throw NodeNotFoundException::create('Viewer', 'description');
+    }
+
+    public string $login {
+        get => $this->login ??= $this->data['login'];
+    }
+
+    public Project $project {
+        /**
+         * @throws NodeNotFoundException
+         */
+        get => $this->project ??= $this->data['project'] !== null ? new Project($this->data['project']) : throw NodeNotFoundException::create('Viewer', 'project');
+    }
+
+    /**
+     * @param array{
+     *     'description': null|string,
+     *     'login': string,
+     *     'project': null|array{
+     *         'id': string,
+     *         'name': string,
+     *     },
+     * } $data
+     */
+    public function __construct(
+        private readonly array $data,
+    ) {}
+}
+```
+
+Applying the directive to a non-nullable schema field raises a planning error — the directive
+exists to express intent that the server may return null but the consumer requires a value.
 
 ### 🪝 Local Resolution with `@hook` Directive
 

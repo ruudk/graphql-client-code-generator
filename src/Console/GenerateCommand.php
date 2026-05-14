@@ -12,7 +12,9 @@ use GraphQL\Utils\SchemaPrinter;
 use Ruudk\GraphQLCodeGenerator\Config\ConfigException;
 use Ruudk\GraphQLCodeGenerator\Config\ConfigLoader;
 use Ruudk\GraphQLCodeGenerator\Executor\PlanExecutor;
+use Ruudk\GraphQLCodeGenerator\GraphQL\HookDirectiveSchemaExtender;
 use Ruudk\GraphQLCodeGenerator\GraphQL\IndexByDirectiveSchemaExtender;
+use Ruudk\GraphQLCodeGenerator\GraphQL\ThrowWhenNullDirectiveSchemaExtender;
 use Ruudk\GraphQLCodeGenerator\Planner;
 use SebastianBergmann\Diff\Differ;
 use SebastianBergmann\Diff\Output\UnifiedDiffOutputBuilder;
@@ -115,6 +117,14 @@ final class GenerateCommand
 
                     if ($configItem->indexByDirective) {
                         $schema = IndexByDirectiveSchemaExtender::extend($schema);
+                    }
+
+                    if ($configItem->hooks !== []) {
+                        $schema = HookDirectiveSchemaExtender::extend($schema);
+                    }
+
+                    if ($configItem->throwWhenNullDirective) {
+                        $schema = ThrowWhenNullDirectiveSchemaExtender::extend($schema);
                     }
 
                     $this->filesystem->dumpFile(

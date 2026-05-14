@@ -18,6 +18,7 @@ use Ruudk\GraphQLCodeGenerator\Type\FragmentObjectType;
 use Ruudk\GraphQLCodeGenerator\Type\HookPropertyType;
 use Ruudk\GraphQLCodeGenerator\Type\IndexByCollectionType;
 use Ruudk\GraphQLCodeGenerator\Type\StringLiteralType;
+use Ruudk\GraphQLCodeGenerator\Type\ThrowWhenNullPropertyType;
 use Ruudk\GraphQLCodeGenerator\Type\TypeDumper;
 use Ruudk\GraphQLCodeGenerator\TypeInitializer\DelegatingTypeInitializer;
 use Symfony\Component\TypeInfo\Type\ArrayShapeType;
@@ -294,6 +295,50 @@ final class DataClassGenerator extends AbstractGenerator
                                             $args,
                                         ),
                                         ';',
+                                    );
+                                });
+                                yield '}';
+
+                                continue;
+                            }
+
+                            if ($fieldType instanceof ThrowWhenNullPropertyType) {
+                                $wrappedType = $fieldType->getWrappedType();
+
+                                yield from $generator->docComment(function () use ($wrappedType, $generator) {
+                                    if ($this->getNakedType($wrappedType) instanceof SymfonyType\CollectionType) {
+                                        yield sprintf(
+                                            '@var %s',
+                                            TypeDumper::dump($wrappedType, $generator->import(...)),
+                                        );
+                                    }
+                                });
+                                yield sprintf(
+                                    'public %s $%s {',
+                                    $this->dumpPHPType($wrappedType, $generator->import(...)),
+                                    $fieldName,
+                                );
+                                yield $generator->indent(function () use ($wrappedType, $fieldName, $generator, $parentType) {
+                                    yield from $generator->docComment(function () use ($generator) {
+                                        yield sprintf('@throws %s', $generator->import($this->fullyQualified('NodeNotFoundException')));
+                                    });
+                                    yield from $generator->wrap(
+                                        sprintf(
+                                            'get => $this->%s ??= $this->data[%s] !== null ? ',
+                                            $fieldName,
+                                            var_export($fieldName, true),
+                                        ),
+                                        $this->typeInitializer->__invoke(
+                                            $wrappedType,
+                                            $generator,
+                                            sprintf('$this->data[%s]', var_export($fieldName, true)),
+                                        ),
+                                        sprintf(
+                                            ' : throw %s::create(%s, %s);',
+                                            $generator->import($this->fullyQualified('NodeNotFoundException')),
+                                            var_export($parentType->name(), true),
+                                            var_export($fieldName, true),
+                                        ),
                                     );
                                 });
                                 yield '}';

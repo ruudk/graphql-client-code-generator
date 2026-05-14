@@ -54,6 +54,7 @@ final readonly class Config
         public bool $addSymfonyExcludeAttribute = false,
         public bool $addGeneratedAttribute = false,
         public bool $indexByDirective = false,
+        public bool $throwWhenNullDirective = false,
         public bool $addUnknownCaseToEnums = false,
         public bool $dumpEnumIsMethods = false,
         public ?object $introspectionClient = null,
@@ -147,6 +148,13 @@ final readonly class Config
     {
         return clone ($this, [
             'indexByDirective' => true,
+        ]);
+    }
+
+    public function enableThrowWhenNullDirective() : self
+    {
+        return clone ($this, [
+            'throwWhenNullDirective' => true,
         ]);
     }
 

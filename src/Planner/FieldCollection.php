@@ -23,6 +23,11 @@ final class FieldCollection
         return $this;
     }
 
+    public function get(string $name) : SymfonyType
+    {
+        return $this->fields[$name];
+    }
+
     public function merge(FieldCollection $other) : self
     {
         foreach ($other->fields as $name => $type) {
