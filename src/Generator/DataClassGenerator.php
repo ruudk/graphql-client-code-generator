@@ -532,7 +532,7 @@ final class DataClassGenerator extends AbstractGenerator
                                 yield '}';
                             }
 
-                            if ($this->config->dumpOrThrows && $propertyType instanceof SymfonyType\NullableType) {
+                            if ($this->config->dumpOrThrowProperties && $propertyType instanceof SymfonyType\NullableType) {
                                 $unwrappedType = $propertyType->getWrappedType();
 
                                 yield '';

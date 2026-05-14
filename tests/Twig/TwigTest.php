@@ -18,7 +18,8 @@ final class TwigTest extends GraphQLTestCase
     {
         return parent::getConfig()
             ->enableGeneratedAttribute()
-            ->enableDumpOrThrows()
+            ->enableDumpOrThrowMethods()
+            ->enableDumpOrThrowProperties()
             ->enableDumpEnumIsMethods()
             ->withInlineProcessingDirectory(__DIR__)
             ->withTwigProcessingDirectory(__DIR__ . '/templates');

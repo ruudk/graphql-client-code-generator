@@ -204,7 +204,7 @@ final class OperationClassGenerator extends AbstractGenerator
                     });
                     yield '}';
 
-                    if ($this->config->dumpOrThrows) {
+                    if ($this->config->dumpOrThrowMethods) {
                         yield '';
                         yield from $generator->docComment(function () use ($plan, $failedException, $generator) {
                             foreach ($plan->variables as $name => $phpType) {

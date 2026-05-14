@@ -38,7 +38,8 @@ final readonly class Config
         public string $namespace,
         public string $client,
         public ?string $queriesDir = null,
-        public bool $dumpOrThrows = false,
+        public bool $dumpOrThrowMethods = false,
+        public bool $dumpOrThrowProperties = false,
         public bool $dumpDefinition = false,
         public bool $useNodeNameForEdgeNodes = false,
         public array $scalars = [],
@@ -79,10 +80,17 @@ final readonly class Config
         );
     }
 
-    public function enableDumpOrThrows() : self
+    public function enableDumpOrThrowMethods() : self
     {
         return clone ($this, [
-            'dumpOrThrows' => true,
+            'dumpOrThrowMethods' => true,
+        ]);
+    }
+
+    public function enableDumpOrThrowProperties() : self
+    {
+        return clone ($this, [
+            'dumpOrThrowProperties' => true,
         ]);
     }
 

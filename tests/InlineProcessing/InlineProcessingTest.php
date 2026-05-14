@@ -16,7 +16,8 @@ final class InlineProcessingTest extends GraphQLTestCase
     {
         return parent::getConfig()
             ->enableGeneratedAttribute()
-            ->enableDumpOrThrows()
+            ->enableDumpOrThrowMethods()
+            ->enableDumpOrThrowProperties()
             ->withInlineProcessingDirectory(__DIR__);
     }
 
