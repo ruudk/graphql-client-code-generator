@@ -39,6 +39,7 @@ use Ruudk\GraphQLCodeGenerator\Type\FragmentObjectType;
 use Ruudk\GraphQLCodeGenerator\Type\HookPropertyType;
 use Ruudk\GraphQLCodeGenerator\Type\IndexByCollectionType;
 use Ruudk\GraphQLCodeGenerator\Type\StringLiteralType;
+use Ruudk\GraphQLCodeGenerator\Type\ThrowWhenNullPropertyType;
 use Ruudk\GraphQLCodeGenerator\TypeMapper;
 use Symfony\Component\String\Inflector\EnglishInflector;
 use Symfony\Component\TypeInfo\Type as SymfonyType;
@@ -361,6 +362,22 @@ final class SelectionSetPlanner
             ? $fieldType->getInnermostType()
             : $fieldType;
 
+        $throwWhenNull = $this->directiveProcessor->hasThrowWhenNullDirective($selection->directives);
+
+        if ($throwWhenNull) {
+            Assert::isInstanceOf($parent, NamedType::class);
+            Assert::isInstanceOf(
+                $fieldType,
+                NullableType::class,
+                sprintf(
+                    '@throwWhenNull on "%s.%s" requires a nullable field, got %s.',
+                    $parent->name(),
+                    $selection->name->value,
+                    $fieldType->toString(),
+                ),
+            );
+        }
+
         // Handle predefined object types
         if ($nakedFieldType instanceof ObjectType && isset($this->config->objectTypes[$nakedFieldType->name()])) {
             [$objectPayloadShape, $objectType] = $this->config->objectTypes[$nakedFieldType->name()];
@@ -373,7 +390,7 @@ final class SelectionSetPlanner
                 ? SymfonyType::nullable($objectPayloadShape)
                 : $objectPayloadShape;
 
-            $fields->add($fieldName, $finalType);
+            $fields->add($fieldName, $throwWhenNull ? new ThrowWhenNullPropertyType($objectType) : $finalType);
             $payloadShape->addRequired($fieldName, $finalPayloadShape);
 
             return;
@@ -394,12 +411,23 @@ final class SelectionSetPlanner
                 $payloadShape,
             );
 
+            if ($throwWhenNull) {
+                $stored = $fields->get($fieldName);
+                $unwrapped = $stored instanceof SymfonyType\NullableType ? $stored->getWrappedType() : $stored;
+                $fields->add($fieldName, new ThrowWhenNullPropertyType($unwrapped));
+            }
+
             return;
         }
 
         // Handle scalar fields
         $mappedType = $this->typeMapper->mapGraphQLTypeToPHPType($fieldType);
         $mappedPayloadType = $this->typeMapper->mapGraphQLTypeToPHPType($fieldType, builtInOnly: true);
+
+        if ($throwWhenNull) {
+            $unwrapped = $mappedType instanceof SymfonyType\NullableType ? $mappedType->getWrappedType() : $mappedType;
+            $mappedType = new ThrowWhenNullPropertyType($unwrapped);
+        }
 
         $fields->add($fieldName, $mappedType);
         $pathFields->addWithPrefix($context->path, $fieldName, $mappedType);

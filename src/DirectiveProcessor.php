@@ -46,6 +46,20 @@ final class DirectiveProcessor
     }
 
     /**
+     * @param NodeList<DirectiveNode> $directives
+     */
+    public function hasThrowWhenNullDirective(NodeList $directives) : bool
+    {
+        foreach ($directives as $directive) {
+            if ($directive->name->value === 'throwWhenNull') {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
      * Extract the @hook directive's `name` and `input` arguments.
      *
      * @param NodeList<DirectiveNode> $directives

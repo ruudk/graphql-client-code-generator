@@ -1,0 +1,10 @@
+query Test {
+    viewer @throwWhenNull {
+        login
+        description @throwWhenNull
+        project @throwWhenNull {
+            id
+            name
+        }
+    }
+}

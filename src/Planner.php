@@ -84,11 +84,13 @@ use Ruudk\GraphQLCodeGenerator\Planner\Source\TwigFileSource;
 use Ruudk\GraphQLCodeGenerator\Twig\GraphQLExtension;
 use Ruudk\GraphQLCodeGenerator\Twig\GraphQLNodeFinder;
 use Ruudk\GraphQLCodeGenerator\Type\HookPropertyType;
+use Ruudk\GraphQLCodeGenerator\Type\ThrowWhenNullPropertyType;
 use Ruudk\GraphQLCodeGenerator\Type\TypeHelper;
 use Ruudk\GraphQLCodeGenerator\Validator\IndexByValidator;
 use Ruudk\GraphQLCodeGenerator\Visitor\DefinedFragmentsVisitor;
 use Ruudk\GraphQLCodeGenerator\Visitor\HookFieldRemover;
 use Ruudk\GraphQLCodeGenerator\Visitor\IndexByRemover;
+use Ruudk\GraphQLCodeGenerator\Visitor\ThrowWhenNullRemover;
 use Ruudk\GraphQLCodeGenerator\Visitor\UsedFragmentsVisitor;
 use Stringable;
 use Symfony\Component\Filesystem\Filesystem;
@@ -164,7 +166,7 @@ final class Planner
         ];
 
         $this->schemaLoader = new SchemaLoader(new Filesystem());
-        $this->schema = $this->schemaLoader->load($config->schema, $config->indexByDirective, $config->hooks !== []);
+        $this->schema = $this->schemaLoader->load($config->schema, $config->indexByDirective, $config->hooks !== [], $config->throwWhenNullDirective);
         $this->optimizer = new Optimizer($this->schema);
         $this->possibleTypesFinder = new PossibleTypesFinder($this->schema);
 
@@ -548,14 +550,6 @@ final class Planner
             }
         }
 
-        if ($this->config->dumpOrThrowProperties) {
-            $queryType = $this->schema->getQueryType();
-            Assert::notNull($queryType);
-            $result->addClass(new NodeNotFoundExceptionPlan(
-                path: $this->config->outputDir . '/NodeNotFoundException.php',
-            ));
-        }
-
         // Plan fragments
         $ordered = FragmentOrderer::orderFragments($operations);
 
@@ -675,7 +669,30 @@ final class Planner
             $this->propagateUsedHooks($result);
         }
 
+        if ($this->config->dumpOrThrowProperties || $this->anyClassUsesThrowWhenNull($result)) {
+            $result->addClass(new NodeNotFoundExceptionPlan(
+                path: $this->config->outputDir . '/NodeNotFoundException.php',
+            ));
+        }
+
         return $result;
+    }
+
+    private function anyClassUsesThrowWhenNull(PlannerResult $result) : bool
+    {
+        foreach ($result->classes as $plan) {
+            if ( ! $plan instanceof DataClassPlan) {
+                continue;
+            }
+
+            foreach ($this->fieldTypesIn($plan->fields) as $fieldType) {
+                if ($fieldType instanceof ThrowWhenNullPropertyType) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
 
     /**
@@ -862,6 +879,10 @@ final class Planner
 
         if ($this->config->hooks !== []) {
             $document = new HookFieldRemover()->__invoke($document);
+        }
+
+        if ($this->config->throwWhenNullDirective) {
+            $document = new ThrowWhenNullRemover()->__invoke($document);
         }
 
         $operationDefinition = Printer::doPrint($document);
