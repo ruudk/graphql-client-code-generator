@@ -1,0 +1,7 @@
+fragment OrphanFragment on Viewer {
+    ...OnlyViaOrphan
+}
+
+fragment OnlyViaOrphan on Viewer {
+    login
+}

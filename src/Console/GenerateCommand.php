@@ -213,7 +213,19 @@ final class GenerateCommand
                         ));
                     }
 
-                    if ($unusedHooks !== []) {
+                    foreach ($plan->unusedFragments as $fragmentName => $location) {
+                        $io->writeln(sprintf(
+                            '<error>Fragment "%s" defined in %s is never used (never spread)</error>',
+                            $fragmentName,
+                            $location,
+                        ));
+                    }
+
+                    if ($plan->unusedFragments !== []) {
+                        $io->error('Unused fragments found. Remove them or reference them via ...FragmentName.');
+                    }
+
+                    if ($unusedHooks !== [] || $plan->unusedFragments !== []) {
                         $exitCode = Command::FAILURE;
 
                         continue;
@@ -237,6 +249,18 @@ final class GenerateCommand
                 }
 
                 $io->writeln('✅');
+
+                if ($plan->unusedFragments !== []) {
+                    $lines = [];
+                    foreach ($plan->unusedFragments as $fragmentName => $location) {
+                        $lines[] = sprintf('"%s" defined in %s', $fragmentName, $location);
+                    }
+
+                    $io->warning(sprintf(
+                        "The following fragments are never used (never spread). Consider removing them:\n  - %s",
+                        implode("\n  - ", $lines),
+                    ));
+                }
             } catch (Throwable $error) {
                 $io->writeln('❌');
                 $io->error(sprintf('Generation failed: %s', $error->getMessage()));

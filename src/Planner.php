@@ -664,6 +664,7 @@ final class Planner
         $result->setDiscoveredInputObjectTypes($this->inputObjectTypes);
 
         $result->setOperationsToInject($operationsToInject);
+        $result->setUnusedFragments($this->findUnusedFragments($operations, $ordered));
 
         if ($this->config->hooks !== []) {
             $this->propagateUsedHooks($result);
@@ -676,6 +677,95 @@ final class Planner
         }
 
         return $result;
+    }
+
+    /**
+     * Detects fragments defined in a `.graphql` file or a `.twig` template
+     * that are never reachable from an operation. Reachability roots are the
+     * fragment spreads inside operations plus inline `#[GeneratedGraphQLFragment]`
+     * contracts (those are intentionally standalone, service-owned data
+     * contracts, so anything they spread counts as used). Inline fragment
+     * contracts themselves are out of scope: only file-defined fragments are
+     * reported, since those are the ones a developer can simply delete.
+     *
+     * @param array<string, list<DocumentNodeWithSource>> $operations
+     * @param list<FragmentDefinitionNodeWithSource> $ordered
+     * @throws Exception
+     * @return array<string, string> fragment name => relative source path
+     */
+    private function findUnusedFragments(array $operations, array $ordered) : array
+    {
+        /**
+         * @var array<string, list<string>> $fragmentSpreads
+         */
+        $fragmentSpreads = [];
+
+        /**
+         * @var array<string, string> $checkable
+         */
+        $checkable = [];
+
+        /**
+         * @var list<string> $queue
+         */
+        $queue = [];
+
+        foreach ($ordered as $fragment) {
+            $name = $fragment->name->value;
+            $fragmentSpreads[$name] = UsedFragmentsVisitor::getUsedFragments($fragment);
+
+            $source = $fragment->source;
+
+            if ($source instanceof GraphQLFileSource || $source instanceof TwigFileSource) {
+                $checkable[$name] = $source->relativeFilePath;
+
+                continue;
+            }
+
+            // Inline `#[GeneratedGraphQLFragment]` contracts are standalone
+            // entry points: treat them (and what they spread) as used.
+            $queue[] = $name;
+        }
+
+        foreach ($operations as $documents) {
+            foreach ($documents as $document) {
+                foreach ($document->definitions as $definition) {
+                    if ( ! $definition instanceof OperationDefinitionNode) {
+                        continue;
+                    }
+
+                    foreach (UsedFragmentsVisitor::getUsedFragments($definition) as $spread) {
+                        $queue[] = $spread;
+                    }
+                }
+            }
+        }
+
+        /**
+         * @var array<string, true> $reachable
+         */
+        $reachable = [];
+
+        while ($queue !== []) {
+            $name = array_pop($queue);
+
+            if (isset($reachable[$name])) {
+                continue;
+            }
+
+            $reachable[$name] = true;
+
+            foreach ($fragmentSpreads[$name] ?? [] as $dependency) {
+                if ( ! isset($reachable[$dependency])) {
+                    $queue[] = $dependency;
+                }
+            }
+        }
+
+        $unused = array_diff_key($checkable, $reachable);
+        ksort($unused);
+
+        return $unused;
     }
 
     private function anyClassUsesThrowWhenNull(PlannerResult $result) : bool

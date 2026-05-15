@@ -1,0 +1,10 @@
+query Test {
+    viewer {
+        ...UsedFragment
+        ...UsedTwig
+    }
+}
+
+fragment UsedFragment on Viewer {
+    name
+}
