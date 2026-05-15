@@ -61,6 +61,9 @@ final readonly class GetWorkflowForAdminQuery {
         private TestClient $client,
     ) {}
 
+    /**
+     * @api
+     */
     public function execute(
         int|string|float|bool $workflowId,
     ) : Data {

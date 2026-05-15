@@ -37,6 +37,9 @@ final readonly class TestQuery {
         private array $hooks,
     ) {}
 
+    /**
+     * @api
+     */
     public function execute() : Data
     {
         $data = $this->client->graphql(

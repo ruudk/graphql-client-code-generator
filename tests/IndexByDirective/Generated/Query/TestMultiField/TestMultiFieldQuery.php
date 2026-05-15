@@ -36,6 +36,9 @@ final readonly class TestMultiFieldQuery {
         private TestClient $client,
     ) {}
 
+    /**
+     * @api
+     */
     public function execute() : Data
     {
         $data = $this->client->graphql(

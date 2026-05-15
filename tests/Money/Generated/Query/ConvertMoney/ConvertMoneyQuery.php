@@ -38,6 +38,9 @@ final readonly class ConvertMoneyQuery {
         private TestClient $client,
     ) {}
 
+    /**
+     * @api
+     */
     public function execute(
         Money $amount,
         Currency $targetCurrency,

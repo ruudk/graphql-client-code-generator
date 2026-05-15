@@ -47,6 +47,9 @@ final readonly class ProjectsQuery {
         private TestClient $client,
     ) {}
 
+    /**
+     * @api
+     */
     public function execute() : Data
     {
         $data = $this->client->graphql(
@@ -63,6 +66,7 @@ final readonly class ProjectsQuery {
     }
 
     /**
+     * @api
      * @throws ProjectsQueryFailedException
      */
     public function executeOrThrow() : Data

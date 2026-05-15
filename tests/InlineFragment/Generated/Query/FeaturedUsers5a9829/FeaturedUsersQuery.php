@@ -35,6 +35,9 @@ final readonly class FeaturedUsersQuery {
         private TestClient $client,
     ) {}
 
+    /**
+     * @api
+     */
     public function execute() : Data
     {
         $data = $this->client->graphql(

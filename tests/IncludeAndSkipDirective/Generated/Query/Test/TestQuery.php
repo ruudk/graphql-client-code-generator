@@ -32,6 +32,9 @@ final readonly class TestQuery {
         private TestClient $client,
     ) {}
 
+    /**
+     * @api
+     */
     public function execute(
         bool $includeAdmin,
         bool $skipAdmin,
@@ -52,6 +55,7 @@ final readonly class TestQuery {
     }
 
     /**
+     * @api
      * @throws TestQueryFailedException
      */
     public function executeOrThrow(

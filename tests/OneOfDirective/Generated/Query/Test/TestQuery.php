@@ -25,6 +25,9 @@ final readonly class TestQuery {
         private TestClient $client,
     ) {}
 
+    /**
+     * @api
+     */
     public function execute(
         UserByInput $by,
     ) : Data {

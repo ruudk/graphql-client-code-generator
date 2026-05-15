@@ -24,6 +24,9 @@ final readonly class TestMutation {
         private TestClient $client,
     ) {}
 
+    /**
+     * @api
+     */
     public function execute(
         Stringable|string $firstName,
         CreateUserInput $input,
