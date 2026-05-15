@@ -4,12 +4,12 @@
 
 {% graphql %}
 fragment AdminProjectList on Query {
-    viewer {
-        name
-    }
-    projects {
-        ...AdminProjectRow
-    }
+  viewer {
+    name
+  }
+  projects {
+    ...AdminProjectRow
+  }
 }
 {% endgraphql %}
 
