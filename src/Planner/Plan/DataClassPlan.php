@@ -42,5 +42,13 @@ final class DataClassPlan
         public readonly array $inlineFragmentRequiredFields,
         public readonly bool $isData,
         public readonly bool $isFragment,
+        /**
+         * True when this class is a first-level mutation field whose only
+         * selection is an explicitly queried `__typename`. Such a selection
+         * is the idiomatic way to fire a mutation without caring about the
+         * response, so the generated `__typename` property is tagged `@api`
+         * to keep dead-code analysis from flagging it.
+         */
+        public readonly bool $markTypenameAsApi = false,
     ) {}
 }

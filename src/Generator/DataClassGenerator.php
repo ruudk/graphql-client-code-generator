@@ -379,8 +379,8 @@ final class DataClassGenerator extends AbstractGenerator
                                 $propertyType = SymfonyType::nullable($propertyType);
                             }
 
-                            yield from $generator->docComment(function () use ($propertyType, $isMutationData, $generator) {
-                                if ($isMutationData) {
+                            yield from $generator->docComment(function () use ($plan, $fieldName, $propertyType, $isMutationData, $generator) {
+                                if ($isMutationData || ($fieldName === '__typename' && $plan->markTypenameAsApi)) {
                                     yield '@api';
                                 }
 
