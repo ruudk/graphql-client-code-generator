@@ -37,6 +37,15 @@ final class PlannerResult
     public private(set) array $operationsToInject = [];
 
     /**
+     * Fragments defined in a `.graphql` file or a `.twig` template that are
+     * never spread by any operation (transitively). Map of fragment name to
+     * the relative source path where it is defined.
+     *
+     * @var array<string, string>
+     */
+    public private(set) array $unusedFragments = [];
+
+    /**
      * @param object $class A plan object with a path property
      */
     public function addClass(object $class) : void
@@ -74,5 +83,13 @@ final class PlannerResult
     public function setOperationsToInject(array $operationsToInject) : void
     {
         $this->operationsToInject = $operationsToInject;
+    }
+
+    /**
+     * @param array<string, string> $unusedFragments
+     */
+    public function setUnusedFragments(array $unusedFragments) : void
+    {
+        $this->unusedFragments = $unusedFragments;
     }
 }

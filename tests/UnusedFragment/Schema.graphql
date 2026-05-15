@@ -1,0 +1,8 @@
+type Query {
+    viewer: Viewer!
+}
+
+type Viewer {
+    name: String!
+    login: String!
+}
