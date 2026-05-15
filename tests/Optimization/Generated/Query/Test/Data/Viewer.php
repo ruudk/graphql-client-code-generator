@@ -34,6 +34,7 @@ final class Viewer
     }
 
     /**
+     * @api
      * @phpstan-assert-if-true !null $this->appUrl
      */
     public bool $isAppUrl {
@@ -63,6 +64,7 @@ final class Viewer
     }
 
     /**
+     * @api
      * @phpstan-assert-if-true !null $this->asUser
      */
     public bool $isUser {

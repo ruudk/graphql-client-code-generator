@@ -48,6 +48,7 @@ final class Node
     }
 
     /**
+     * @api
      * @phpstan-assert-if-true !null $this->asIssue
      */
     public bool $isIssue {
@@ -81,6 +82,7 @@ final class Node
     }
 
     /**
+     * @api
      * @phpstan-assert-if-true !null $this->pullRequestInfo
      */
     public bool $isPullRequestInfo {
