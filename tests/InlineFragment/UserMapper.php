@@ -11,9 +11,9 @@ final readonly class UserMapper
 {
     private const string FRAGMENT = <<<'GRAPHQL'
         fragment UserName on User {
-            id
-            firstName
-            lastName
+          id
+          firstName
+          lastName
         }
         GRAPHQL;
 

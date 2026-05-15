@@ -11,9 +11,9 @@ final readonly class FeaturedUsersClient
 {
     private const string OPERATION = <<<'GRAPHQL'
         query FeaturedUsers {
-            featuredUsers {
-                ...UserName
-            }
+          featuredUsers {
+            ...UserName
+          }
         }
         GRAPHQL;
 

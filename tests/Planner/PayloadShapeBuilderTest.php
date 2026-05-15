@@ -31,106 +31,123 @@ final class PayloadShapeBuilderTest extends TestCase
     {
         $schema = <<<'GRAPHQL'
             scalar DateTime
+
             scalar JSON
+
             type User {
-                id: ID!
-                name: String!
-                email: String
-                profile: Profile
-                metadata: JSON
-                lastSeen: DateTime
-                createdAt: DateTime!
+              id: ID!
+              name: String!
+              email: String
+              profile: Profile
+              metadata: JSON
+              lastSeen: DateTime
+              createdAt: DateTime!
             }
+
             type Profile {
-                name: String!
-                age: Int
-                email: String
+              name: String!
+              age: Int
+              email: String
             }
+
             type Transaction {
-                id: ID!
-                transfers: [Transfer!]!
+              id: ID!
+              transfers: [Transfer!]!
             }
+
             type Transfer {
-                id: ID!
-                canBeCollected: Boolean!
-                customer: Customer
-                transferReversals: [TransferReversal!]!
-                state: String!
-                createdAt: String!
+              id: ID!
+              canBeCollected: Boolean!
+              customer: Customer
+              transferReversals: [TransferReversal!]!
+              state: String!
+              createdAt: String!
             }
+
             type Customer {
-                id: ID!
-                name: String!
+              id: ID!
+              name: String!
             }
+
             type TransferReversal {
-                id: ID!
+              id: ID!
             }
+
             interface Viewer {
-                id: ID!
+              id: ID!
             }
+
             type UserViewer implements Viewer {
-                id: ID!
-                email: String!
-                address: String
+              id: ID!
+              email: String!
+              address: String
             }
+
             type AdminViewer implements Viewer {
-                id: ID!
-                email: String!
-                role: String!
+              id: ID!
+              email: String!
+              role: String!
             }
+
             union SearchResult = User | Transaction | Customer
-            # Interface inheritance for testing
+
             interface Actor {
-                id: ID!
-                createdAt: DateTime!
+              id: ID!
+              createdAt: DateTime!
             }
+
             interface Person implements Actor {
-                id: ID!
-                createdAt: DateTime!
-                firstName: String!
-                lastName: String!
+              id: ID!
+              createdAt: DateTime!
+              firstName: String!
+              lastName: String!
             }
+
             type RegularUser implements Person & Actor {
-                id: ID!
-                createdAt: DateTime!
-                firstName: String!
-                lastName: String!
-                email: String!
+              id: ID!
+              createdAt: DateTime!
+              firstName: String!
+              lastName: String!
+              email: String!
             }
+
             interface Employee implements Person & Actor {
-                id: ID!
-                createdAt: DateTime!
-                firstName: String!
-                lastName: String!
-                role: String!
-                department: String
+              id: ID!
+              createdAt: DateTime!
+              firstName: String!
+              lastName: String!
+              role: String!
+              department: String
             }
+
             type Manager implements Employee & Person & Actor {
-                id: ID!
-                createdAt: DateTime!
-                firstName: String!
-                lastName: String!
-                role: String!
-                department: String
-                teamSize: Int!
+              id: ID!
+              createdAt: DateTime!
+              firstName: String!
+              lastName: String!
+              role: String!
+              department: String
+              teamSize: Int!
             }
+
             type Developer implements Employee & Person & Actor {
-                id: ID!
-                createdAt: DateTime!
-                firstName: String!
-                lastName: String!
-                role: String!
-                department: String
-                languages: [String!]!
+              id: ID!
+              createdAt: DateTime!
+              firstName: String!
+              lastName: String!
+              role: String!
+              department: String
+              languages: [String!]!
             }
+
             type Query {
-                id: ID!
-                user: User
-                users: [User!]!
-                transaction: Transaction
-                viewer: Viewer
-                search(query: String!): [SearchResult!]!
-                actors: [Actor!]!
+              id: ID!
+              user: User
+              users: [User!]!
+              transaction: Transaction
+              viewer: Viewer
+              search(query: String!): [SearchResult!]!
+              actors: [Actor!]!
             }
             GRAPHQL;
         $this->schema = BuildSchema::build($schema);
@@ -160,7 +177,7 @@ final class PayloadShapeBuilderTest extends TestCase
         $shape = $this->builder->buildPayloadShape(
             $this->parseSelectionSet(<<<'GRAPHQL'
                 {
-                    id
+                  id
                 }
                 GRAPHQL),
             $queryType,
@@ -183,11 +200,11 @@ final class PayloadShapeBuilderTest extends TestCase
             $this->parseSelectionSet(
                 <<<'GRAPHQL'
                     {
-                        id
-                        user {
-                            name
-                            email
-                        }
+                      id
+                      user {
+                        name
+                        email
+                      }
                     }
                     GRAPHQL
             ),
@@ -215,10 +232,10 @@ final class PayloadShapeBuilderTest extends TestCase
             $this->parseSelectionSet(
                 <<<'GRAPHQL'
                     {
-                        users {
-                            id
-                            name
-                        }
+                      users {
+                        id
+                        name
+                      }
                     }
                     GRAPHQL
             ),
@@ -243,13 +260,13 @@ final class PayloadShapeBuilderTest extends TestCase
         $fragments = $this->parseFragments(
             <<<'GRAPHQL'
                 fragment TransactionDetails on Transaction {
-                    transfers {
-                        id
-                        canBeCollected
-                        transferReversals {
-                            id
-                        }
+                  transfers {
+                    id
+                    canBeCollected
+                    transferReversals {
+                      id
                     }
+                  }
                 }
                 GRAPHQL
         );
@@ -274,15 +291,15 @@ final class PayloadShapeBuilderTest extends TestCase
         $selectionSet = $this->parseSelectionSet(
             <<<'GRAPHQL'
                 {
-                    transaction {
-                        transfers {
-                            id
-                            customer {
-                                id
-                            }
-                        }
-                        ...TransactionDetails
+                  transaction {
+                    transfers {
+                      id
+                      customer {
+                        id
+                      }
                     }
+                    ...TransactionDetails
+                  }
                 }
                 GRAPHQL
         );
@@ -318,17 +335,17 @@ final class PayloadShapeBuilderTest extends TestCase
         $selectionSet = $this->parseSelectionSet(
             <<<'GRAPHQL'
                 {
-                    viewer {
-                        id
-                        ...on UserViewer {
-                            email
-                            address
-                        }
-                        ...on AdminViewer {
-                            email
-                            role
-                        }
+                  viewer {
+                    id
+                    ... on UserViewer {
+                      email
+                      address
                     }
+                    ... on AdminViewer {
+                      email
+                      role
+                    }
+                  }
                 }
                 GRAPHQL
         );
@@ -357,16 +374,17 @@ final class PayloadShapeBuilderTest extends TestCase
         $fragments = $this->parseFragments(
             <<<'GRAPHQL'
                 fragment FragmentA on User {
-                    profile {
-                        name
-                        age
-                    }
+                  profile {
+                    name
+                    age
+                  }
                 }
+
                 fragment FragmentB on User {
-                    profile {
-                        name
-                        email
-                    }
+                  profile {
+                    name
+                    email
+                  }
                 }
                 GRAPHQL
         );
@@ -392,8 +410,8 @@ final class PayloadShapeBuilderTest extends TestCase
             $this->parseSelectionSet(
                 <<<'GRAPHQL'
                     {
-                        ...FragmentA
-                        ...FragmentB
+                      ...FragmentA
+                      ...FragmentB
                     }
                     GRAPHQL
             ),
@@ -421,8 +439,8 @@ final class PayloadShapeBuilderTest extends TestCase
             $this->parseSelectionSet(
                 <<<'GRAPHQL'
                     {
-                        __typename
-                        id
+                      __typename
+                      id
                     }
                     GRAPHQL
             ),
@@ -447,13 +465,13 @@ final class PayloadShapeBuilderTest extends TestCase
             $this->parseSelectionSet(
                 <<<'GRAPHQL'
                     {
-                        user {
-                            id
-                            name
-                            metadata
-                            lastSeen
-                            createdAt
-                        }
+                      user {
+                        id
+                        name
+                        metadata
+                        lastSeen
+                        createdAt
+                      }
                     }
                     GRAPHQL
             ),
@@ -480,14 +498,14 @@ final class PayloadShapeBuilderTest extends TestCase
         $fragments = $this->parseFragments(
             <<<'GRAPHQL'
                 fragment TransactionDetails on Transaction {
-                    transfers {
-                        id
-                        state
-                        createdAt
-                        customer {
-                            name
-                        }
+                  transfers {
+                    id
+                    state
+                    createdAt
+                    customer {
+                      name
                     }
+                  }
                 }
                 GRAPHQL
         );
@@ -511,15 +529,15 @@ final class PayloadShapeBuilderTest extends TestCase
         );
         $selectionSet = $this->parseSelectionSet(
             <<<'GRAPHQL'
-                    {
-                        transaction {
-                            transfers {
-                                id
-                                state
-                            }
-                            ...TransactionDetails
-                        }
+                {
+                  transaction {
+                    transfers {
+                      id
+                      state
                     }
+                    ...TransactionDetails
+                  }
+                }
                 GRAPHQL
         );
         $transactionType = $this->schema->getType('Transaction');
@@ -553,11 +571,11 @@ final class PayloadShapeBuilderTest extends TestCase
         $fragments = $this->parseFragments(
             <<<'GRAPHQL'
                 fragment TransactionFields on Transaction {
+                  id
+                  transfers {
                     id
-                    transfers {
-                        id
-                        state
-                    }
+                    state
+                  }
                 }
                 GRAPHQL
         );
@@ -585,14 +603,14 @@ final class PayloadShapeBuilderTest extends TestCase
             $this->parseSelectionSet(
                 <<<'GRAPHQL'
                     {
-                        search(query: "test") {
-                            ... on Transaction {
-                                ...TransactionFields
-                                transfers {
-                                    canBeCollected
-                                }
-                            }
+                      search(query: "test") {
+                        ... on Transaction {
+                          ...TransactionFields
+                          transfers {
+                            canBeCollected
+                          }
                         }
+                      }
                     }
                     GRAPHQL
             ),
@@ -628,46 +646,51 @@ final class PayloadShapeBuilderTest extends TestCase
         $fragments = $this->parseFragments(
             <<<'GRAPHQL'
                 fragment Level4Customer on Customer {
-                    id
-                    name
+                  id
+                  name
                 }
+
                 fragment Level3TransferReversal on TransferReversal {
-                    id
+                  id
                 }
+
                 fragment Level2Transfer on Transfer {
-                    id
-                    state
-                    customer {
-                        ...Level4Customer
-                    }
-                    transferReversals {
-                        ...Level3TransferReversal
-                    }
+                  id
+                  state
+                  customer {
+                    ...Level4Customer
+                  }
+                  transferReversals {
+                    ...Level3TransferReversal
+                  }
                 }
+
                 fragment Level1Transaction on Transaction {
-                    id
-                    transfers {
-                        ...Level2Transfer
-                        canBeCollected
-                    }
+                  id
+                  transfers {
+                    ...Level2Transfer
+                    canBeCollected
+                  }
                 }
+
                 fragment SearchFields on SearchResult {
-                    ... on User {
-                        id
-                        name
-                        email
-                    }
-                    ... on Transaction {
-                        ...Level1Transaction
-                    }
-                    ... on Customer {
-                        ...Level4Customer
-                    }
-                }
-                fragment UserFields on User {
+                  ... on User {
                     id
                     name
                     email
+                  }
+                  ... on Transaction {
+                    ...Level1Transaction
+                  }
+                  ... on Customer {
+                    ...Level4Customer
+                  }
+                }
+
+                fragment UserFields on User {
+                  id
+                  name
+                  email
                 }
                 GRAPHQL
         );
@@ -695,41 +718,33 @@ final class PayloadShapeBuilderTest extends TestCase
             $this->parseSelectionSet(
                 <<<'GRAPHQL'
                     {
-                        # List of unions with deeply nested fragments (4 levels)
-                        search(query: "nested") {
-                            ...SearchFields
-                            ... on Transaction {
-                                # Add extra fields to test merging with Level1Transaction fragment
-                                transfers {
-                                    createdAt
-                                    # This tests deep list nesting - list within list
-                                    transferReversals {
-                                        id
-                                    }
-                                }
+                      search(query: "nested") {
+                        ...SearchFields
+                        ... on Transaction {
+                          transfers {
+                            createdAt
+                            transferReversals {
+                              id
                             }
+                          }
                         }
-                        # Single user with fragment
-                        user {
-                            ...UserFields
-                        }
-                        # List of users - testing fragments in list context
-                        users {
-                            ...UserFields
-                            # Direct selection that overlaps with fragment
+                      }
+                      user {
+                        ...UserFields
+                      }
+                      users {
+                        ...UserFields
+                        id
+                      }
+                      transaction {
+                        ...Level1Transaction
+                        transfers {
+                          createdAt
+                          customer {
                             id
+                          }
                         }
-                        # Single transaction to test deep nesting without union
-                        transaction {
-                            ...Level1Transaction
-                            # Additional transfer fields to test merging
-                            transfers {
-                                createdAt
-                                customer {
-                                    id
-                                }
-                            }
-                        }
+                      }
                     }
                     GRAPHQL
             ),
@@ -820,22 +835,19 @@ final class PayloadShapeBuilderTest extends TestCase
             $this->parseSelectionSet(
                 <<<'GRAPHQL'
                     {
-                        # Always included field
+                      id
+                      user @include(if: $includeUser) {
                         id
-                        # Field with @include directive - should be nullable
-                        user @include(if: $includeUser) {
-                            id
-                            name
-                            email
+                        name
+                        email
+                      }
+                      transaction {
+                        id
+                        transfers @include(if: $includeTransfers) {
+                          id
+                          state
                         }
-                        # Nested field with @include - parent required, nested field nullable
-                        transaction {
-                            id
-                            transfers @include(if: $includeTransfers) {
-                                id
-                                state
-                            }
-                        }
+                      }
                     }
                     GRAPHQL
             ),
@@ -891,19 +903,16 @@ final class PayloadShapeBuilderTest extends TestCase
             $this->parseSelectionSet(
                 <<<'GRAPHQL'
                     {
-                        # Always included field
+                      id
+                      user @skip(if: $skipUser) {
                         id
-                        # Field with @skip directive - should be nullable
-                        user @skip(if: $skipUser) {
-                            id
-                            name
-                            email @skip(if: $skipEmail)
-                        }
-                        # List field with @skip
-                        users @skip(if: $skipUsers) {
-                            id
-                            name
-                        }
+                        name
+                        email @skip(if: $skipEmail)
+                      }
+                      users @skip(if: $skipUsers) {
+                        id
+                        name
+                      }
                     }
                     GRAPHQL
             ),
@@ -936,9 +945,9 @@ final class PayloadShapeBuilderTest extends TestCase
         $fragments = $this->parseFragments(
             <<<'GRAPHQL'
                 fragment UserFields on User {
-                    id
-                    name
-                    email @include(if: $includeEmail)
+                  id
+                  name
+                  email @include(if: $includeEmail)
                 }
                 GRAPHQL
         );
@@ -966,20 +975,17 @@ final class PayloadShapeBuilderTest extends TestCase
             $this->parseSelectionSet(
                 <<<'GRAPHQL'
                     {
-                        # Fragment spread with directive
-                        user {
-                            ...UserFields @skip(if: $skipUserFields)
-                            # This field is always included
-                            id
+                      user {
+                        ...UserFields @skip(if: $skipUserFields)
+                        id
+                      }
+                      transaction @include(if: $includeTransaction) {
+                        id
+                        transfers {
+                          id
+                          state @skip(if: $skipState)
                         }
-                        # Directive on fragment spread itself
-                        transaction @include(if: $includeTransaction) {
-                            id
-                            transfers {
-                                id
-                                state @skip(if: $skipState)
-                            }
-                        }
+                      }
                     }
                     GRAPHQL
             ),
@@ -1024,48 +1030,52 @@ final class PayloadShapeBuilderTest extends TestCase
         $fragments = $this->parseFragments(
             <<<'GRAPHQL'
                 fragment BaseUserFields on User {
+                  id
+                  name
+                }
+
+                fragment ExtendedUserFields on User {
+                  ...BaseUserFields
+                  email
+                  metadata
+                  profile {
+                    name
+                    age
+                  }
+                }
+
+                fragment ViewerDetails on Viewer {
+                  id
+                  ... on UserViewer {
+                    email
+                    address
+                  }
+                  ... on AdminViewer {
+                    email
+                    role
+                  }
+                }
+
+                fragment TransactionInfo on Transaction {
+                  id
+                  transfers {
+                    id
+                    state
+                  }
+                }
+
+                fragment SearchResultItem on SearchResult {
+                  ... on User {
+                    ...BaseUserFields
+                    createdAt
+                  }
+                  ... on Transaction {
+                    ...TransactionInfo
+                  }
+                  ... on Customer {
                     id
                     name
-                }
-                fragment ExtendedUserFields on User {
-                    ...BaseUserFields
-                    email
-                    metadata
-                    profile {
-                        name
-                        age
-                    }
-                }
-                fragment ViewerDetails on Viewer {
-                    id
-                    ... on UserViewer {
-                        email
-                        address
-                    }
-                    ... on AdminViewer {
-                        email
-                        role
-                    }
-                }
-                fragment TransactionInfo on Transaction {
-                    id
-                    transfers {
-                        id
-                        state
-                    }
-                }
-                fragment SearchResultItem on SearchResult {
-                    ... on User {
-                        ...BaseUserFields
-                        createdAt
-                    }
-                    ... on Transaction {
-                        ...TransactionInfo
-                    }
-                    ... on Customer {
-                        id
-                        name
-                    }
+                  }
                 }
                 GRAPHQL
         );
@@ -1093,43 +1103,39 @@ final class PayloadShapeBuilderTest extends TestCase
             $this->parseSelectionSet(
                 <<<'GRAPHQL'
                     {
-                        # Direct field selection
+                      id
+                      user {
                         id
-                        # Object with fragments and direct selection
-                        user {
-                            id  # Direct selection (also in fragment)
-                            lastSeen  # Direct selection only
-                            ...ExtendedUserFields
-                            profile {  # Direct selection (also in fragment)
-                                email  # Additional field not in fragment
-                            }
+                        lastSeen
+                        ...ExtendedUserFields
+                        profile {
+                          email
                         }
-                        # Interface with inline fragments
-                        viewer {
-                            ...ViewerDetails
-                            ... on UserViewer {  # Duplicate inline fragment
-                                email  # Already in ViewerDetails fragment
-                            }
-                            ... on AdminViewer {
-                                email  # Already in ViewerDetails fragment
-                            }
+                      }
+                      viewer {
+                        ...ViewerDetails
+                        ... on UserViewer {
+                          email
                         }
-                        # Union with inline fragments
-                        search(query: "test") {
-                            ...SearchResultItem
-                            ... on User {  # Additional inline fragment
-                                email
-                                lastSeen
-                            }
-                            ... on Transaction {  # Duplicate with additional field
-                                transfers {
-                                    canBeCollected
-                                    customer {
-                                        id
-                                    }
-                                }
-                            }
+                        ... on AdminViewer {
+                          email
                         }
+                      }
+                      search(query: "test") {
+                        ...SearchResultItem
+                        ... on User {
+                          email
+                          lastSeen
+                        }
+                        ... on Transaction {
+                          transfers {
+                            canBeCollected
+                            customer {
+                              id
+                            }
+                          }
+                        }
+                      }
                     }
                     GRAPHQL
             ),
@@ -1193,29 +1199,29 @@ final class PayloadShapeBuilderTest extends TestCase
             $this->parseSelectionSet(
                 <<<'GRAPHQL'
                     {
-                        actors {
-                            id
-                            ... on Actor {
-                                createdAt
-                            }
-                            ... on Person {
-                                firstName
-                                lastName
-                            }
-                            ... on Employee {
-                                role
-                                department
-                            }
-                            ... on RegularUser {
-                                email
-                            }
-                            ... on Manager {
-                                teamSize
-                            }
-                            ... on Developer {
-                                languages
-                            }
+                      actors {
+                        id
+                        ... on Actor {
+                          createdAt
                         }
+                        ... on Person {
+                          firstName
+                          lastName
+                        }
+                        ... on Employee {
+                          role
+                          department
+                        }
+                        ... on RegularUser {
+                          email
+                        }
+                        ... on Manager {
+                          teamSize
+                        }
+                        ... on Developer {
+                          languages
+                        }
+                      }
                     }
                     GRAPHQL
             ),
@@ -1247,22 +1253,25 @@ final class PayloadShapeBuilderTest extends TestCase
         $fragments = $this->parseFragments(
             <<<'GRAPHQL'
                 fragment ActorFields on Actor {
-                    id
-                    createdAt
+                  id
+                  createdAt
                 }
+
                 fragment PersonFields on Person {
-                    ...ActorFields
-                    firstName
-                    lastName
+                  ...ActorFields
+                  firstName
+                  lastName
                 }
+
                 fragment EmployeeFields on Employee {
-                    ...PersonFields
-                    role
-                    department
+                  ...PersonFields
+                  role
+                  department
                 }
+
                 fragment ManagerFields on Manager {
-                    ...EmployeeFields
-                    teamSize
+                  ...EmployeeFields
+                  teamSize
                 }
                 GRAPHQL
         );
@@ -1290,19 +1299,19 @@ final class PayloadShapeBuilderTest extends TestCase
             $this->parseSelectionSet(
                 <<<'GRAPHQL'
                     {
-                        actors {
-                            ... on Manager {
-                                ...ManagerFields
-                            }
-                            ... on Developer {
-                                ...EmployeeFields
-                                languages
-                            }
-                            ... on RegularUser {
-                                ...PersonFields
-                                email
-                            }
+                      actors {
+                        ... on Manager {
+                          ...ManagerFields
                         }
+                        ... on Developer {
+                          ...EmployeeFields
+                          languages
+                        }
+                        ... on RegularUser {
+                          ...PersonFields
+                          email
+                        }
+                      }
                     }
                     GRAPHQL
             ),
@@ -1338,20 +1347,20 @@ final class PayloadShapeBuilderTest extends TestCase
             $this->parseSelectionSet(
                 <<<'GRAPHQL'
                     {
-                        actors {
-                            id  # Direct selection - always present
-                            ... on Person {
-                                firstName
-                                lastName
-                                ... on Employee {
-                                    role
-                                }
-                            }
-                            ... on Manager {
-                                department
-                                teamSize
-                            }
+                      actors {
+                        id
+                        ... on Person {
+                          firstName
+                          lastName
+                          ... on Employee {
+                            role
+                          }
                         }
+                        ... on Manager {
+                          department
+                          teamSize
+                        }
+                      }
                     }
                     GRAPHQL
             ),
@@ -1380,25 +1389,26 @@ final class PayloadShapeBuilderTest extends TestCase
         $fragments = $this->parseFragments(
             <<<'GRAPHQL'
                 fragment CommonActorFields on Actor {
-                    id
-                    createdAt
-                    ... on Person {
-                        firstName
-                        lastName
-                    }
-                    ... on Employee {
-                        role
-                        department
-                    }
+                  id
+                  createdAt
+                  ... on Person {
+                    firstName
+                    lastName
+                  }
+                  ... on Employee {
+                    role
+                    department
+                  }
                 }
+
                 fragment DetailedEmployee on Employee {
-                    ...CommonActorFields
-                    ... on Manager {
-                        teamSize
-                    }
-                    ... on Developer {
-                        languages
-                    }
+                  ...CommonActorFields
+                  ... on Manager {
+                    teamSize
+                  }
+                  ... on Developer {
+                    languages
+                  }
                 }
                 GRAPHQL
         );
@@ -1426,17 +1436,17 @@ final class PayloadShapeBuilderTest extends TestCase
             $this->parseSelectionSet(
                 <<<'GRAPHQL'
                     {
-                        actors {
-                            __typename
-                            ...CommonActorFields @include(if: $includeCommon)
-                            ... on Employee {
-                                ...DetailedEmployee @skip(if: $skipDetails)
-                            }
-                            ... on RegularUser {
-                                email
-                                firstName @include(if: $includeName)
-                            }
+                      actors {
+                        __typename
+                        ...CommonActorFields @include(if: $includeCommon)
+                        ... on Employee {
+                          ...DetailedEmployee @skip(if: $skipDetails)
                         }
+                        ... on RegularUser {
+                          email
+                          firstName @include(if: $includeName)
+                        }
+                      }
                     }
                     GRAPHQL
             ),
@@ -1470,13 +1480,14 @@ final class PayloadShapeBuilderTest extends TestCase
         $fragments = $this->parseFragments(
             <<<'GRAPHQL'
                 fragment TransferStateFields on Transfer {
-                    transferReversals {
-                        id
-                    }
+                  transferReversals {
+                    id
+                  }
                 }
+
                 fragment TransferRowFields on Transfer {
-                    canBeCollected
-                    ...TransferStateFields
+                  canBeCollected
+                  ...TransferStateFields
                 }
                 GRAPHQL
         );
@@ -1505,7 +1516,7 @@ final class PayloadShapeBuilderTest extends TestCase
             $this->parseSelectionSet(
                 <<<'GRAPHQL'
                     {
-                        ...TransferRowFields
+                      ...TransferRowFields
                     }
                     GRAPHQL
             ),
@@ -1530,12 +1541,12 @@ final class PayloadShapeBuilderTest extends TestCase
         $fragments = $this->parseFragments(
             <<<'GRAPHQL'
                 fragment TransactionFlowFields on Transaction {
-                    transfers {
-                        id
-                        customer {
-                            id
-                        }
+                  transfers {
+                    id
+                    customer {
+                      id
                     }
+                  }
                 }
                 GRAPHQL
         );
@@ -1564,7 +1575,7 @@ final class PayloadShapeBuilderTest extends TestCase
             $this->parseSelectionSet(
                 <<<'GRAPHQL'
                     {
-                        ...TransactionFlowFields
+                      ...TransactionFlowFields
                     }
                     GRAPHQL
             ),
@@ -1588,12 +1599,12 @@ final class PayloadShapeBuilderTest extends TestCase
             $this->parseSelectionSet(
                 <<<'GRAPHQL'
                     {
+                      id
+                      transfers {
                         id
-                        transfers {
-                            id
-                            canBeCollected
-                        }
-                        ...TransactionFlowFields
+                        canBeCollected
+                      }
+                      ...TransactionFlowFields
                     }
                     GRAPHQL
             ),

@@ -1,0 +1,11 @@
+<?php
+
+declare(strict_types=1);
+
+$sql = <<<'SQL'
+    SELECT 1
+    SQL;
+
+$interpolated = <<<GRAPHQL
+    query { user(id: $id) { name } }
+    GRAPHQL;
