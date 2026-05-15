@@ -599,6 +599,45 @@ fragment AdminProjectRow on Project {
 
 The generator extracts fragments from Twig files and creates type-safe classes. Your templates and GraphQL stay together!
 
+#### 🧹 Auto-Format GraphQL in Twig
+
+A [Twig CS Fixer](https://github.com/VincentLanglet/Twig-CS-Fixer) rule ships with this library to keep the GraphQL inside your `{% graphql %}` blocks consistently formatted. It parses the operation and rewrites it with `webonyx/graphql-php`'s `Printer::doPrint()`, re-indented to match the block. Invalid GraphQL is reported as an error and left untouched, and blocks that embed Twig are skipped.
+
+Register `GraphQLFormatterRule` (and the `GraphQLTokenParser` so Twig CS Fixer understands the tag) in your `.twig-cs-fixer.php`:
+
+<!-- source: .twig-cs-fixer.php -->
+```php
+<?php
+
+declare(strict_types=1);
+
+use Ruudk\GraphQLCodeGenerator\Twig\GraphQLFormatterRule;
+use Ruudk\GraphQLCodeGenerator\Twig\GraphQLTokenParser;
+use TwigCsFixer\Config\Config;
+use TwigCsFixer\File\Finder;
+use TwigCsFixer\Ruleset\Ruleset;
+use TwigCsFixer\Standard\TwigCsFixer;
+
+$ruleset = new Ruleset();
+
+$ruleset->addStandard(new TwigCsFixer());
+$ruleset->addRule(new GraphQLFormatterRule());
+
+$finder = Finder::create()
+    ->in('tests');
+
+$config = new Config();
+$config->allowNonFixableRules();
+$config->setCacheFile(__DIR__ . '/.twig-cs-fixer.cache');
+$config->setRuleset($ruleset);
+$config->setFinder($finder);
+$config->addTokenParser(new GraphQLTokenParser());
+
+return $config;
+```
+
+Running `vendor/bin/twig-cs-fixer fix` now formats every `{% graphql %}` block automatically, and `vendor/bin/twig-cs-fixer lint` fails on any block that isn't canonically formatted.
+
 ### ⚡ Custom `@indexBy` Directive
 
 Stop searching through arrays—index collections by a field for O(1) lookups:
