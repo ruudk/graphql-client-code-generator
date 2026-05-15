@@ -123,6 +123,8 @@ final class OperationClassGenerator extends AbstractGenerator
 
                     yield '';
                     yield from $generator->docComment(function () use ($plan, $generator) {
+                        yield '@api';
+
                         foreach ($plan->variables as $name => $phpType) {
                             if ( ! $phpType instanceof SymfonyType\CollectionType) {
                                 continue;
@@ -207,6 +209,8 @@ final class OperationClassGenerator extends AbstractGenerator
                     if ($this->config->dumpOrThrowMethods) {
                         yield '';
                         yield from $generator->docComment(function () use ($plan, $failedException, $generator) {
+                            yield '@api';
+
                             foreach ($plan->variables as $name => $phpType) {
                                 if ( ! $phpType instanceof SymfonyType\CollectionType) {
                                     continue;

@@ -23,6 +23,9 @@ final readonly class ViewerQuery {
         private GitHubClient $client,
     ) {}
 
+    /**
+     * @api
+     */
     public function execute() : Data
     {
         $data = $this->client->graphql(

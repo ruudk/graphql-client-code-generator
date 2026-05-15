@@ -39,6 +39,9 @@ final readonly class TestQuery {
         private array $hooks,
     ) {}
 
+    /**
+     * @api
+     */
     public function execute(
         Stringable|string $paymentFlowId,
     ) : Data {
