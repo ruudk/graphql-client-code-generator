@@ -1,0 +1,17 @@
+type Query {
+    viewer: Viewer!
+}
+
+interface Viewer {
+    name: String!
+}
+
+type User implements Viewer {
+    name: String!
+    login: String!
+}
+
+type Application implements Viewer {
+    name: String!
+    url: String!
+}

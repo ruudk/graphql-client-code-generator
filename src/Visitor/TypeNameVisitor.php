@@ -8,7 +8,6 @@ use Exception;
 use GraphQL\Language\AST\FieldNode;
 use GraphQL\Language\AST\FragmentSpreadNode;
 use GraphQL\Language\AST\InlineFragmentNode;
-use GraphQL\Language\AST\NameNode;
 use GraphQL\Language\AST\Node;
 use GraphQL\Language\AST\NodeKind;
 use GraphQL\Language\AST\NodeList;
@@ -19,6 +18,7 @@ use GraphQL\Type\Definition\ObjectType;
 use GraphQL\Type\Definition\Type;
 use GraphQL\Type\Schema;
 use GraphQL\Utils\TypeInfo;
+use Ruudk\GraphQLCodeGenerator\GraphQL\AST\InjectedTypenameFieldNode;
 use Ruudk\GraphQLCodeGenerator\GraphQL\FragmentDefinitionNodeWithSource;
 use Webmozart\Assert\Assert;
 use Webmozart\Assert\InvalidArgumentException;
@@ -71,11 +71,7 @@ final readonly class TypeNameVisitor
                  * @var NodeList<SelectionNode&Node> $selections
                  */
                 $selections = new NodeList([
-                    new FieldNode([
-                        'name' => new NameNode([
-                            'value' => '__typename',
-                        ]),
-                    ]),
+                    InjectedTypenameFieldNode::create(),
                 ]);
 
                 $node->selections = $selections->merge($node->selections);

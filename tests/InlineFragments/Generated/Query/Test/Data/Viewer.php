@@ -11,10 +11,6 @@ use Ruudk\GraphQLCodeGenerator\InlineFragments\Generated\Query\Test\Data\Viewer\
 
 final class Viewer
 {
-    public string $__typename {
-        get => $this->__typename ??= $this->data['__typename'];
-    }
-
     public ?AsApplication $asApplication {
         get {
             if (isset($this->asApplication)) {

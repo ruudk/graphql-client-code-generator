@@ -8,10 +8,6 @@ namespace Ruudk\GraphQLCodeGenerator\Optimization\Generated\Query\Test\Data\View
 
 final class AsUser
 {
-    public string $__typename {
-        get => $this->__typename ??= $this->data['__typename'];
-    }
-
     public string $id {
         get => $this->id ??= $this->data['id'];
     }
