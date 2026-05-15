@@ -657,6 +657,7 @@ Register `GraphQLFormatterRule` (and the `GraphQLTokenParser` so Twig CS Fixer u
 declare(strict_types=1);
 
 use Ruudk\GraphQLCodeGenerator\Twig\GraphQLFormatterRule;
+use Ruudk\GraphQLCodeGenerator\Twig\GraphQLOverfetchingRule;
 use Ruudk\GraphQLCodeGenerator\Twig\GraphQLTokenParser;
 use TwigCsFixer\Config\Config;
 use TwigCsFixer\File\Finder;
@@ -667,6 +668,7 @@ $ruleset = new Ruleset();
 
 $ruleset->addStandard(new TwigCsFixer());
 $ruleset->addRule(new GraphQLFormatterRule());
+$ruleset->addRule(new GraphQLOverfetchingRule());
 
 $finder = Finder::create()
     ->in('tests');
