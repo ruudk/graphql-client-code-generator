@@ -1,0 +1,13 @@
+type Query {
+    paymentFlow(id: ID!): PaymentFlow
+}
+
+type PaymentFlow {
+    id: ID!
+    order: Order!
+}
+
+type Order {
+    id: ID!
+    discountId: ID!
+}

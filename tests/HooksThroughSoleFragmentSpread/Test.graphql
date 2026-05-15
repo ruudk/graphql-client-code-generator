@@ -1,0 +1,5 @@
+query Test($paymentFlowId: ID!) {
+    paymentFlow(id: $paymentFlowId) @throwWhenNull {
+        ...ShowPaymentFlow
+    }
+}

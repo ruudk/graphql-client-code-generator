@@ -1,0 +1,8 @@
+fragment ShowPaymentFlow on PaymentFlow {
+    id
+    order {
+        id
+        discountId
+        discountCode @hook(name: "findDiscountCodeById", input: ["discountId"])
+    }
+}

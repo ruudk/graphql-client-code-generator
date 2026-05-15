@@ -724,6 +724,10 @@ final class Planner
             $childFqcnsByPlan[$plan->fqcn] = [];
 
             foreach ($this->fieldTypesIn($plan->fields) as $fieldType) {
+                if ($fieldType instanceof ThrowWhenNullPropertyType) {
+                    $fieldType = $fieldType->getWrappedType();
+                }
+
                 if ($fieldType instanceof HookPropertyType) {
                     $plan->usedHooks[$fieldType->hookName] = true;
 
@@ -792,6 +796,12 @@ final class Planner
     private function unwrapToObjectType(SymfonyType $type) : ?string
     {
         while (true) {
+            if ($type instanceof ThrowWhenNullPropertyType) {
+                $type = $type->getWrappedType();
+
+                continue;
+            }
+
             if ($type instanceof SymfonyType\NullableType) {
                 $type = $type->getWrappedType();
 
