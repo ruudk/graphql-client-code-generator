@@ -1008,7 +1008,9 @@ final class SelectionSetPlanner
         $payloadShape = $result->getPayloadShapeType();
 
         // Unwrap list types
-        if ($fields instanceof SymfonyType\CollectionType && $fields->isList()) {
+        $fieldIsList = $fields instanceof SymfonyType\CollectionType && $fields->isList();
+
+        if ($fieldIsList) {
             $fields = $fields->getCollectionValueType();
         }
 
@@ -1036,30 +1038,29 @@ final class SelectionSetPlanner
             inlineFragmentRequiredFields: $this->inlineFragmentRequiredFields,
             isData: false,
             isFragment: false,
-            markTypenameAsApi: $this->isSoleTypenameOnFirstLevelMutationField($context, $selection),
+            markTypenameAsApi: $this->shouldMarkTypenameAsApi($context, $selection, $fieldIsList),
         );
 
         $this->result->addClass($dataClass);
     }
 
     /**
-     * A first-level mutation field selecting nothing but `__typename` is the
-     * idiomatic "fire and forget" mutation: the caller only wants the side
-     * effect. The generated `__typename` property is then never read, so we
-     * tag it `@api` to stop dead-code analysis from flagging it. This must
-     * NOT trigger when other fields are selected alongside `__typename`, nor
-     * when `__typename` appears deeper than the first level.
+     * Selecting nothing but `__typename` means the caller does not actually
+     * read the value back — GraphQL just forces at least one field to be
+     * selected. The generated `__typename` property is then never used, so we
+     * tag it `@api` to stop dead-code analysis from flagging it. This applies
+     * to:
+     *   - a list field (you must select something to iterate the list), and
+     *   - a first-level "fire and forget" mutation field (only the side
+     *     effect matters).
+     * It must NOT trigger when other fields are selected alongside
+     * `__typename`.
      */
-    private function isSoleTypenameOnFirstLevelMutationField(
+    private function shouldMarkTypenameAsApi(
         PlanningContext $context,
         FieldNode $selection,
+        bool $fieldIsList,
     ) : bool {
-        // Root path is the operation type ("mutation"); a first-level field
-        // is therefore exactly "mutation.<fieldName>" (one separator).
-        if ( ! str_starts_with($context->path, 'mutation.') || substr_count($context->path, '.') !== 1) {
-            return false;
-        }
-
         $selections = $selection->selectionSet?->selections;
 
         if ($selections === null || count($selections) !== 1) {
@@ -1068,7 +1069,17 @@ final class SelectionSetPlanner
 
         $only = $selections[0];
 
-        return $only instanceof FieldNode && $only->name->value === '__typename';
+        if ( ! $only instanceof FieldNode || $only->name->value !== '__typename') {
+            return false;
+        }
+
+        if ($fieldIsList) {
+            return true;
+        }
+
+        // Root path is the operation type ("mutation"); a first-level field
+        // is therefore exactly "mutation.<fieldName>" (one separator).
+        return str_starts_with($context->path, 'mutation.') && substr_count($context->path, '.') === 1;
     }
 
     private function createInlineFragmentClassPlan(
