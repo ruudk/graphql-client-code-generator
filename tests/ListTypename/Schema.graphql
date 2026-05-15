@@ -1,0 +1,14 @@
+type Query {
+    field: Field!
+}
+
+type Field {
+    soleList: [Item!]!
+    multiList: [Item!]!
+    single: Item!
+}
+
+type Item {
+    id: ID!
+    name: String!
+}

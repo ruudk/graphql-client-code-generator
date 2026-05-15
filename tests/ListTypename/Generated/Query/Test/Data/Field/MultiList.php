@@ -1,0 +1,28 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Ruudk\GraphQLCodeGenerator\ListTypename\Generated\Query\Test\Data\Field;
+
+// This file was automatically generated and should not be edited.
+
+final class MultiList
+{
+    public string $__typename {
+        get => $this->__typename ??= $this->data['__typename'];
+    }
+
+    public string $id {
+        get => $this->id ??= $this->data['id'];
+    }
+
+    /**
+     * @param array{
+     *     '__typename': string,
+     *     'id': string,
+     * } $data
+     */
+    public function __construct(
+        private readonly array $data,
+    ) {}
+}

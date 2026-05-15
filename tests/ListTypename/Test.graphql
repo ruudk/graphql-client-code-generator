@@ -1,0 +1,14 @@
+query Test {
+    field {
+        soleList {
+            __typename
+        }
+        multiList {
+            __typename
+            id
+        }
+        single {
+            __typename
+        }
+    }
+}
