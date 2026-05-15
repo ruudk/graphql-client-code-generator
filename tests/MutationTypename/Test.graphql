@@ -1,0 +1,14 @@
+mutation Test {
+    fireAndForget {
+        __typename
+    }
+    withExtraFields {
+        __typename
+        name
+    }
+    nested {
+        inner {
+            __typename
+        }
+    }
+}

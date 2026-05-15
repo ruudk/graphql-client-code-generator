@@ -1,0 +1,26 @@
+type Query {
+    ping: String!
+}
+
+type Mutation {
+    fireAndForget: FireResult!
+    withExtraFields: ExtraResult!
+    nested: NestedResult!
+}
+
+type FireResult {
+    id: ID!
+}
+
+type ExtraResult {
+    id: ID!
+    name: String!
+}
+
+type NestedResult {
+    inner: Inner!
+}
+
+type Inner {
+    id: ID!
+}
