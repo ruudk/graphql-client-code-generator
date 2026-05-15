@@ -4,11 +4,41 @@ declare(strict_types=1);
 
 namespace Ruudk\GraphQLCodeGenerator\InlineFragments;
 
+use ReflectionClass;
 use Ruudk\GraphQLCodeGenerator\GraphQLTestCase;
+use Ruudk\GraphQLCodeGenerator\InlineFragments\Generated\Query\Test\Data\Viewer;
 use Ruudk\GraphQLCodeGenerator\InlineFragments\Generated\Query\Test\TestQuery;
 
 final class InlineFragmentsTest extends GraphQLTestCase
 {
+    /**
+     * This query never selects __typename; it is only injected so the
+     * generator can discriminate the interface at runtime. The injected
+     * value must NOT leak as a public property even though discrimination
+     * (isUser/asUser) still reads it from $this->data['__typename'].
+     */
+    public function testInjectedTypenameIsNotExposedAsProperty() : void
+    {
+        self::assertFalse(
+            new ReflectionClass(Viewer::class)->hasProperty('__typename'),
+            'Auto-injected __typename must not surface as a public property',
+        );
+
+        $result = new TestQuery($this->getClient([
+            'data' => [
+                'viewer' => [
+                    '__typename' => 'User',
+                    'name' => 'Ruud Kamphuis',
+                    'login' => 'ruudk',
+                ],
+                'projects' => [],
+            ],
+        ]))->execute();
+
+        self::assertTrue($result->viewer->isUser);
+        self::assertSame('ruudk', $result->viewer->asUser?->login);
+    }
+
     public function testGenerate() : void
     {
         $this->assertActualMatchesExpected();

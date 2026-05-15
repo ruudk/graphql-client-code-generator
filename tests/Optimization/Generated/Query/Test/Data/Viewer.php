@@ -11,10 +11,6 @@ use Ruudk\GraphQLCodeGenerator\Optimization\Generated\Query\Test\Data\Viewer\AsU
 
 final class Viewer
 {
-    public string $__typename {
-        get => $this->__typename ??= $this->data['__typename'];
-    }
-
     public ?AppUrl $appUrl {
         get {
             if (isset($this->appUrl)) {

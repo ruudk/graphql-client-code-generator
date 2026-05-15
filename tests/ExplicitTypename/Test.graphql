@@ -1,0 +1,14 @@
+query Test {
+    viewer {
+        __typename
+        name
+        ...UserDetails
+        ...on Application {
+            url
+        }
+    }
+}
+
+fragment UserDetails on User {
+    login
+}

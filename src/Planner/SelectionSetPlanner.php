@@ -27,6 +27,7 @@ use GraphQL\Type\Schema;
 use LogicException;
 use Ruudk\GraphQLCodeGenerator\Config\Config;
 use Ruudk\GraphQLCodeGenerator\DirectiveProcessor;
+use Ruudk\GraphQLCodeGenerator\GraphQL\AST\InjectedTypenameFieldNode;
 use Ruudk\GraphQLCodeGenerator\GraphQL\FragmentDefinitionNodeWithSource;
 use Ruudk\GraphQLCodeGenerator\GraphQL\PossibleTypesFinder;
 use Ruudk\GraphQLCodeGenerator\Planner\Plan\DataClassPlan;
@@ -238,9 +239,14 @@ final class SelectionSetPlanner
         // TODO This should not be part of the GraphQL operation, done by a visitor/optimizer.
         // Check if we need to implicitly add __typename
         if ($this->needsImplicitTypename($selectionSet, $type)) {
-            $fields->add('__typename', SymfonyType::string());
+            // Only the payload shape needs __typename here so the generated
+            // discrimination can read `$this->data['__typename']`;
+            // PayloadShapeBuilder already handles that. Deliberately NOT added
+            // to $fields: an implicitly required __typename is an internal
+            // concern and must not surface as a public property. A
+            // user-selected __typename still gets its property via
+            // processFieldSelection().
             $pathFields->add('__typename', SymfonyType::string());
-            // PayloadShapeBuilder already handles __typename when needed
         }
 
         // IMPORTANT: Collect and merge field selections from both direct selections and fragments
@@ -348,7 +354,15 @@ final class SelectionSetPlanner
 
         // Handle __typename specially
         if ($fieldName === '__typename') {
-            $fields->add($fieldName, SymfonyType::string());
+            // A __typename the generator injected for runtime type
+            // discrimination is an internal concern: it must exist in the
+            // payload shape (read via `$this->data['__typename']`) but must
+            // NOT surface as a public property. Only a user-selected
+            // __typename becomes a property.
+            if ( ! $selection instanceof InjectedTypenameFieldNode) {
+                $fields->add($fieldName, SymfonyType::string());
+            }
+
             $pathFields->add($fieldName, SymfonyType::string());
             $payloadShape->addRequired($fieldName, SymfonyType::string());
 
