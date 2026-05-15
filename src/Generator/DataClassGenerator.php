@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Ruudk\GraphQLCodeGenerator\Generator;
 
+use GraphQL\Language\AST\OperationDefinitionNode;
 use GraphQL\Type\Definition\InterfaceType;
 use GraphQL\Type\Definition\ObjectType;
 use GraphQL\Type\Definition\UnionType;
@@ -155,6 +156,14 @@ final class DataClassGenerator extends AbstractGenerator
         $definitionNode = $plan->definitionNode;
         $nodesType = $plan->nodesType;
 
+        // First-level fields of a mutation's Data class are mutated as a
+        // side effect of execute()/executeOrThrow(), regardless of whether
+        // the caller reads them. Tag them @api so dead-code analysis does
+        // not flag the properties as unused.
+        $isMutationData = $isData
+            && $definitionNode instanceof OperationDefinitionNode
+            && $definitionNode->operation === 'mutation';
+
         /**
          * @var array<string, list<string>>
          */
@@ -185,7 +194,7 @@ final class DataClassGenerator extends AbstractGenerator
 
         $generator = new CodeGenerator($namespace);
 
-        return $generator->dumpFile(function () use ($plan, $definitionNode, $parentType, $nodesType, $fqcn, $payloadShape, $isData, $fields, $generator, $inlineFragmentRequiredFields, $plansByFqcn) {
+        return $generator->dumpFile(function () use ($plan, $definitionNode, $parentType, $nodesType, $fqcn, $payloadShape, $isData, $isMutationData, $fields, $generator, $inlineFragmentRequiredFields, $plansByFqcn) {
             yield $this->dumpHeader();
             yield '';
 
@@ -227,7 +236,7 @@ final class DataClassGenerator extends AbstractGenerator
             $requiredFieldsMap = $inlineFragmentRequiredFields;
 
             yield $generator->indent(
-                function () use ($plan, $parentType, $nodesType, $fields, $isData, $payloadShape, $generator, $requiredFieldsMap, $plansByFqcn) {
+                function () use ($plan, $parentType, $nodesType, $fields, $isData, $isMutationData, $payloadShape, $generator, $requiredFieldsMap, $plansByFqcn) {
                     // Get optional flags and actual types from payloadShape
                     $optionalFields = [];
                     $payloadFieldTypes = [];
@@ -267,7 +276,11 @@ final class DataClassGenerator extends AbstractGenerator
                             if ($fieldType instanceof HookPropertyType) {
                                 $wrappedReturnType = $fieldType->getWrappedType();
 
-                                yield from $generator->docComment(function () use ($wrappedReturnType, $generator) {
+                                yield from $generator->docComment(function () use ($wrappedReturnType, $isMutationData, $generator) {
+                                    if ($isMutationData) {
+                                        yield '@api';
+                                    }
+
                                     if ($this->getNakedType($wrappedReturnType) instanceof SymfonyType\CollectionType) {
                                         yield sprintf(
                                             '@var %s',
@@ -305,7 +318,11 @@ final class DataClassGenerator extends AbstractGenerator
                             if ($fieldType instanceof ThrowWhenNullPropertyType) {
                                 $wrappedType = $fieldType->getWrappedType();
 
-                                yield from $generator->docComment(function () use ($wrappedType, $generator) {
+                                yield from $generator->docComment(function () use ($wrappedType, $isMutationData, $generator) {
+                                    if ($isMutationData) {
+                                        yield '@api';
+                                    }
+
                                     if ($this->getNakedType($wrappedType) instanceof SymfonyType\CollectionType) {
                                         yield sprintf(
                                             '@var %s',
@@ -362,7 +379,11 @@ final class DataClassGenerator extends AbstractGenerator
                                 $propertyType = SymfonyType::nullable($propertyType);
                             }
 
-                            yield from $generator->docComment(function () use ($propertyType, $generator) {
+                            yield from $generator->docComment(function () use ($propertyType, $isMutationData, $generator) {
+                                if ($isMutationData) {
+                                    yield '@api';
+                                }
+
                                 if ($this->getNakedType($propertyType) instanceof SymfonyType\CollectionType) {
                                     yield sprintf(
                                         '@var %s',

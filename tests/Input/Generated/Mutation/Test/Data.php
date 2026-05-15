@@ -8,10 +8,16 @@ namespace Ruudk\GraphQLCodeGenerator\Input\Generated\Mutation\Test;
 
 final class Data
 {
+    /**
+     * @api
+     */
     public bool $createUser {
         get => $this->createUser ??= $this->data['createUser'];
     }
 
+    /**
+     * @api
+     */
     public string $sayHello {
         get => $this->sayHello ??= $this->data['sayHello'];
     }
