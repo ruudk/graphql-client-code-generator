@@ -447,7 +447,7 @@ final readonly class SomeController
 {
     private const string OPERATION = <<<'GRAPHQL'
         query Projects {
-            ...AdminProjectList
+          ...AdminProjectList
         }
         GRAPHQL;
 
@@ -497,9 +497,9 @@ final readonly class UserMapper
 {
     private const string FRAGMENT = <<<'GRAPHQL'
         fragment UserName on User {
-            id
-            firstName
-            lastName
+          id
+          firstName
+          lastName
         }
         GRAPHQL;
 
@@ -536,9 +536,9 @@ final readonly class ListUsersClient
 {
     private const string OPERATION = <<<'GRAPHQL'
         query ListUsers {
-            users {
-                ...UserName
-            }
+          users {
+            ...UserName
+          }
         }
         GRAPHQL;
 
@@ -569,6 +569,48 @@ final readonly class ListUsersClient
 5. Callers hand fragment-shaped data back to the service, which is the only place allowed to read it.
 
 **Fragment names must be globally unique** across `.graphql` files, Twig templates, and PHP attributes — the generator throws on conflict, naming both source locations.
+
+#### 🧹 Auto-Format GraphQL in PHP Heredocs
+
+A custom [PHP CS Fixer](https://cs.symfony.com/) fixer ships with this library to keep the GraphQL inside your `<<<'GRAPHQL' ... GRAPHQL` nowdoc strings consistently formatted. It parses the operation and rewrites it with `webonyx/graphql-php`'s `Printer::doPrint()`, indented to match the heredoc. Only single-quoted nowdocs are touched (a heredoc would interpolate GraphQL `$variables` as PHP variables); invalid GraphQL is left untouched.
+
+Register `GraphQLHeredocFixer` in your `.php-cs-fixer.php`:
+
+<!-- source: .php-cs-fixer.php -->
+```php
+<?php
+
+declare(strict_types=1);
+
+use PhpCsFixer\Finder;
+use Ruudk\GraphQLCodeGenerator\PhpCsFixer\GraphQLHeredocFixer;
+use Ticketswap\PhpCsFixerConfig\Fixers;
+use Ticketswap\PhpCsFixerConfig\NameWrapper;
+use Ticketswap\PhpCsFixerConfig\PhpCsFixerConfigFactory;
+use Ticketswap\PhpCsFixerConfig\RuleSet\TicketSwapRuleSet;
+
+$finder = Finder::create()
+    ->in(__DIR__ . '/examples')
+    ->in(__DIR__ . '/src')
+    ->in(__DIR__ . '/tests')
+    ->notPath(['Generated'])
+    ->append([
+        __DIR__ . '/.php-cs-fixer.php',
+        __DIR__ . '/bin/graphql-client-code-generator',
+        __DIR__ . '/composer-dependency-analyser.php',
+        __DIR__ . '/phpstan.php',
+    ]);
+
+return PhpCsFixerConfigFactory::create(
+    TicketSwapRuleSet::create()->withCustomFixers(
+        new Fixers(
+            new NameWrapper(new GraphQLHeredocFixer()),
+        ),
+    ),
+)->setFinder($finder);
+```
+
+Running `vendor/bin/php-cs-fixer fix` now formats every `<<<'GRAPHQL'` block automatically. The fixer runs before `heredoc_indentation`, so the surrounding indentation stays consistent with the rest of your codebase.
 
 ### 🎭 Twig Template Support
 

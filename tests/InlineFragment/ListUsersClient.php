@@ -11,9 +11,9 @@ final readonly class ListUsersClient
 {
     private const string OPERATION = <<<'GRAPHQL'
         query ListUsers {
-            users {
-                ...UserName
-            }
+          users {
+            ...UserName
+          }
         }
         GRAPHQL;
 

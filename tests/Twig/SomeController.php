@@ -12,7 +12,7 @@ final readonly class SomeController
 {
     private const string OPERATION = <<<'GRAPHQL'
         query Projects {
-            ...AdminProjectList
+          ...AdminProjectList
         }
         GRAPHQL;
 

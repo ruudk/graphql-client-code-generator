@@ -101,11 +101,11 @@ final class IndexByValidatorTest extends TestCase
     public function testValidSingleFieldIndexBy() : void
     {
         $query = <<<'GRAPHQL'
-            query {
-                users @indexBy(field: "id") {
-                    id
-                    name
-                }
+            {
+              users @indexBy(field: "id") {
+                id
+                name
+              }
             }
             GRAPHQL;
 
@@ -116,11 +116,11 @@ final class IndexByValidatorTest extends TestCase
     public function testValidSingleFieldIndexByWithStringField() : void
     {
         $query = <<<'GRAPHQL'
-            query {
-                users @indexBy(field: "name") {
-                    id
-                    name
-                }
+            {
+              users @indexBy(field: "name") {
+                id
+                name
+              }
             }
             GRAPHQL;
 
@@ -131,15 +131,15 @@ final class IndexByValidatorTest extends TestCase
     public function testValidNestedFieldIndexBy() : void
     {
         $query = <<<'GRAPHQL'
-            query {
-                userConnection {
-                    edges @indexBy(field: "node.id") {
-                        node {
-                            id
-                            name
-                        }
-                    }
+            {
+              userConnection {
+                edges @indexBy(field: "node.id") {
+                  node {
+                    id
+                    name
+                  }
                 }
+              }
             }
             GRAPHQL;
 
@@ -150,12 +150,12 @@ final class IndexByValidatorTest extends TestCase
     public function testValidMultiFieldIndexBy() : void
     {
         $query = <<<'GRAPHQL'
-            query {
-                users @indexBy(field: "id,name") {
-                    id
-                    name
-                    email
-                }
+            {
+              users @indexBy(field: "id,name") {
+                id
+                name
+                email
+              }
             }
             GRAPHQL;
 
@@ -166,12 +166,12 @@ final class IndexByValidatorTest extends TestCase
     public function testValidMultiFieldIndexByWithSpaces() : void
     {
         $query = <<<'GRAPHQL'
-            query {
-                users @indexBy(field: "id, name") {
-                    id
-                    name
-                    email
-                }
+            {
+              users @indexBy(field: "id, name") {
+                id
+                name
+                email
+              }
             }
             GRAPHQL;
 
@@ -182,15 +182,15 @@ final class IndexByValidatorTest extends TestCase
     public function testValidMultiFieldNestedIndexBy() : void
     {
         $query = <<<'GRAPHQL'
-            query {
-                userConnection {
-                    edges @indexBy(field: "node.id,node.name") {
-                        node {
-                            id
-                            name
-                        }
-                    }
+            {
+              userConnection {
+                edges @indexBy(field: "node.id,node.name") {
+                  node {
+                    id
+                    name
+                  }
                 }
+              }
             }
             GRAPHQL;
 
@@ -201,14 +201,14 @@ final class IndexByValidatorTest extends TestCase
     public function testInvalidIndexByOnNonList() : void
     {
         $query = <<<'GRAPHQL'
-            query {
-                userConnection @indexBy(field: "edges") {
-                    edges {
-                        node {
-                            id
-                        }
-                    }
+            {
+              userConnection @indexBy(field: "edges") {
+                edges {
+                  node {
+                    id
+                  }
                 }
+              }
             }
             GRAPHQL;
 
@@ -220,10 +220,10 @@ final class IndexByValidatorTest extends TestCase
     public function testInvalidIndexByFieldNotSelected() : void
     {
         $query = <<<'GRAPHQL'
-            query {
-                users @indexBy(field: "name") {
-                    id
-                }
+            {
+              users @indexBy(field: "name") {
+                id
+              }
             }
             GRAPHQL;
 
@@ -235,12 +235,12 @@ final class IndexByValidatorTest extends TestCase
     public function testInvalidIndexByFieldDoesNotExist() : void
     {
         $query = <<<'GRAPHQL'
-            query {
-                users @indexBy(field: "nonexistent") {
-                    id
-                    name
-                    nonexistent
-                }
+            {
+              users @indexBy(field: "nonexistent") {
+                id
+                name
+                nonexistent
+              }
             }
             GRAPHQL;
 
@@ -252,11 +252,11 @@ final class IndexByValidatorTest extends TestCase
     public function testInvalidIndexByWithNullableFloatField() : void
     {
         $query = <<<'GRAPHQL'
-            query {
-                users @indexBy(field: "score") {
-                    id
-                    score
-                }
+            {
+              users @indexBy(field: "score") {
+                id
+                score
+              }
             }
             GRAPHQL;
 
@@ -268,11 +268,11 @@ final class IndexByValidatorTest extends TestCase
     public function testInvalidIndexByWithNonNullFloatField() : void
     {
         $query = <<<'GRAPHQL'
-            query {
-                users @indexBy(field: "rating") {
-                    id
-                    rating
-                }
+            {
+              users @indexBy(field: "rating") {
+                id
+                rating
+              }
             }
             GRAPHQL;
 
@@ -284,11 +284,11 @@ final class IndexByValidatorTest extends TestCase
     public function testInvalidIndexByWithNullableBooleanField() : void
     {
         $query = <<<'GRAPHQL'
-            query {
-                users @indexBy(field: "active") {
-                    id
-                    active
-                }
+            {
+              users @indexBy(field: "active") {
+                id
+                active
+              }
             }
             GRAPHQL;
 
@@ -300,11 +300,11 @@ final class IndexByValidatorTest extends TestCase
     public function testInvalidIndexByWithNonNullBooleanField() : void
     {
         $query = <<<'GRAPHQL'
-            query {
-                users @indexBy(field: "verified") {
-                    id
-                    verified
-                }
+            {
+              users @indexBy(field: "verified") {
+                id
+                verified
+              }
             }
             GRAPHQL;
 
@@ -316,11 +316,11 @@ final class IndexByValidatorTest extends TestCase
     public function testMultiFieldIndexByWithOneInvalidField() : void
     {
         $query = <<<'GRAPHQL'
-            query {
-                users @indexBy(field: "id,score") {
-                    id
-                    score
-                }
+            {
+              users @indexBy(field: "id,score") {
+                id
+                score
+              }
             }
             GRAPHQL;
 
@@ -332,10 +332,10 @@ final class IndexByValidatorTest extends TestCase
     public function testMultiFieldIndexByWithOneFieldNotSelected() : void
     {
         $query = <<<'GRAPHQL'
-            query {
-                users @indexBy(field: "id,name") {
-                    id
-                }
+            {
+              users @indexBy(field: "id,name") {
+                id
+              }
             }
             GRAPHQL;
 
@@ -347,11 +347,11 @@ final class IndexByValidatorTest extends TestCase
     public function testInvalidIndexByWithNullableStringField() : void
     {
         $query = <<<'GRAPHQL'
-            query {
-                users @indexBy(field: "email") {
-                    id
-                    email
-                }
+            {
+              users @indexBy(field: "email") {
+                id
+                email
+              }
             }
             GRAPHQL;
 
@@ -363,11 +363,11 @@ final class IndexByValidatorTest extends TestCase
     public function testInvalidIndexByWithNullableIntField() : void
     {
         $query = <<<'GRAPHQL'
-            query {
-                users @indexBy(field: "age") {
-                    id
-                    age
-                }
+            {
+              users @indexBy(field: "age") {
+                id
+                age
+              }
             }
             GRAPHQL;
 
@@ -379,11 +379,11 @@ final class IndexByValidatorTest extends TestCase
     public function testValidIndexByWithNonNullEnumField() : void
     {
         $query = <<<'GRAPHQL'
-            query {
-                users @indexBy(field: "status") {
-                    id
-                    status
-                }
+            {
+              users @indexBy(field: "status") {
+                id
+                status
+              }
             }
             GRAPHQL;
 
@@ -394,11 +394,11 @@ final class IndexByValidatorTest extends TestCase
     public function testInvalidIndexByWithNullableEnumField() : void
     {
         $query = <<<'GRAPHQL'
-            query {
-                users @indexBy(field: "optionalStatus") {
-                    id
-                    optionalStatus
-                }
+            {
+              users @indexBy(field: "optionalStatus") {
+                id
+                optionalStatus
+              }
             }
             GRAPHQL;
 
@@ -410,11 +410,11 @@ final class IndexByValidatorTest extends TestCase
     public function testMultiFieldIndexByWithMixedNullability() : void
     {
         $query = <<<'GRAPHQL'
-            query {
-                users @indexBy(field: "id,email") {
-                    id
-                    email
-                }
+            {
+              users @indexBy(field: "id,email") {
+                id
+                email
+              }
             }
             GRAPHQL;
 
@@ -426,12 +426,12 @@ final class IndexByValidatorTest extends TestCase
     public function testValidMultiFieldIndexByWithNonNullFields() : void
     {
         $query = <<<'GRAPHQL'
-            query {
-                users @indexBy(field: "id,name,status") {
-                    id
-                    name
-                    status
-                }
+            {
+              users @indexBy(field: "id,name,status") {
+                id
+                name
+                status
+              }
             }
             GRAPHQL;
 
@@ -442,11 +442,11 @@ final class IndexByValidatorTest extends TestCase
     public function testIndexByWithEmptyField() : void
     {
         $query = <<<'GRAPHQL'
-            query {
-                users @indexBy(field: "") {
-                    id
-                    name
-                }
+            {
+              users @indexBy(field: "") {
+                id
+                name
+              }
             }
             GRAPHQL;
 
@@ -458,11 +458,11 @@ final class IndexByValidatorTest extends TestCase
     public function testMultiFieldIndexByWithEmptyFieldInMiddle() : void
     {
         $query = <<<'GRAPHQL'
-            query {
-                users @indexBy(field: "id,,name") {
-                    id
-                    name
-                }
+            {
+              users @indexBy(field: "id,,name") {
+                id
+                name
+              }
             }
             GRAPHQL;
 
@@ -475,11 +475,11 @@ final class IndexByValidatorTest extends TestCase
     public function testIndexByWithoutFieldArgument() : void
     {
         $query = <<<'GRAPHQL'
-            query {
-                users @indexBy {
-                    id
-                    name
-                }
+            {
+              users @indexBy {
+                id
+                name
+              }
             }
             GRAPHQL;
 
@@ -491,11 +491,11 @@ final class IndexByValidatorTest extends TestCase
     public function testIndexByWithWrongArgumentName() : void
     {
         $query = <<<'GRAPHQL'
-            query {
-                users @indexBy(value: "id") {
-                    id
-                    name
-                }
+            {
+              users @indexBy(value: "id") {
+                id
+                name
+              }
             }
             GRAPHQL;
 
@@ -507,14 +507,14 @@ final class IndexByValidatorTest extends TestCase
     public function testIndexByOnNullableList() : void
     {
         $query = <<<'GRAPHQL'
-            query {
-                userConnection {
-                    edges @indexBy(field: "node.id") {
-                        node {
-                            id
-                        }
-                    }
+            {
+              userConnection {
+                edges @indexBy(field: "node.id") {
+                  node {
+                    id
+                  }
                 }
+              }
             }
             GRAPHQL;
 
@@ -558,14 +558,14 @@ final class IndexByValidatorTest extends TestCase
         ]);
 
         $query = <<<'GRAPHQL'
-            query {
-                usersWithAddress @indexBy(field: "address.id") {
-                    id
-                    address {
-                        id
-                        street
-                    }
+            {
+              usersWithAddress @indexBy(field: "address.id") {
+                id
+                address {
+                  id
+                  street
                 }
+              }
             }
             GRAPHQL;
 
@@ -608,13 +608,13 @@ final class IndexByValidatorTest extends TestCase
         ]);
 
         $query = <<<'GRAPHQL'
-            query {
-                usersWithAddress @indexBy(field: "optionalAddress.id") {
-                    id
-                    optionalAddress {
-                        id
-                    }
+            {
+              usersWithAddress @indexBy(field: "optionalAddress.id") {
+                id
+                optionalAddress {
+                  id
                 }
+              }
             }
             GRAPHQL;
 

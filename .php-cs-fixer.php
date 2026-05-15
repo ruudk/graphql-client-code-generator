@@ -3,6 +3,9 @@
 declare(strict_types=1);
 
 use PhpCsFixer\Finder;
+use Ruudk\GraphQLCodeGenerator\PhpCsFixer\GraphQLHeredocFixer;
+use Ticketswap\PhpCsFixerConfig\Fixers;
+use Ticketswap\PhpCsFixerConfig\NameWrapper;
 use Ticketswap\PhpCsFixerConfig\PhpCsFixerConfigFactory;
 use Ticketswap\PhpCsFixerConfig\RuleSet\TicketSwapRuleSet;
 
@@ -18,4 +21,10 @@ $finder = Finder::create()
         __DIR__ . '/phpstan.php',
     ]);
 
-return PhpCsFixerConfigFactory::create(TicketSwapRuleSet::create())->setFinder($finder);
+return PhpCsFixerConfigFactory::create(
+    TicketSwapRuleSet::create()->withCustomFixers(
+        new Fixers(
+            new NameWrapper(new GraphQLHeredocFixer()),
+        ),
+    ),
+)->setFinder($finder);

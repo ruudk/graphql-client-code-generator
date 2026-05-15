@@ -11,13 +11,13 @@ final readonly class SomeController
 {
     private const string OPERATION = <<<'GRAPHQL'
         query ViewerProjects {
-            viewer {
-                login
-                projects {
-                    name
-                    description
-                }
+          viewer {
+            login
+            projects {
+              name
+              description
             }
+          }
         }
         GRAPHQL;
 

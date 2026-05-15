@@ -11,9 +11,9 @@ final readonly class ControllerWithStaleImport
 {
     private const string OPERATION = <<<'GRAPHQL'
         query GetViewer {
-            viewer {
-                login
-            }
+          viewer {
+            login
+          }
         }
         GRAPHQL;
 

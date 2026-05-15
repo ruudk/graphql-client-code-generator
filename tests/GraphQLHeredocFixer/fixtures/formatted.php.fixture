@@ -1,0 +1,21 @@
+<?php
+
+declare(strict_types=1);
+
+final class Example
+{
+    private const string OPERATION = <<<'GRAPHQL'
+        query Projects {
+          ...AdminProjectList
+        }
+
+        fragment AdminProjectList on Query {
+          viewer {
+            name
+          }
+          projects {
+            ...Row
+          }
+        }
+        GRAPHQL;
+}
