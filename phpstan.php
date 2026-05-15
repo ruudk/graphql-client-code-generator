@@ -78,27 +78,6 @@ return [
                     __DIR__ . '/tests/*',
                 ],
             ],
-            [
-                // Writing a custom php-cs-fixer fixer requires extending its
-                // @internal extension API; there is no public alternative.
-                'identifiers' => [
-                    'class.extendsInternalClass',
-                    'property.internalClass',
-                    'staticMethod.internalClass',
-                ],
-                'paths' => [
-                    __DIR__ . '/src/PhpCsFixer/*',
-                ],
-            ],
-            [
-                // The fixer test drives php-cs-fixer's @internal fix() method.
-                'identifiers' => [
-                    'method.internalClass',
-                ],
-                'paths' => [
-                    __DIR__ . '/tests/GraphQLHeredocFixer/*',
-                ],
-            ],
         ],
 
         // Developer experience

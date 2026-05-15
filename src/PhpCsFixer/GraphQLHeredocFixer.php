@@ -9,12 +9,10 @@ use GraphQL\Language\Parser;
 use GraphQL\Language\Printer;
 use JsonException;
 use Override;
-use PhpCsFixer\AbstractFixer;
-use PhpCsFixer\Fixer\WhitespacesAwareFixerInterface;
+use PhpCsFixer\Fixer\FixerInterface;
 use PhpCsFixer\FixerDefinition\CodeSample;
 use PhpCsFixer\FixerDefinition\FixerDefinition;
 use PhpCsFixer\FixerDefinition\FixerDefinitionInterface;
-use PhpCsFixer\Tokenizer\Analyzer\WhitespacesAnalyzer;
 use PhpCsFixer\Tokenizer\Token;
 use PhpCsFixer\Tokenizer\Tokens;
 use SplFileInfo;
@@ -23,8 +21,16 @@ use SplFileInfo;
  * Formats the GraphQL operation inside `<<<'GRAPHQL' ... GRAPHQL` nowdoc
  * strings using webonyx/graphql-php so it follows a single canonical style.
  */
-final class GraphQLHeredocFixer extends AbstractFixer implements WhitespacesAwareFixerInterface
+final class GraphQLHeredocFixer implements FixerInterface
 {
+    private const string INDENT = '    ';
+
+    #[Override]
+    public function getName() : string
+    {
+        return 'Ruudk/graphql_heredoc';
+    }
+
     #[Override]
     public function getDefinition() : FixerDefinitionInterface
     {
@@ -51,16 +57,32 @@ final class GraphQLHeredocFixer extends AbstractFixer implements WhitespacesAwar
     }
 
     #[Override]
+    public function isRisky() : bool
+    {
+        return false;
+    }
+
+    #[Override]
     public function getPriority() : int
     {
-        // Run before HeredocIndentationFixer (priority -26) so the
-        // re-indentation it applies afterwards stays a no-op.
+        // Run before the built-in heredoc_indentation fixer (priority -26)
+        // so the re-indentation it applies afterwards stays a no-op.
         return 1;
     }
 
     #[Override]
-    protected function applyFix(SplFileInfo $file, Tokens $tokens) : void
+    public function supports(SplFileInfo $file) : bool
     {
+        return true;
+    }
+
+    #[Override]
+    public function fix(SplFileInfo $file, Tokens $tokens) : void
+    {
+        if ($tokens->count() === 0 || ! $this->isCandidate($tokens)) {
+            return;
+        }
+
         for ($index = $tokens->count() - 1; $index >= 0; --$index) {
             $token = $tokens[$index];
 
@@ -93,13 +115,12 @@ final class GraphQLHeredocFixer extends AbstractFixer implements WhitespacesAwar
                 continue;
             }
 
-            $indent = WhitespacesAnalyzer::detectIndent($tokens, $index) . $this->whitespacesConfig->getIndent();
-            $eol = $this->whitespacesConfig->getLineEnding();
+            $indent = $this->detectIndent($tokens, $index) . self::INDENT;
 
             $body = '';
 
             foreach (explode("\n", $formatted) as $line) {
-                $body .= ($line === '' ? '' : $indent . $line) . $eol;
+                $body .= ($line === '' ? '' : $indent . $line) . "\n";
             }
 
             $endContent = $indent . 'GRAPHQL';
@@ -110,6 +131,29 @@ final class GraphQLHeredocFixer extends AbstractFixer implements WhitespacesAwar
 
             $tokens[$bodyIndex] = new Token([T_ENCAPSED_AND_WHITESPACE, $body]);
             $tokens[$endIndex] = new Token([T_END_HEREDOC, $endContent]);
+        }
+    }
+
+    private function detectIndent(Tokens $tokens, int $index) : string
+    {
+        while (true) {
+            $whitespaceIndex = $tokens->getPrevTokenOfKind($index, [[T_WHITESPACE]]);
+
+            if ($whitespaceIndex === null) {
+                return '';
+            }
+
+            $whitespace = $tokens[$whitespaceIndex]->getContent();
+
+            $newlinePosition = strrpos($whitespace, "\n");
+
+            if ($newlinePosition === false) {
+                $index = $whitespaceIndex;
+
+                continue;
+            }
+
+            return substr($whitespace, $newlinePosition + 1);
         }
     }
 }

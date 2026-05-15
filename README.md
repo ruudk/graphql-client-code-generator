@@ -584,8 +584,6 @@ declare(strict_types=1);
 
 use PhpCsFixer\Finder;
 use Ruudk\GraphQLCodeGenerator\PhpCsFixer\GraphQLHeredocFixer;
-use Ticketswap\PhpCsFixerConfig\Fixers;
-use Ticketswap\PhpCsFixerConfig\NameWrapper;
 use Ticketswap\PhpCsFixerConfig\PhpCsFixerConfigFactory;
 use Ticketswap\PhpCsFixerConfig\RuleSet\TicketSwapRuleSet;
 
@@ -601,13 +599,18 @@ $finder = Finder::create()
         __DIR__ . '/phpstan.php',
     ]);
 
-return PhpCsFixerConfigFactory::create(
-    TicketSwapRuleSet::create()->withCustomFixers(
-        new Fixers(
-            new NameWrapper(new GraphQLHeredocFixer()),
-        ),
-    ),
-)->setFinder($finder);
+$config = PhpCsFixerConfigFactory::create(TicketSwapRuleSet::create())->setFinder($finder);
+
+$config->registerCustomFixers([
+    new GraphQLHeredocFixer(),
+]);
+
+$config->setRules([
+    ...$config->getRules(),
+    'Ruudk/graphql_heredoc' => true,
+]);
+
+return $config;
 ```
 
 Running `vendor/bin/php-cs-fixer fix` now formats every `<<<'GRAPHQL'` block automatically. The fixer runs before `heredoc_indentation`, so the surrounding indentation stays consistent with the rest of your codebase.
