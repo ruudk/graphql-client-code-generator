@@ -1,14 +1,18 @@
 <?php
 
+declare(strict_types=1);
+
+use Ruudk\GraphQLCodeGenerator\Twig\GraphQLFormatterRule;
 use Ruudk\GraphQLCodeGenerator\Twig\GraphQLTokenParser;
+use TwigCsFixer\Config\Config;
+use TwigCsFixer\File\Finder;
 use TwigCsFixer\Ruleset\Ruleset;
 use TwigCsFixer\Standard\TwigCsFixer;
-use TwigCsFixer\File\Finder;
-use TwigCsFixer\Config\Config;
 
 $ruleset = new Ruleset();
 
 $ruleset->addStandard(new TwigCsFixer());
+$ruleset->addRule(new GraphQLFormatterRule());
 
 $finder = Finder::create()
     ->in('tests');
@@ -21,4 +25,3 @@ $config->setFinder($finder);
 $config->addTokenParser(new GraphQLTokenParser());
 
 return $config;
-

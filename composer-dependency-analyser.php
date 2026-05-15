@@ -10,6 +10,7 @@ $config = new Configuration();
 $config->addPathToScan(__DIR__ . '/bin', isDev: false);
 
 $config->ignoreErrorsOnPackage('twig/twig', [ErrorType::DEV_DEPENDENCY_IN_PROD]);
+$config->ignoreErrorsOnPackage('vincentlanglet/twig-cs-fixer', [ErrorType::DEV_DEPENDENCY_IN_PROD]);
 
 // phpstan/phpdoc-parser is never referenced directly. Symfony's TypeResolver
 // only enables @return / @param PHPDoc parsing when this package is loadable,

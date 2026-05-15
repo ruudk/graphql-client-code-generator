@@ -582,10 +582,10 @@ Keep your GraphQL fragments next to where they're used in your templates:
 
 {% graphql %}
 fragment AdminProjectRow on Project {
-    id
-    name
-    description
-    ...AdminProjectOptions
+  id
+  name
+  description
+  ...AdminProjectOptions
 }
 {% endgraphql %}
 
