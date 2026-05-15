@@ -35,6 +35,7 @@ final class Thing
     }
 
     /**
+     * @api
      * @phpstan-assert-if-true !null $this->asVariantA
      */
     public bool $isVariantA {
@@ -60,6 +61,7 @@ final class Thing
     }
 
     /**
+     * @api
      * @phpstan-assert-if-true !null $this->asVariantB
      */
     public bool $isVariantB {

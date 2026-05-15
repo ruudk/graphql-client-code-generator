@@ -30,6 +30,7 @@ final class Viewer
     }
 
     /**
+     * @api
      * @phpstan-assert-if-true !null $this->asApplication
      */
     public bool $isApplication {
@@ -55,6 +56,7 @@ final class Viewer
     }
 
     /**
+     * @api
      * @phpstan-assert-if-true !null $this->asUser
      */
     public bool $isUser {

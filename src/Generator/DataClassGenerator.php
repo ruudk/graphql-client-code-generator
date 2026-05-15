@@ -573,7 +573,10 @@ final class DataClassGenerator extends AbstractGenerator
 
                             if ($nakedFieldType instanceof FragmentObjectType && $fieldType instanceof SymfonyType\NullableType) {
                                 yield '';
-                                yield from $generator->docComment(sprintf('@phpstan-assert-if-true !null $this->%s', $fieldName));
+                                yield from $generator->docComment(function () use ($fieldName) {
+                                    yield '@api';
+                                    yield sprintf('@phpstan-assert-if-true !null $this->%s', $fieldName);
+                                });
                                 yield sprintf(
                                     'public bool $is%s {',
                                     $nakedFieldType->fragmentName,

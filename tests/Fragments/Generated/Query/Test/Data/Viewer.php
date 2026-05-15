@@ -31,6 +31,7 @@ final class Viewer
     }
 
     /**
+     * @api
      * @phpstan-assert-if-true !null $this->applicationDetails
      */
     public bool $isApplicationDetails {
@@ -56,6 +57,7 @@ final class Viewer
     }
 
     /**
+     * @api
      * @phpstan-assert-if-true !null $this->userDetails
      */
     public bool $isUserDetails {
@@ -67,6 +69,7 @@ final class Viewer
     }
 
     /**
+     * @api
      * @phpstan-assert-if-true !null $this->viewerName
      */
     public bool $isViewerName {
