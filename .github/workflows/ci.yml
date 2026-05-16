@@ -89,3 +89,6 @@ jobs:
 
       - name: Run PHPStan
         run: vendor/bin/phpstan analyse --ansi
+
+      - name: Run StructArmed
+        run: vendor/bin/structarmed analyze

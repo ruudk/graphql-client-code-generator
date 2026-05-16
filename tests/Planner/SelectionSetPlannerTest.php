@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Ruudk\GraphQLCodeGenerator\Tests\Planner;
+namespace Ruudk\GraphQLCodeGenerator\Planner;
 
 use GraphQL\Language\Parser;
 use GraphQL\Utils\BuildSchema;

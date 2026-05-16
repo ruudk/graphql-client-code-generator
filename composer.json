@@ -45,7 +45,8 @@
         "ticketswap/php-cs-fixer-config": "^1.5.1",
         "ticketswap/phpstan-error-formatter": "^1.3",
         "twig/twig": "^3.24",
-        "vincentlanglet/twig-cs-fixer": "^3.14"
+        "vincentlanglet/twig-cs-fixer": "^3.14",
+        "boundwize/structarmed": "^0.6.2"
     },
     "suggest": {
         "twig/twig": "For generating GraphQL fragments from Twig templates"
