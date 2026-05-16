@@ -1,0 +1,22 @@
+type Query {
+    ping: String!
+}
+
+type Mutation {
+    addCountry: AddCountryResult!
+}
+
+union AddCountryResult = Country | SupportedCountryError | UnsupportedCountryError
+
+type Country {
+    id: ID!
+    name: String!
+}
+
+type SupportedCountryError {
+    message: String!
+}
+
+type UnsupportedCountryError {
+    code: String!
+}

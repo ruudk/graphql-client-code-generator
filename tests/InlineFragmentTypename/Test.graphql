@@ -1,0 +1,15 @@
+mutation Test {
+    addCountry {
+        ... on Country {
+            id
+            name
+        }
+        ... on SupportedCountryError {
+            __typename
+        }
+        ... on UnsupportedCountryError {
+            __typename
+            code
+        }
+    }
+}
