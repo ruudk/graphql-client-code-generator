@@ -8,14 +8,6 @@ namespace Ruudk\GraphQLCodeGenerator\HooksInUnionVariant\Generated\Query\Test\Da
 
 final class AsVariantB
 {
-    public string $__typename {
-        get => $this->__typename ??= $this->data['__typename'];
-    }
-
-    public string $id {
-        get => $this->id ??= $this->data['id'];
-    }
-
     public string $realFieldB {
         get => $this->realFieldB ??= $this->data['realFieldB'];
     }
@@ -23,7 +15,6 @@ final class AsVariantB
     /**
      * @param array{
      *     '__typename': 'VariantB',
-     *     'id': string,
      *     'realFieldB': string,
      * } $data
      */

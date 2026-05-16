@@ -4,7 +4,9 @@ query Test {
         name
         ...UserDetails
         ...on Application {
+            __typename
             url
+            name
         }
     }
 }

@@ -12,15 +12,10 @@ final class AsUser
         get => $this->login ??= $this->data['login'];
     }
 
-    public string $name {
-        get => $this->name ??= $this->data['name'];
-    }
-
     /**
      * @param array{
      *     '__typename': 'User',
      *     'login': string,
-     *     'name': string,
      * } $data
      */
     public function __construct(

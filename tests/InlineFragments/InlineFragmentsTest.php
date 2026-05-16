@@ -7,6 +7,8 @@ namespace Ruudk\GraphQLCodeGenerator\InlineFragments;
 use ReflectionClass;
 use Ruudk\GraphQLCodeGenerator\GraphQLTestCase;
 use Ruudk\GraphQLCodeGenerator\InlineFragments\Generated\Query\Test\Data\Viewer;
+use Ruudk\GraphQLCodeGenerator\InlineFragments\Generated\Query\Test\Data\Viewer\AsApplication;
+use Ruudk\GraphQLCodeGenerator\InlineFragments\Generated\Query\Test\Data\Viewer\AsUser;
 use Ruudk\GraphQLCodeGenerator\InlineFragments\Generated\Query\Test\TestQuery;
 
 final class InlineFragmentsTest extends GraphQLTestCase
@@ -37,6 +39,24 @@ final class InlineFragmentsTest extends GraphQLTestCase
 
         self::assertTrue($result->viewer->isUser);
         self::assertSame('ruudk', $result->viewer->asUser?->login);
+    }
+
+    /**
+     * The query selects `name` at the interface level. Interface/parent
+     * fields are NOT merged into the inline-fragment variant classes: a
+     * variant exposes only what is selected inside its own
+     * `... on Type { ... }`. To read `name` on a variant it must be
+     * selected within that variant.
+     */
+    public function testParentFieldsAreNotMergedIntoVariantClasses() : void
+    {
+        $asUser = new ReflectionClass(AsUser::class);
+        self::assertTrue($asUser->hasProperty('login'));
+        self::assertFalse($asUser->hasProperty('name'), 'Parent field "name" must not leak into AsUser');
+
+        $asApplication = new ReflectionClass(AsApplication::class);
+        self::assertTrue($asApplication->hasProperty('url'));
+        self::assertFalse($asApplication->hasProperty('name'), 'Parent field "name" must not leak into AsApplication');
     }
 
     public function testGenerate() : void

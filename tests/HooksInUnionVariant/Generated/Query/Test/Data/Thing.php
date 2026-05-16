@@ -26,6 +26,10 @@ final class Thing
                 return $this->asVariantA = null;
             }
 
+            if (! array_key_exists('id', $this->data)) {
+                return $this->asVariantA = null;
+            }
+
             if (! array_key_exists('realFieldA', $this->data)) {
                 return $this->asVariantA = null;
             }

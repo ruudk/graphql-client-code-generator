@@ -130,9 +130,4 @@ final class PayloadShape
     {
         return SymfonyType::arrayShape($this->shape);
     }
-
-    public function clone() : self
-    {
-        return clone $this;
-    }
 }

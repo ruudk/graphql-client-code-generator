@@ -28,22 +28,8 @@ final class FieldCollection
         return $this->fields[$name];
     }
 
-    public function merge(FieldCollection $other) : self
-    {
-        foreach ($other->fields as $name => $type) {
-            $this->fields[$name] = $type;
-        }
-
-        return $this;
-    }
-
     public function toArrayShape() : SymfonyType
     {
         return SymfonyType::arrayShape($this->fields);
-    }
-
-    public function clone() : self
-    {
-        return clone $this;
     }
 }

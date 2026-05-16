@@ -8,14 +8,6 @@ namespace Ruudk\GraphQLCodeGenerator\Optimization\Generated\Query\Test\Data\View
 
 final class AsUser
 {
-    public string $id {
-        get => $this->id ??= $this->data['id'];
-    }
-
-    public string $idAlias {
-        get => $this->idAlias ??= $this->data['idAlias'];
-    }
-
     public string $login {
         get => $this->login ??= $this->data['login'];
     }
@@ -27,8 +19,6 @@ final class AsUser
     /**
      * @param array{
      *     '__typename': 'User',
-     *     'id': string,
-     *     'idAlias': string,
      *     'login': string,
      *     'name': string,
      * } $data

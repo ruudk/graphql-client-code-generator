@@ -17,7 +17,9 @@ final readonly class TestQuery {
             name
             ...UserDetails
             ... on Application {
+              __typename
               url
+              name
             }
           }
         }

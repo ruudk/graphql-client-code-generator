@@ -17,6 +17,7 @@ final readonly class TestQuery {
             __typename
             id
             ... on VariantA {
+              id
               realFieldA
             }
             ... on VariantB {

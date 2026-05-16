@@ -11,10 +11,6 @@ use Ruudk\GraphQLCodeGenerator\HooksInUnionVariant\User;
 
 final class AsVariantA
 {
-    public string $__typename {
-        get => $this->__typename ??= $this->data['__typename'];
-    }
-
     public string $id {
         get => $this->id ??= $this->data['id'];
     }
