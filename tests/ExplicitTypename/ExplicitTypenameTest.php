@@ -48,9 +48,10 @@ final class ExplicitTypenameTest extends GraphQLTestCase
     }
 
     /**
-     * The explicit __typename also propagates into the inline-fragment class
-     * (AsApplication), which is one of the classes that discriminates on
-     * `$this->data['__typename']`, so it must expose the property there too.
+     * Inline-fragment variant classes only expose what is selected inside
+     * `... on Application { ... }` (parent/interface fields are NOT merged
+     * in). Selecting `__typename`, `url` and `name` there means the
+     * generated `AsApplication` exposes exactly those.
      */
     public function testExplicitTypenameOnInlineFragmentVariant() : void
     {

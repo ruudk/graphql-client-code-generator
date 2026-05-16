@@ -29,6 +29,10 @@ final class Viewer
                 return $this->asApplication = null;
             }
 
+            if (! array_key_exists('name', $this->data)) {
+                return $this->asApplication = null;
+            }
+
             return $this->asApplication = new AsApplication($this->data);
         }
     }

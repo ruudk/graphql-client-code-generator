@@ -266,10 +266,6 @@ final class SelectionSetPlanner
             );
         }
 
-        // Store state before inline fragments for merging
-        $fieldsBeforeInlineFragments = $fields->clone();
-        $payloadShapeBeforeInlineFragments = $payloadShape->clone();
-
         // Process inline fragments
         foreach ($selectionSet->selections as $selection) {
             if ( ! $selection instanceof InlineFragmentNode) {
@@ -284,9 +280,6 @@ final class SelectionSetPlanner
                 $fields,
                 $pathFields,
                 $payloadShape,
-                $fieldsBeforeInlineFragments,
-                $payloadShapeBeforeInlineFragments,
-                $selectionSet,
             );
         }
 
@@ -534,9 +527,6 @@ final class SelectionSetPlanner
         FieldCollection $fields,
         PathFieldMap $pathFields,
         PayloadShape $payloadShape,
-        FieldCollection $fieldsBeforeInlineFragments,
-        PayloadShape $payloadShapeBeforeInlineFragments,
-        SelectionSetNode $parentSelectionSet,
     ) : void {
         Assert::notNull($selection->typeCondition, 'Inline fragment must have a type condition');
 
@@ -558,15 +548,11 @@ final class SelectionSetPlanner
             $fragmentContext,
         );
 
-        // Merge parent fields into fragment
-        $mergedFields = $fieldsBeforeInlineFragments->clone();
-        $mergedFields->merge($fragmentResult->fields);
-
-        $mergedPayloadShape = $payloadShapeBeforeInlineFragments->clone();
-        $mergedPayloadShape->merge($fragmentResult->payloadShape);
-
-        // For the inline fragment class itself, build a payload shape where fields are required
-        // We need to include both parent fields and inline fragment fields
+        // The inline-fragment class only exposes what is selected inside
+        // `... on Type { ... }`. Parent fields are deliberately NOT merged in:
+        // doing so made it impossible to tell which interface-level fields a
+        // given variant actually consumes (over-fetch detection). If a field
+        // is needed on the variant it must be selected within the fragment.
         $fragmentSpecificBuilder = new PayloadShapeBuilder(
             $this->schema,
             $this->typeMapper,
@@ -574,35 +560,8 @@ final class SelectionSetPlanner
             $this->fragmentTypes,
         );
 
-        // First, get the parent fields that apply to this type
-        // We need to filter out inline fragments and fragment spreads that are for other types
-        $parentSelectionsForThisType = [];
-        foreach ($parentSelectionSet->selections as $parentSelection) {
-            if ($parentSelection instanceof FieldNode) {
-                // Direct field selections always apply
-                $parentSelectionsForThisType[] = $parentSelection;
-            } elseif ($parentSelection instanceof InlineFragmentNode && $parentSelection === $selection) {
-                // This is the current inline fragment we're processing - skip it to avoid duplication
-                continue;
-            } elseif ($parentSelection instanceof FragmentSpreadNode) {
-                // Fragment spreads should NOT be included in inline fragment classes
-                // They are isolated and accessed through their own accessor
-                continue;
-            }
-            // Skip other inline fragments - they're for different types
-        }
-
-        // Create a combined selection set with parent fields and this inline fragment's fields
-        $combinedSelectionSet = new SelectionSetNode([
-            'selections' => new NodeList([
-                ...$parentSelectionsForThisType,
-                ...$selection->selectionSet->selections,
-            ]),
-        ]);
-
-        // Build the payload shape with the combined selections
-        // Using fragmentType as parent ensures fields won't be marked optional
-        $inlineFragmentPayloadShape = $fragmentSpecificBuilder->buildPayloadShape($combinedSelectionSet, $fragmentType);
+        // Using fragmentType as parent ensures fields won't be marked optional.
+        $inlineFragmentPayloadShape = $fragmentSpecificBuilder->buildPayloadShape($selection->selectionSet, $fragmentType);
 
         // Add __typename as it's always present for inline fragments
         if ( ! $inlineFragmentPayloadShape->has('__typename')) {
@@ -616,7 +575,7 @@ final class SelectionSetPlanner
         $this->createInlineFragmentClassPlan(
             $source,
             $fragmentType,
-            $mergedFields,
+            $fragmentResult->fields,
             $inlineFragmentPayloadShape,
             $fragmentContext,
             $selection,

@@ -3,6 +3,7 @@ query Test {
         __typename
         id
         ... on VariantA {
+            id
             realFieldA
             user @hook(name: "findUserById", input: ["id"])
         }

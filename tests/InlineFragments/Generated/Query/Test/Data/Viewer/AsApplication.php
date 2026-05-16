@@ -8,10 +8,6 @@ namespace Ruudk\GraphQLCodeGenerator\InlineFragments\Generated\Query\Test\Data\V
 
 final class AsApplication
 {
-    public string $name {
-        get => $this->name ??= $this->data['name'];
-    }
-
     public string $url {
         get => $this->url ??= $this->data['url'];
     }
@@ -19,7 +15,6 @@ final class AsApplication
     /**
      * @param array{
      *     '__typename': 'Application',
-     *     'name': string,
      *     'url': string,
      * } $data
      */
