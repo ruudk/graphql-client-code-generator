@@ -43,11 +43,12 @@ final class DataClassPlan
         public readonly bool $isData,
         public readonly bool $isFragment,
         /**
-         * True when this class is a first-level mutation field whose only
-         * selection is an explicitly queried `__typename`. Such a selection
-         * is the idiomatic way to fire a mutation without caring about the
-         * response, so the generated `__typename` property is tagged `@api`
-         * to keep dead-code analysis from flagging it.
+         * True when the only selection on this class is an explicitly
+         * queried `__typename` (a first-level "fire and forget" mutation
+         * field, a list field, or an inline fragment such as
+         * `... on SupportedCountryError { __typename }`). The value is not
+         * read back, so the generated `__typename` property is tagged
+         * `@api` to keep dead-code analysis from flagging it.
          */
         public readonly bool $markTypenameAsApi = false,
     ) {}

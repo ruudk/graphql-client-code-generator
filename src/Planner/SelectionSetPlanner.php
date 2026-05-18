@@ -1020,15 +1020,7 @@ final class SelectionSetPlanner
         FieldNode $selection,
         bool $fieldIsList,
     ) : bool {
-        $selections = $selection->selectionSet?->selections;
-
-        if ($selections === null || count($selections) !== 1) {
-            return false;
-        }
-
-        $only = $selections[0];
-
-        if ( ! $only instanceof FieldNode || $only->name->value !== '__typename') {
+        if ( ! $this->selectionSetIsSoleTypename($selection->selectionSet)) {
             return false;
         }
 
@@ -1039,6 +1031,25 @@ final class SelectionSetPlanner
         // Root path is the operation type ("mutation"); a first-level field
         // is therefore exactly "mutation.<fieldName>" (one separator).
         return str_starts_with($context->path, 'mutation.') && substr_count($context->path, '.') === 1;
+    }
+
+    /**
+     * True when the only thing selected is an explicitly queried
+     * `__typename`. Selecting nothing else means the caller does not read
+     * the value back (GraphQL just forces at least one field), so the
+     * generated `__typename` property is never used.
+     */
+    private function selectionSetIsSoleTypename(?SelectionSetNode $selectionSet) : bool
+    {
+        $selections = $selectionSet?->selections;
+
+        if ($selections === null || count($selections) !== 1) {
+            return false;
+        }
+
+        $only = $selections[0];
+
+        return $only instanceof FieldNode && $only->name->value === '__typename';
     }
 
     private function createInlineFragmentClassPlan(
@@ -1062,6 +1073,7 @@ final class SelectionSetPlanner
             inlineFragmentRequiredFields: $this->inlineFragmentRequiredFields,
             isData: false,
             isFragment: true,
+            markTypenameAsApi: $this->selectionSetIsSoleTypename($selection->selectionSet),
         );
 
         $this->result->addClass($dataClass);
