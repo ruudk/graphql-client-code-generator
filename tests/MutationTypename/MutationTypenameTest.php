@@ -47,15 +47,17 @@ final class MutationTypenameTest extends GraphQLTestCase
     }
 
     /**
-     * A __typename selected deeper than the first mutation level is regular
-     * data the caller asked for; it must NOT be tagged @api.
+     * A sole __typename selected deeper than the first mutation level (a
+     * nested object selected purely to probe its presence/non-null) is
+     * never read back either, so it is tagged @api too.
      */
-    public function testTypenameDeeperThanFirstLevelIsNotApi() : void
+    public function testSoleTypenameDeeperThanFirstLevelIsApi() : void
     {
         $docComment = new ReflectionClass(Inner::class)
             ->getProperty('__typename')
             ->getDocComment();
 
-        self::assertStringNotContainsString('@api', $docComment === false ? '' : $docComment);
+        self::assertIsString($docComment);
+        self::assertStringContainsString('@api', $docComment);
     }
 }

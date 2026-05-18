@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace Ruudk\GraphQLCodeGenerator\MutationTypename\Generated\Mutation\Test\Data\Nested;
+namespace Ruudk\GraphQLCodeGenerator\QueryObjectTypename\Generated\Query\Test\Data\Order\AsMarketPlaceOrderItem;
 
 // This file was automatically generated and should not be edited.
 
-final class Inner
+final class FxFee
 {
     /**
      * @api

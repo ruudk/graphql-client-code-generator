@@ -1,0 +1,18 @@
+query Test($code: String!, $id: ID!) {
+    supportedCountry(code: $code) {
+        info {
+            name
+        }
+        error {
+            __typename
+        }
+    }
+    order(id: $id) {
+        ... on MarketPlaceOrderItem {
+            id
+            fxFee {
+                __typename
+            }
+        }
+    }
+}

@@ -997,7 +997,7 @@ final class SelectionSetPlanner
             inlineFragmentRequiredFields: $this->inlineFragmentRequiredFields,
             isData: false,
             isFragment: false,
-            markTypenameAsApi: $this->shouldMarkTypenameAsApi($context, $selection, $fieldIsList),
+            markTypenameAsApi: $this->shouldMarkTypenameAsApi($selection),
         );
 
         $this->result->addClass($dataClass);
@@ -1007,30 +1007,14 @@ final class SelectionSetPlanner
      * Selecting nothing but `__typename` means the caller does not actually
      * read the value back — GraphQL just forces at least one field to be
      * selected. The generated `__typename` property is then never used, so we
-     * tag it `@api` to stop dead-code analysis from flagging it. This applies
-     * to:
-     *   - a list field (you must select something to iterate the list), and
-     *   - a first-level "fire and forget" mutation field (only the side
-     *     effect matters).
-     * It must NOT trigger when other fields are selected alongside
-     * `__typename`.
+     * tag it `@api` to stop dead-code analysis from flagging it. This holds
+     * for every sole-`__typename` selection (probing an object's
+     * presence/non-null without reading any data), so it must NOT trigger
+     * only when other fields are selected alongside `__typename`.
      */
-    private function shouldMarkTypenameAsApi(
-        PlanningContext $context,
-        FieldNode $selection,
-        bool $fieldIsList,
-    ) : bool {
-        if ( ! $this->selectionSetIsSoleTypename($selection->selectionSet)) {
-            return false;
-        }
-
-        if ($fieldIsList) {
-            return true;
-        }
-
-        // Root path is the operation type ("mutation"); a first-level field
-        // is therefore exactly "mutation.<fieldName>" (one separator).
-        return str_starts_with($context->path, 'mutation.') && substr_count($context->path, '.') === 1;
+    private function shouldMarkTypenameAsApi(FieldNode $selection) : bool
+    {
+        return $this->selectionSetIsSoleTypename($selection->selectionSet);
     }
 
     /**

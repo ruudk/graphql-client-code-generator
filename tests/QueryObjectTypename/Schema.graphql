@@ -1,0 +1,34 @@
+type Query {
+    supportedCountry(code: String!): SupportedCountryResult!
+    order(id: ID!): OrderItem!
+}
+
+type SupportedCountryResult {
+    info: SupportedCountryInfo
+    error: SupportedCountryError
+}
+
+type SupportedCountryInfo {
+    name: String!
+}
+
+type SupportedCountryError {
+    code: String!
+    message: String!
+}
+
+union OrderItem = MarketPlaceOrderItem | OtherOrderItem
+
+type MarketPlaceOrderItem {
+    id: ID!
+    fxFee: FxFee
+}
+
+type FxFee {
+    amount: Int!
+    currency: String!
+}
+
+type OtherOrderItem {
+    id: ID!
+}
