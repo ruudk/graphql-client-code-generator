@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Ruudk\GraphQLCodeGenerator\Tests\Planner;
+namespace Ruudk\GraphQLCodeGenerator\Planner;
 
 use GraphQL\Language\Parser;
 use GraphQL\Utils\BuildSchema;
@@ -13,8 +13,6 @@ use Ruudk\GraphQLCodeGenerator\DirectiveProcessor;
 use Ruudk\GraphQLCodeGenerator\GraphQL\DocumentNodeWithSource;
 use Ruudk\GraphQLCodeGenerator\GraphQL\FragmentDefinitionNodeWithSource;
 use Ruudk\GraphQLCodeGenerator\Planner\Plan\DataClassPlan;
-use Ruudk\GraphQLCodeGenerator\Planner\PlannerResult;
-use Ruudk\GraphQLCodeGenerator\Planner\SelectionSetPlanner;
 use Ruudk\GraphQLCodeGenerator\Planner\Source\GraphQLFileSource;
 use Ruudk\GraphQLCodeGenerator\TypeMapper;
 use Symfony\Component\String\Inflector\EnglishInflector;
