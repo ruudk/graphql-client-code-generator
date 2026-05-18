@@ -10,6 +10,9 @@ use Stringable;
 
 // This file was automatically generated and should not be edited.
 
+/**
+ * @api
+ */
 final readonly class UserByInput implements JsonSerializable
 {
     private function __construct(

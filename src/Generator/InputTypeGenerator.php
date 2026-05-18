@@ -35,6 +35,8 @@ final class InputTypeGenerator extends AbstractGenerator
 
             yield '';
 
+            yield from $generator->docComment('@api');
+
             if ($this->config->addSymfonyExcludeAttribute) {
                 yield from $generator->dumpAttribute('Symfony\Component\DependencyInjection\Attribute\Exclude');
             }
