@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Ruudk\GraphQLCodeGenerator\Tests\Planner;
+namespace Ruudk\GraphQLCodeGenerator\Planner;
 
 use PHPUnit\Framework\TestCase;
 use RecursiveDirectoryIterator;
