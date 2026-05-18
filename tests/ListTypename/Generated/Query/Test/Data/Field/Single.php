@@ -8,6 +8,9 @@ namespace Ruudk\GraphQLCodeGenerator\ListTypename\Generated\Query\Test\Data\Fiel
 
 final class Single
 {
+    /**
+     * @api
+     */
     public string $__typename {
         get => $this->__typename ??= $this->data['__typename'];
     }

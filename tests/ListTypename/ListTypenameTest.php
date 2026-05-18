@@ -46,15 +46,17 @@ final class ListTypenameTest extends GraphQLTestCase
     }
 
     /**
-     * The rule is list-specific: a sole __typename on a non-list nested
-     * object (and not a first-level mutation field) is not tagged @api.
+     * A sole __typename on a non-list nested object is also selected purely
+     * because GraphQL forces at least one field (probing presence/non-null);
+     * the value is never read, so it is tagged @api too.
      */
-    public function testSoleTypenameOnSingleObjectIsNotApi() : void
+    public function testSoleTypenameOnSingleObjectIsApi() : void
     {
         $docComment = new ReflectionClass(Single::class)
             ->getProperty('__typename')
             ->getDocComment();
 
-        self::assertStringNotContainsString('@api', $docComment === false ? '' : $docComment);
+        self::assertIsString($docComment);
+        self::assertStringContainsString('@api', $docComment);
     }
 }
