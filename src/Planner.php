@@ -376,6 +376,11 @@ final class Planner
 
                             $usedTypesCollector->analyze($document);
 
+                            $operationsToInject[$file->getPathname()][$method][$property] = $this->fullyQualified(
+                                'Fragment',
+                                $name . $shortHash,
+                                $name,
+                            );
                             $operations[$file->getPathname()][] = DocumentNodeWithSource::create(
                                 $document,
                                 new InlineFragmentSource(
