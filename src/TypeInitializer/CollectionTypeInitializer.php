@@ -32,9 +32,17 @@ final class CollectionTypeInitializer implements TypeInitializer
         string $variable,
         DelegatingTypeInitializer $delegator,
     ) : Generator {
+        $inner = $delegator($type->getCollectionValueType(), $generator, '$item');
+
+        if ($inner === '$item') {
+            yield $variable;
+
+            return;
+        }
+
         yield from $generator->wrap(
             'array_map(fn($item) => ',
-            $delegator($type->getCollectionValueType(), $generator, '$item'),
+            $inner,
             sprintf(', %s)', $variable),
         );
     }
