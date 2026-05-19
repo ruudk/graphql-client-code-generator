@@ -61,6 +61,14 @@ final class FragmentFinder extends NodeVisitorAbstract
                         continue;
                     }
 
+                    if ($node->name->toString() === '__construct') {
+                        throw new InvalidArgumentException(sprintf(
+                            'The #[GeneratedGraphQLFragment] attribute cannot be used on constructor parameters. Found on "%s::__construct::$%s". Use it on a non-constructor method parameter instead.',
+                            $this->className,
+                            $param->var->name,
+                        ));
+                    }
+
                     if (count($attr->args) !== 1) {
                         continue;
                     }

@@ -44,7 +44,21 @@ final class OperationInjector extends NodeVisitorAbstract
                 continue;
             }
 
-            $param->type = new Name(new Name($this->operations[$node->name->toString()][$param->var->name])->getLast());
+            // A collection contract (`array`/`iterable $items` with a
+            // `@param list<Fragment>` docblock) already states its cardinality;
+            // only the import needs maintaining, so leave the declared type and
+            // let UseStatementInserter add the class.
+            if ($param->type instanceof Node\Identifier
+                && in_array(strtolower($param->type->name), ['array', 'iterable'], true)) {
+                continue;
+            }
+
+            $name = new Name(new Name($this->operations[$node->name->toString()][$param->var->name])->getLast());
+
+            // Preserve an explicitly nullable single contract (`?Fragment $x`).
+            $param->type = $param->type instanceof Node\NullableType
+                ? new Node\NullableType($name)
+                : $name;
 
             $changed = true;
         }
