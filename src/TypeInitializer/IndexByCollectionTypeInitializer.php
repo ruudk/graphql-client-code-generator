@@ -80,9 +80,17 @@ final class IndexByCollectionTypeInitializer implements TypeInitializer
                 );
             }
 
+            $inner = $delegator($type->value, $generator, '$item');
+
+            if ($inner === '$item') {
+                yield sprintf('%s,', $variable);
+
+                return;
+            }
+
             yield from $generator->wrap(
                 'array_map(fn($item) => ',
-                $delegator($type->value, $generator, '$item'),
+                $inner,
                 sprintf(', %s),', $variable),
             );
         });

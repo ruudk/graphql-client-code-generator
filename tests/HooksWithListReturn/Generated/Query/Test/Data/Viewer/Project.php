@@ -15,7 +15,7 @@ final class Project
      * @var list<string>
      */
     public array $contributorIds {
-        get => $this->contributorIds ??= array_map(fn($item) => $item, $this->data['contributorIds']);
+        get => $this->contributorIds ??= $this->data['contributorIds'];
     }
 
     /**
