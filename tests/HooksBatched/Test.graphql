@@ -1,0 +1,24 @@
+query Test {
+    organizations {
+        id
+        name
+
+        # Org-level hook (one field). Runs once per organization: an N+1
+        # over the single `organizations` list.
+        plan @hook(name: "findOrgPlan", input: ["id"])
+
+        repositories {
+            id
+            name
+            ownerId
+            reviewerId
+
+            # Simple hook (one field), nested inside two lists. Runs once
+            # per repository: organizations x repositories invocations.
+            owner @hook(name: "findUserById", input: ["ownerId"])
+
+            # Hook with two fields. Also runs once per repository.
+            access @hook(name: "computeAccess", input: ["ownerId", "reviewerId"])
+        }
+    }
+}

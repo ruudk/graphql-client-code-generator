@@ -961,6 +961,55 @@ public function __construct(
 Hook signature mismatches are caught at generation (return type inference) and by PHPStan at
 call sites — if you pass the wrong shape, CI fails before production.
 
+#### ⚡ Batched Hooks (Hook Loaders)
+
+By default a hook is resolved **once per object instance**. When a hooked field lives in a
+list — or a list nested in a list — the hook fires once per element: a classic N+1.
+
+Opt into **batching** with `batched: true` on the `#[Hook]` attribute. A batched hook is
+invoked **exactly once per operation**, lazily, on first access of any hooked property. The
+generator emits a `HookLoader` (into your `Generated/` namespace, zero dependencies) that
+walks the typed result graph once, collects every occurrence's input, and calls the hook a
+single time with the whole batch.
+
+The `__invoke` signature changes: instead of positional arguments per item, a batched hook
+receives **one array of input tuples** and returns/yields the results, echoing back the
+integer keys it was given:
+
+```php
+use Ruudk\GraphQLCodeGenerator\Attribute\Hook;
+
+#[Hook(name: 'findUserById', batched: true)]
+final class FindUserByIdHook
+{
+    public function __construct(private UserRepository $users) {}
+
+    /**
+     * @param array<int, array{string}> $inputs   one [id] tuple per occurrence
+     * @return iterable<int, ?User>                echo the same integer keys
+     */
+    public function __invoke(array $inputs): iterable
+    {
+        foreach ($inputs as $key => [$id]) {
+            yield $key => $this->users->find($id);
+        }
+    }
+}
+```
+
+The query is unchanged — the same `@hook(name: ..., input: [...])` directive drives both
+modes. Each input tuple holds the `input` paths in declaration order, read through the typed
+properties (so custom scalars arrive fully instantiated). The hook's return value type is
+inferred from the `iterable<int, V>` it yields; declare `@return iterable<int, ...>` so the
+generator can read it.
+
+Notes:
+- The loader **de-duplicates inputs by value** before calling the hook — identical input
+  tuples across the batch collapse to a single entry, so the hook never does the same lookup
+  twice.
+- Omitting `batched` (or `batched: false`) keeps the existing per-instance behaviour — this is
+  not a breaking change. Legacy and batched hooks can be mixed in one query.
+
 ## Requirements
 
 - **PHP 8.4+** (uses property hooks, readonly classes, and other modern features)

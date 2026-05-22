@@ -340,6 +340,7 @@ final class SelectionSetPlanner
                 $hook->name,
                 $hookDirective['input'],
                 $hook->returnType,
+                $hook->batched,
             ));
 
             return;

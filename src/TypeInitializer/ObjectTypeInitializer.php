@@ -35,10 +35,17 @@ final readonly class ObjectTypeInitializer implements TypeInitializer
         string $variable,
         DelegatingTypeInitializer $delegator,
     ) : string {
-        $arguments = $this->hookUsageRegistry->usesHooks($type->getClassName())
-            ? sprintf('%s, $this->hooks', $variable)
-            : $variable;
+        $className = $type->getClassName();
+        $arguments = $variable;
 
-        return sprintf('new %s(%s)', $generator->import($type->getClassName()), $arguments);
+        if ($this->hookUsageRegistry->usesLegacyHooks($className)) {
+            $arguments .= ', $this->hooks';
+        }
+
+        if ($this->hookUsageRegistry->usesBatchedHooks($className)) {
+            $arguments .= ', $this->loaders';
+        }
+
+        return sprintf('new %s(%s)', $generator->import($className), $arguments);
     }
 }

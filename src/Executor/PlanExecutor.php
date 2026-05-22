@@ -20,6 +20,7 @@ use Ruudk\GraphQLCodeGenerator\Generator\DataClassGenerator;
 use Ruudk\GraphQLCodeGenerator\Generator\EnumTypeGenerator;
 use Ruudk\GraphQLCodeGenerator\Generator\ErrorClassGenerator;
 use Ruudk\GraphQLCodeGenerator\Generator\ExceptionClassGenerator;
+use Ruudk\GraphQLCodeGenerator\Generator\HookLoaderGenerator;
 use Ruudk\GraphQLCodeGenerator\Generator\InputTypeGenerator;
 use Ruudk\GraphQLCodeGenerator\Generator\NodeNotFoundExceptionGenerator;
 use Ruudk\GraphQLCodeGenerator\Generator\OperationClassGenerator;
@@ -30,6 +31,7 @@ use Ruudk\GraphQLCodeGenerator\PHP\Visitor\UseStatementInserter;
 use Ruudk\GraphQLCodeGenerator\Planner\OperationPlan;
 use Ruudk\GraphQLCodeGenerator\Planner\Plan\DataClassPlan;
 use Ruudk\GraphQLCodeGenerator\Planner\Plan\EnumClassPlan;
+use Ruudk\GraphQLCodeGenerator\Planner\Plan\HookLoaderPlan;
 use Ruudk\GraphQLCodeGenerator\Planner\Plan\InputClassPlan;
 use Ruudk\GraphQLCodeGenerator\Planner\Plan\NodeNotFoundExceptionPlan;
 use Ruudk\GraphQLCodeGenerator\Planner\PlannerResult;
@@ -54,6 +56,7 @@ final class PlanExecutor
     private readonly ExceptionClassGenerator $exceptionClassGenerator;
     private readonly InputTypeGenerator $inputTypeGenerator;
     private readonly NodeNotFoundExceptionGenerator $nodeNotFoundExceptionGenerator;
+    private readonly HookLoaderGenerator $hookLoaderGenerator;
     public readonly ClassHookUsageRegistry $hookUsageRegistry;
     private Parser $phpParser;
     private Filesystem $filesystem;
@@ -61,7 +64,7 @@ final class PlanExecutor
     public function __construct(
         private Config $config,
     ) {
-        $this->hookUsageRegistry = new ClassHookUsageRegistry();
+        $this->hookUsageRegistry = new ClassHookUsageRegistry($config->hooks);
 
         // User-registered initializers run before the catch-all `ObjectTypeInitializer`
         // so type-specific handlers (e.g. Money) match ahead of the generic fallback.
@@ -84,6 +87,7 @@ final class PlanExecutor
         $this->exceptionClassGenerator = new ExceptionClassGenerator($config);
         $this->inputTypeGenerator = new InputTypeGenerator($config);
         $this->nodeNotFoundExceptionGenerator = new NodeNotFoundExceptionGenerator($config);
+        $this->hookLoaderGenerator = new HookLoaderGenerator($config);
         $this->phpParser = new ParserFactory()->createForNewestSupportedVersion();
         $this->filesystem = new Filesystem();
     }
@@ -207,6 +211,8 @@ final class PlanExecutor
             InputClassPlan::class => $this->inputTypeGenerator->generate($class),
 
             NodeNotFoundExceptionPlan::class => $this->nodeNotFoundExceptionGenerator->generate(),
+
+            HookLoaderPlan::class => $this->hookLoaderGenerator->generate(),
 
             default => throw new LogicException('Unknown class type: ' . $class::class),
         };
