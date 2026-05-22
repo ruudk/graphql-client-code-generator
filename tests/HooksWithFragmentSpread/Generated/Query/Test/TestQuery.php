@@ -32,6 +32,11 @@ final readonly class TestQuery {
           creator {
             id
           }
+          ... on Project {
+            creator {
+              id
+            }
+          }
         }
         
         GRAPHQL;

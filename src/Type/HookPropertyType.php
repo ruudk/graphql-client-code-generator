@@ -14,23 +14,24 @@ use Symfony\Component\TypeInfo\Type\WrappingTypeInterface;
  *
  * The wrapped type is the hook's declared return type (used both for the
  * property's PHP type hint and for dumping any PHPDoc). The extra state
- * (hook name + input paths) drives code emission in DataClassGenerator.
- *
- * This is a simple wrapper so that `instanceof HookPropertyType` is the only
- * branch the generator has to add to iterate field types as usual.
+ * (hook name + the hook's `requires` data class) drives code emission in
+ * DataClassGenerator.
  *
  * @implements WrappingTypeInterface<SymfonyType>
  */
 final class HookPropertyType extends SymfonyType implements WrappingTypeInterface
 {
     /**
-     * @param list<string> $inputPaths
+     * @param string $requiresFqcn FQCN of the generated data class the hook receives
+     *                             (built from the hook's `requires` fragment).
+     * @param string $requiresClassName Short name of that data class.
      * @param bool $batched When true, the hook is resolved by a batched `HookLoader`
      *                      instead of a per-instance `__invoke` call.
      */
     public function __construct(
         public readonly string $hookName,
-        public readonly array $inputPaths,
+        public readonly string $requiresFqcn,
+        public readonly string $requiresClassName,
         private readonly SymfonyType $returnType,
         public readonly bool $batched = false,
     ) {}

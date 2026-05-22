@@ -18,11 +18,21 @@ final readonly class TestQuery {
           organizations {
             id
             name
+            ... on Organization {
+              id
+            }
             repositories {
               id
               name
               ownerId
               reviewerId
+              ... on Repository {
+                ownerId
+              }
+              ... on Repository {
+                ownerId
+                reviewerId
+              }
             }
           }
         }

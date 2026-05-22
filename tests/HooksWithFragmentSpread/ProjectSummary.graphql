@@ -4,5 +4,5 @@ fragment ProjectSummary on Project {
         id
     }
 
-    user @hook(name: "findUserById", input: ["creator.id"])
+    user @hook(name: "findUserById")
 }

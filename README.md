@@ -891,29 +891,47 @@ Enrich query results with data that does not come from the GraphQL server.
 Common case: the backend returns an ID, and you want the generated response to also expose the
 fully hydrated local entity (from your database, cache, etc.) lazily on first access.
 
-**Step 1 — write an invokable hook class** and tag it with `#[Hook(name: ...)]`:
+A hook is **self-describing**: it declares the data it needs as a GraphQL fragment, and the
+generator injects that selection into your queries automatically. The call site is just
+`@hook(name: ...)` — it never has to know what the hook reads internally.
+
+**Step 1 — write an invokable hook class.** Tag it with `#[Hook(name: ..., requires: ...)]`,
+where `requires` is a named GraphQL fragment describing the data the hook needs:
 
 ```php
 namespace App\Hooks;
 
 use App\Entity\User;
 use App\Repository\UserRepository;
+use App\Generated\Hook\ProjectCreator;
 use Ruudk\GraphQLCodeGenerator\Attribute\Hook;
 
-#[Hook(name: 'findUserById')]
+#[Hook(
+    name: 'findUserById',
+    requires: <<<'GRAPHQL'
+        fragment ProjectCreator on Project {
+          creator {
+            id
+          }
+        }
+        GRAPHQL,
+)]
 final readonly class FindUserByIdHook
 {
     public function __construct(private UserRepository $users) {}
 
-    public function __invoke(string $id): ?User
+    public function __invoke(ProjectCreator $project): ?User
     {
-        return $this->users->find($id);
+        return $this->users->find($project->creator->id);
     }
 }
 ```
 
-The class must define `__invoke`. The return type is inferred from that signature — no need to
-declare it in config.
+The fragment's **name** (`ProjectCreator`) becomes the generated data class the hook receives —
+emitted into `Generated/Hook/`, read through typed properties (so custom scalars arrive fully
+instantiated). The fragment's **type condition** (`on Project`) is the type a `@hook` field may
+be attached to; it may be an interface, in which case the hook works on any implementer. The
+hook's return type is inferred from `__invoke`.
 
 **Step 2 — register the hook** in your config:
 
@@ -922,26 +940,25 @@ Config::create(/* ... */)
     ->withHook(App\Hooks\FindUserByIdHook::class);
 ```
 
-**Step 3 — use `@hook` in your query**:
+**Step 3 — use `@hook` in your query** — no input list, just the name:
 
 ```graphql
 query Project {
     project(id: "42") {
         name
-        creator {
-            id
-        }
 
-        # Synthetic field populated by the hook. Positional arguments are
-        # resolved against the surrounding selection set.
-        user @hook(name: "findUserById", input: ["creator.id"])
+        # Synthetic field populated by the hook. The fields the hook needs
+        # (creator { id }) are injected into the query automatically.
+        user @hook(name: "findUserById")
     }
 }
 ```
 
-The `user` field doesn't exist in the schema — it's a generator-only marker. The `input` list
-holds dotted paths into the enclosing selection; each becomes a positional argument to
-`__invoke` at runtime.
+The `user` field doesn't exist in the schema — it's a generator-only marker. Before the
+operation is sent to the server the generator substitutes it with the hook's `requires`
+selection, merged with whatever the caller already selected (no duplicate network fields).
+Fields the hook needs but the caller didn't ask for stay invisible on the caller's generated
+classes — they only feed the hook's data object.
 
 **Step 4 — pass hook instances when executing**:
 
@@ -952,10 +969,6 @@ $project = new ProjectQuery($client, [
 
 $project->user; // ?User, resolved lazily by the hook on first access
 ```
-
-The generator does not strip the `@hook` directive from validation inputs — it removes hook
-fields from the outgoing operation, so the server never sees them. Fragment spreads and `@indexBy`
-are unaffected.
 
 **Symfony autowire shortcut.** Call `enableSymfonyAutowireHooks()` on the config and the
 generated query class's `$hooks` parameter is annotated with `#[Autowire([...])]`, so the DI
@@ -972,9 +985,6 @@ public function __construct(
 ) {}
 ```
 
-Hook signature mismatches are caught at generation (return type inference) and by PHPStan at
-call sites — if you pass the wrong shape, CI fails before production.
-
 #### ⚡ Batched Hooks (Hook Loaders)
 
 By default a hook is resolved **once per object instance**. When a hooked field lives in a
@@ -983,46 +993,44 @@ list — or a list nested in a list — the hook fires once per element: a class
 Opt into **batching** with `batched: true` on the `#[Hook]` attribute. A batched hook is
 invoked **exactly once per operation**, lazily, on first access of any hooked property. The
 generator emits a `HookLoader` (into your `Generated/` namespace, zero dependencies) that
-walks the typed result graph once, collects every occurrence's input, and calls the hook a
-single time with the whole batch.
+walks the typed result graph once, collects every occurrence's data object, and calls the hook
+a single time with the whole batch.
 
-The `__invoke` signature changes: instead of positional arguments per item, a batched hook
-receives **one array of input tuples** and returns/yields the results, echoing back the
-integer keys it was given:
+The `__invoke` signature changes: a batched hook receives **one array of data objects** and
+returns/yields the results, echoing back the integer keys it was given:
 
 ```php
-use Ruudk\GraphQLCodeGenerator\Attribute\Hook;
-
-#[Hook(name: 'findUserById', batched: true)]
+#[Hook(
+    name: 'findUserById',
+    requires: <<<'GRAPHQL'
+        fragment ProjectCreator on Project {
+          creator { id }
+        }
+        GRAPHQL,
+    batched: true,
+)]
 final class FindUserByIdHook
 {
     public function __construct(private UserRepository $users) {}
 
     /**
-     * @param array<int, array{string}> $inputs   one [id] tuple per occurrence
-     * @return iterable<int, ?User>                echo the same integer keys
+     * @param array<int, ProjectCreator> $inputs   one per occurrence
+     * @return iterable<int, ?User>                 echo the same integer keys
      */
     public function __invoke(array $inputs): iterable
     {
-        foreach ($inputs as $key => [$id]) {
-            yield $key => $this->users->find($id);
+        foreach ($inputs as $key => $project) {
+            yield $key => $this->users->find($project->creator->id);
         }
     }
 }
 ```
 
-The query is unchanged — the same `@hook(name: ..., input: [...])` directive drives both
-modes. Each input tuple holds the `input` paths in declaration order, read through the typed
-properties (so custom scalars arrive fully instantiated). The hook's return value type is
-inferred from the `iterable<int, V>` it yields; declare `@return iterable<int, ...>` so the
-generator can read it.
-
-Notes:
-- The loader **de-duplicates inputs by value** before calling the hook — identical input
-  tuples across the batch collapse to a single entry, so the hook never does the same lookup
-  twice.
-- Omitting `batched` (or `batched: false`) keeps the existing per-instance behaviour — this is
-  not a breaking change. Legacy and batched hooks can be mixed in one query.
+The query is unchanged — the same `@hook(name: ...)` directive drives both modes. The hook's
+return value type is inferred from the `iterable<int, V>` it yields; declare
+`@return iterable<int, ...>` so the generator can read it. Omitting `batched` (or
+`batched: false`) keeps the per-instance behaviour; legacy and batched hooks can be mixed in
+one query.
 
 ### 🎭 Inject Extra Arguments with `withOperationArgument()`
 

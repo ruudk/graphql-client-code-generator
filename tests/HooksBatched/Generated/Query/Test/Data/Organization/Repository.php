@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Ruudk\GraphQLCodeGenerator\HooksBatched\Generated\Query\Test\Data\Organization;
 
 use Ruudk\GraphQLCodeGenerator\HooksBatched\Access;
+use Ruudk\GraphQLCodeGenerator\HooksBatched\Generated\Hook\RepositoryAccessFields;
+use Ruudk\GraphQLCodeGenerator\HooksBatched\Generated\Hook\RepositoryOwnerId;
 use Ruudk\GraphQLCodeGenerator\HooksBatched\Generated\HookLoader;
 use Ruudk\GraphQLCodeGenerator\HooksBatched\User;
 
@@ -45,8 +47,8 @@ final class Repository
      *     ...,
      * } $data
      * @param array{
-     *     computeAccess: HookLoader<array{string, string}, Access>,
-     *     findUserById: HookLoader<array{string}, null|User>,
+     *     computeAccess: HookLoader<RepositoryAccessFields, Access>,
+     *     findUserById: HookLoader<RepositoryOwnerId, null|User>,
      *     ...<string, HookLoader<mixed, mixed>>,
      * } $loaders
      */
@@ -54,4 +56,20 @@ final class Repository
         private readonly array $data,
         private readonly array $loaders,
     ) {}
+
+    /**
+     * @internal
+     */
+    public function buildRepositoryAccessFields() : RepositoryAccessFields
+    {
+        return new RepositoryAccessFields($this->data);
+    }
+
+    /**
+     * @internal
+     */
+    public function buildRepositoryOwnerId() : RepositoryOwnerId
+    {
+        return new RepositoryOwnerId($this->data);
+    }
 }

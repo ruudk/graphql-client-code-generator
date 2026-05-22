@@ -3,6 +3,6 @@ fragment ShowPaymentFlow on PaymentFlow {
     order {
         id
         discountId
-        discountCode @hook(name: "findDiscountCodeById", input: ["discountId"])
+        discountCode @hook(name: "findDiscountCodeById")
     }
 }

@@ -5,8 +5,16 @@ declare(strict_types=1);
 namespace Ruudk\GraphQLCodeGenerator\HooksThroughSoleFragmentSpread;
 
 use Ruudk\GraphQLCodeGenerator\Attribute\Hook;
+use Ruudk\GraphQLCodeGenerator\HooksThroughSoleFragmentSpread\Generated\Hook\OrderDiscountId;
 
-#[Hook(name: 'findDiscountCodeById')]
+#[Hook(
+    name: 'findDiscountCodeById',
+    requires: <<<'GRAPHQL'
+        fragment OrderDiscountId on Order {
+          discountId
+        }
+        GRAPHQL
+)]
 final readonly class FindDiscountCodeByIdHook
 {
     /**
@@ -16,8 +24,8 @@ final readonly class FindDiscountCodeByIdHook
         private array $discountCodes = [],
     ) {}
 
-    public function __invoke(string $id) : ?DiscountCode
+    public function __invoke(OrderDiscountId $order) : ?DiscountCode
     {
-        return $this->discountCodes[$id] ?? null;
+        return $this->discountCodes[$order->discountId] ?? null;
     }
 }

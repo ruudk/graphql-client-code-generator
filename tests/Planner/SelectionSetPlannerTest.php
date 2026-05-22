@@ -73,6 +73,8 @@ final class SelectionSetPlannerTest extends TestCase
         $indexByDirectiveProperty->setValue($configInstance, false);
         $addNodesProperty = $configClass->getProperty('addNodesOnConnections');
         $addNodesProperty->setValue($configInstance, false);
+        $hooksProperty = $configClass->getProperty('hooks');
+        $hooksProperty->setValue($configInstance, []);
         $typeMapper = new TypeMapper(
             $schema,
             [
@@ -191,6 +193,8 @@ final class SelectionSetPlannerTest extends TestCase
         $indexByDirectiveProperty->setValue($configInstance, false);
         $addNodesProperty = $configClass->getProperty('addNodesOnConnections');
         $addNodesProperty->setValue($configInstance, false);
+        $hooksProperty = $configClass->getProperty('hooks');
+        $hooksProperty->setValue($configInstance, []);
         $typeMapper = new TypeMapper(
             $schema,
             [

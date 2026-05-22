@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Ruudk\GraphQLCodeGenerator\HooksInUnionVariant\Generated\Query\Test\Data\Thing;
 
 use Ruudk\GraphQLCodeGenerator\HooksInUnionVariant\FindUserByIdHook;
+use Ruudk\GraphQLCodeGenerator\HooksInUnionVariant\Generated\Hook\VariantAId;
 use Ruudk\GraphQLCodeGenerator\HooksInUnionVariant\User;
 
 // This file was automatically generated and should not be edited.
@@ -20,7 +21,7 @@ final class AsVariantA
     }
 
     public ?User $user {
-        get => $this->user ??= $this->hooks['findUserById']->__invoke($this->id);
+        get => $this->user ??= $this->hooks['findUserById']->__invoke($this->buildVariantAId());
     }
 
     /**
@@ -39,4 +40,12 @@ final class AsVariantA
         private readonly array $data,
         private readonly array $hooks,
     ) {}
+
+    /**
+     * @internal
+     */
+    public function buildVariantAId() : VariantAId
+    {
+        return new VariantAId($this->data);
+    }
 }

@@ -8,6 +8,9 @@ use Ruudk\GraphQLCodeGenerator\HooksBatched\Access;
 use Ruudk\GraphQLCodeGenerator\HooksBatched\ComputeAccessHook;
 use Ruudk\GraphQLCodeGenerator\HooksBatched\FindOrgPlanHook;
 use Ruudk\GraphQLCodeGenerator\HooksBatched\FindUserByIdHook;
+use Ruudk\GraphQLCodeGenerator\HooksBatched\Generated\Hook\OrganizationId;
+use Ruudk\GraphQLCodeGenerator\HooksBatched\Generated\Hook\RepositoryAccessFields;
+use Ruudk\GraphQLCodeGenerator\HooksBatched\Generated\Hook\RepositoryOwnerId;
 use Ruudk\GraphQLCodeGenerator\HooksBatched\Generated\HookLoader;
 use Ruudk\GraphQLCodeGenerator\HooksBatched\Generated\Query\Test\Data\Organization;
 use Ruudk\GraphQLCodeGenerator\HooksBatched\OrgPlan;
@@ -31,9 +34,9 @@ final class Data
 
     /**
      * @var array{
-     *     findOrgPlan: HookLoader<array{string}, OrgPlan>,
-     *     computeAccess: HookLoader<array{string, string}, Access>,
-     *     findUserById: HookLoader<array{string}, null|User>,
+     *     findOrgPlan: HookLoader<OrganizationId, OrgPlan>,
+     *     computeAccess: HookLoader<RepositoryAccessFields, Access>,
+     *     findUserById: HookLoader<RepositoryOwnerId, null|User>,
      *     ...<string, HookLoader<mixed, mixed>>,
      * }
      */
@@ -92,35 +95,35 @@ final class Data
     }
 
     /**
-     * @return iterable<array{object, array{string}}>
+     * @return iterable<array{object, OrganizationId}>
      */
     private function collectHookFindOrgPlanInputs() : iterable
     {
         foreach ($this->organizations as $item) {
-            yield [$item, [$item->id]];
+            yield [$item, $item->buildOrganizationId()];
         }
     }
 
     /**
-     * @return iterable<array{object, array{string, string}}>
+     * @return iterable<array{object, RepositoryAccessFields}>
      */
     private function collectHookComputeAccessInputs() : iterable
     {
         foreach ($this->organizations as $item) {
             foreach ($item->repositories as $item1) {
-                yield [$item1, [$item1->ownerId, $item1->reviewerId]];
+                yield [$item1, $item1->buildRepositoryAccessFields()];
             }
         }
     }
 
     /**
-     * @return iterable<array{object, array{string}}>
+     * @return iterable<array{object, RepositoryOwnerId}>
      */
     private function collectHookFindUserByIdInputs() : iterable
     {
         foreach ($this->organizations as $item) {
             foreach ($item->repositories as $item1) {
-                yield [$item1, [$item1->ownerId]];
+                yield [$item1, $item1->buildRepositoryOwnerId()];
             }
         }
     }

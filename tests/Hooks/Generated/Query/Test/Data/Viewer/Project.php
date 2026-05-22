@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Ruudk\GraphQLCodeGenerator\Hooks\Generated\Query\Test\Data\Viewer;
 
 use Ruudk\GraphQLCodeGenerator\Hooks\FindUserByIdHook;
+use Ruudk\GraphQLCodeGenerator\Hooks\Generated\Hook\ProjectCreatorId;
 use Ruudk\GraphQLCodeGenerator\Hooks\Generated\Query\Test\Data\Viewer\Project\Creator;
 use Ruudk\GraphQLCodeGenerator\Hooks\User;
 
@@ -25,7 +26,7 @@ final class Project
     }
 
     public ?User $user {
-        get => $this->user ??= $this->hooks['findUserById']->__invoke($this->creator->id);
+        get => $this->user ??= $this->hooks['findUserById']->__invoke($this->buildProjectCreatorId());
     }
 
     /**
@@ -47,4 +48,12 @@ final class Project
         private readonly array $data,
         private readonly array $hooks,
     ) {}
+
+    /**
+     * @internal
+     */
+    public function buildProjectCreatorId() : ProjectCreatorId
+    {
+        return new ProjectCreatorId($this->data);
+    }
 }

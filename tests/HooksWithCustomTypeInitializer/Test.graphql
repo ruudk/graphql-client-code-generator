@@ -10,7 +10,7 @@ query Test {
                 id
             }
 
-            user @hook(name: "findUserById", input: ["creator.id"])
+            user @hook(name: "findUserById")
         }
     }
 }

@@ -1,0 +1,12 @@
+query Test {
+    articles {
+        title
+
+        owner @hook(name: "findOwner")
+    }
+    videos {
+        duration
+
+        owner @hook(name: "findOwner")
+    }
+}

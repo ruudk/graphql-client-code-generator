@@ -15,8 +15,8 @@ use Ruudk\GraphQLCodeGenerator\Config\Config;
 use Ruudk\GraphQLCodeGenerator\GraphQL\AST\Printer;
 use Ruudk\GraphQLCodeGenerator\Planner\Plan\DataClassPlan;
 use Ruudk\GraphQLCodeGenerator\Planner\Source\GraphQLFileSource;
+use Ruudk\GraphQLCodeGenerator\Planner\Source\HookInputSource;
 use Ruudk\GraphQLCodeGenerator\Planner\Source\TwigFileSource;
-use Ruudk\GraphQLCodeGenerator\Type\ArrayTupleType;
 use Ruudk\GraphQLCodeGenerator\Type\FragmentObjectType;
 use Ruudk\GraphQLCodeGenerator\Type\HookPropertyType;
 use Ruudk\GraphQLCodeGenerator\Type\IndexByCollectionType;
@@ -54,67 +54,6 @@ final class DataClassGenerator extends AbstractGenerator
     }
 
     /**
-     * Walks a dotted `@hook` input path through the current class's field shape
-     * (and the nested classes referenced along the way), emitting a property-
-     * chain accessor like `$this->creator->id`. Nullable intermediates get
-     * promoted to `?->` so the chain's static type stays accurate. `$base` is
-     * the root expression the chain hangs off — `$this` for a getter, or a
-     * loop/instance variable inside an inlined collect walk.
-     *
-     * @param array<string, DataClassPlan> $plansByFqcn
-     * @throws InvalidArgumentException
-     */
-    private function buildHookInputAccessor(string $path, SymfonyType $fields, array $plansByFqcn, string $base = '$this') : string
-    {
-        $segments = explode('.', $path);
-        $accessor = $base;
-        $chainNullable = false;
-        $shape = $this->unwrapShape($fields);
-
-        $last = count($segments) - 1;
-
-        foreach ($segments as $i => $segment) {
-            $shapeArray = $shape->getShape();
-
-            Assert::keyExists($shapeArray, $segment, sprintf(
-                'Hook input path "%s" references unknown field "%s".',
-                $path,
-                $segment,
-            ));
-
-            $segmentType = $shapeArray[$segment]['type'];
-
-            $accessor .= ($chainNullable ? '?->' : '->') . $segment;
-
-            if ($i === $last) {
-                break;
-            }
-
-            $isNullable = $segmentType instanceof SymfonyType\NullableType;
-            $naked = $isNullable ? $segmentType->getWrappedType() : $segmentType;
-
-            Assert::isInstanceOf($naked, SymfonyType\ObjectType::class, sprintf(
-                'Hook input path "%s" cannot descend through non-object segment "%s".',
-                $path,
-                $segment,
-            ));
-
-            $nextFqcn = $naked->getClassName();
-
-            Assert::keyExists($plansByFqcn, $nextFqcn, sprintf(
-                'Hook input path "%s" references class "%s" that has no generated plan.',
-                $path,
-                $nextFqcn,
-            ));
-
-            $shape = $this->unwrapShape($plansByFqcn[$nextFqcn]->fields);
-            $chainNullable = $chainNullable || $isNullable;
-        }
-
-        return $accessor;
-    }
-
-    /**
      * @param array<string, DataClassPlan> $plansByFqcn
      * @throws InvalidArgumentException
      */
@@ -132,22 +71,8 @@ final class DataClassGenerator extends AbstractGenerator
     }
 
     /**
-     * @throws InvalidArgumentException
-     */
-    private function unwrapShape(SymfonyType $type) : ArrayShapeType
-    {
-        if ($type instanceof SymfonyType\NullableType) {
-            $type = $type->getWrappedType();
-        }
-
-        Assert::isInstanceOf($type, ArrayShapeType::class);
-
-        return $type;
-    }
-
-    /**
      * Name of the generated method that walks the typed object graph collecting
-     * a batched hook's input tuples. Hook names are validated as PHP identifiers
+     * a batched hook's data objects. Hook names are validated as PHP identifiers
      * by `Config::withHook()`.
      */
     private function collectMethodName(string $hookName) : string
@@ -156,26 +81,34 @@ final class DataClassGenerator extends AbstractGenerator
     }
 
     /**
-     * PHPDoc `array{hookName: HookLoader<TInput, V>, ...}` shape for the
-     * `$loaders` argument/property. `TInput` is the hook's input tuple shape
-     * and `V` its (unwrapped) return value type.
+     * Name of the generated method that builds a hook's `requires` data object
+     * from `$this->data`.
+     */
+    private function buildMethodName(HookPropertyType $hook) : string
+    {
+        return 'build' . $hook->requiresClassName;
+    }
+
+    /**
+     * PHPDoc `array{hookName: HookLoader<DataClass, V>, ...}` shape for the
+     * `$loaders` argument/property. `DataClass` is the hook's `requires` data
+     * class and `V` its (unwrapped) return value type.
      *
      * @param array<string, true> $batchedHooks
-     * @param array<string, DataClassPlan> $plansByFqcn
-     * @throws InvalidArgumentException
      */
-    private function dumpLoadersShape(array $batchedHooks, array $plansByFqcn, CodeGenerator $generator) : string
+    private function dumpLoadersShape(array $batchedHooks, CodeGenerator $generator) : string
     {
         $hookLoader = $generator->import($this->fullyQualified('HookLoader'));
         $entries = [];
 
         foreach (array_keys($batchedHooks) as $name) {
+            $hook = $this->config->hooks[$name];
             $entries[] = sprintf(
                 '%s: %s<%s, %s>',
                 $name,
                 $hookLoader,
-                TypeDumper::dump($this->resolveHookInputTuple($name, $plansByFqcn), $generator->import(...), 1),
-                TypeDumper::dump($this->config->hooks[$name]->returnType, $generator->import(...), 1),
+                $generator->import($hook->requiresFqcn),
+                TypeDumper::dump($hook->returnType, $generator->import(...), 1),
             );
         }
 
@@ -186,103 +119,6 @@ final class DataClassGenerator extends AbstractGenerator
         $entries[] = sprintf('...<string, %s<mixed, mixed>>', $hookLoader);
 
         return sprintf("array{\n    %s,\n}", implode(",\n    ", $entries));
-    }
-
-    /**
-     * Build the input tuple type `array{T1, T2, ...}` for a batched hook from
-     * the leaf types of its `@hook(input: [...])` paths, located at the first
-     * site that uses the hook. Always resolves: the caller only asks for hooks
-     * that are in a class's `usedHooks`, which means a `@hook` field exists.
-     *
-     * @param array<string, DataClassPlan> $plansByFqcn
-     * @throws InvalidArgumentException
-     */
-    private function resolveHookInputTuple(string $hookName, array $plansByFqcn) : ArrayTupleType
-    {
-        foreach ($plansByFqcn as $plan) {
-            $fields = $plan->fields;
-
-            if ($fields instanceof SymfonyType\NullableType) {
-                $fields = $fields->getWrappedType();
-            }
-
-            if ( ! $fields instanceof ArrayShapeType) {
-                continue;
-            }
-
-            foreach ($fields->getShape() as $fieldValue) {
-                $fieldType = $fieldValue['type'];
-
-                if ( ! $fieldType instanceof HookPropertyType || $fieldType->hookName !== $hookName) {
-                    continue;
-                }
-
-                $leaves = [];
-
-                foreach ($fieldType->inputPaths as $path) {
-                    $leaves[] = $this->resolveHookInputLeafType($path, $plan->fields, $plansByFqcn);
-                }
-
-                return new ArrayTupleType($leaves);
-            }
-        }
-
-        throw new InvalidArgumentException(sprintf(
-            'No @hook field found for hook "%s"; cannot resolve its input tuple.',
-            $hookName,
-        ));
-    }
-
-    /**
-     * Resolve the PHP type a dotted `@hook` input path ultimately reads — the
-     * companion of `buildHookInputAccessor`, which builds the accessor string.
-     *
-     * @param array<string, DataClassPlan> $plansByFqcn
-     * @throws InvalidArgumentException
-     */
-    private function resolveHookInputLeafType(string $path, SymfonyType $fields, array $plansByFqcn) : SymfonyType
-    {
-        $segments = explode('.', $path);
-        $shape = $this->unwrapShape($fields);
-        $last = count($segments) - 1;
-
-        foreach ($segments as $i => $segment) {
-            $shapeArray = $shape->getShape();
-
-            Assert::keyExists($shapeArray, $segment, sprintf(
-                'Hook input path "%s" references unknown field "%s".',
-                $path,
-                $segment,
-            ));
-
-            $segmentType = $shapeArray[$segment]['type'];
-
-            if ($i === $last) {
-                return $segmentType;
-            }
-
-            $naked = $segmentType instanceof SymfonyType\NullableType
-                ? $segmentType->getWrappedType()
-                : $segmentType;
-
-            Assert::isInstanceOf($naked, SymfonyType\ObjectType::class, sprintf(
-                'Hook input path "%s" cannot descend through non-object segment "%s".',
-                $path,
-                $segment,
-            ));
-
-            $nextFqcn = $naked->getClassName();
-
-            Assert::keyExists($plansByFqcn, $nextFqcn, sprintf(
-                'Hook input path "%s" references class "%s" that has no generated plan.',
-                $path,
-                $nextFqcn,
-            ));
-
-            $shape = $this->unwrapShape($plansByFqcn[$nextFqcn]->fields);
-        }
-
-        throw new InvalidArgumentException(sprintf('Hook input path "%s" is empty.', $path));
     }
 
     /**
@@ -427,13 +263,12 @@ final class DataClassGenerator extends AbstractGenerator
 
             if ($fieldType instanceof HookPropertyType) {
                 if ($fieldType->hookName === $hookName) {
-                    $args = [];
-
-                    foreach ($fieldType->inputPaths as $path) {
-                        $args[] = $this->buildHookInputAccessor($path, $fields, $plansByFqcn, $accessor);
-                    }
-
-                    yield sprintf('yield [%s, [%s]];', $accessor, implode(', ', $args));
+                    yield sprintf(
+                        'yield [%s, %s->%s()];',
+                        $accessor,
+                        $accessor,
+                        $this->buildMethodName($fieldType),
+                    );
                 }
 
                 continue;
@@ -474,7 +309,7 @@ final class DataClassGenerator extends AbstractGenerator
     /**
      * Emit one `private collectHook<Name>Inputs()` method per batched hook,
      * only on the operation's `Data` class. The method inlines the full walk of
-     * the typed object graph, yielding `[$owner, $inputTuple]` pairs for the
+     * the typed object graph, yielding `[$owner, $dataObject]` pairs for the
      * `HookLoader` to batch. Keeping the walk on `Data` lets it stay private
      * and leaves nested classes free of generated traversal methods.
      *
@@ -496,13 +331,53 @@ final class DataClassGenerator extends AbstractGenerator
             yield '';
             yield from $generator->docComment(sprintf(
                 '@return iterable<array{object, %s}>',
-                TypeDumper::dump($this->resolveHookInputTuple($hookName, $plansByFqcn), $generator->import(...)),
+                $generator->import($this->config->hooks[$hookName]->requiresFqcn),
             ));
             yield sprintf('private function %s() : iterable', $this->collectMethodName($hookName));
             yield '{';
             yield $generator->indent(function () use ($plan, $hookName, $plansByFqcn, $generator) {
                 yield from $this->emitCollectClassBody('$this', $plan, $hookName, $plansByFqcn, $generator, 0);
             });
+            yield '}';
+        }
+    }
+
+    /**
+     * Emit a `build<RequiresClass>()` method for each `@hook` field on this class.
+     * It constructs the hook's typed data object from `$this->data`. Public because
+     * the `Data` class's collect walk calls it on nested instances.
+     *
+     * @return iterable<string|Group>
+     */
+    private function dumpHookBuildMethods(DataClassPlan $plan, CodeGenerator $generator) : iterable
+    {
+        $fields = $plan->fields;
+
+        if ($fields instanceof SymfonyType\NullableType) {
+            $fields = $fields->getWrappedType();
+        }
+
+        if ( ! $fields instanceof ArrayShapeType) {
+            return;
+        }
+
+        $emitted = [];
+
+        foreach ($fields->getShape() as $fieldValue) {
+            $fieldType = $fieldValue['type'];
+
+            if ( ! $fieldType instanceof HookPropertyType || isset($emitted[$fieldType->requiresClassName])) {
+                continue;
+            }
+
+            $emitted[$fieldType->requiresClassName] = true;
+            $dataClass = $generator->import($fieldType->requiresFqcn);
+
+            yield '';
+            yield from $generator->docComment('@internal');
+            yield sprintf('public function %s() : %s', $this->buildMethodName($fieldType), $dataClass);
+            yield '{';
+            yield $generator->indent(sprintf('return new %s($this->data);', $dataClass));
             yield '}';
         }
     }
@@ -590,6 +465,12 @@ final class DataClassGenerator extends AbstractGenerator
                         return;
                     }
 
+                    if ($plan->source instanceof HookInputSource) {
+                        yield sprintf('source: %s', var_export('hook:' . $plan->source->hookName, true));
+
+                        return;
+                    }
+
                     yield sprintf('source: %s', $generator->dumpClassReference($plan->source->class));
                     yield 'restricted: true';
                     yield 'restrictInstantiation: true';
@@ -636,9 +517,8 @@ final class DataClassGenerator extends AbstractGenerator
                             yield '';
 
                             // Hook-backed synthetic property: not stored in $this->data, resolved
-                            // at access time by invoking the user-supplied hook (an invokable
-                            // class) with positional arguments in the order declared by the
-                            // directive.
+                            // at access time by invoking the user-supplied hook with the typed
+                            // data object built from the hook's `requires` fragment.
                             if ($fieldType instanceof HookPropertyType) {
                                 $wrappedReturnType = $fieldType->getWrappedType();
 
@@ -659,7 +539,7 @@ final class DataClassGenerator extends AbstractGenerator
                                     $this->dumpPHPType($fieldType, $generator->import(...)),
                                     $fieldName,
                                 );
-                                yield $generator->indent(function () use ($fieldType, $fieldName, $fields, $plansByFqcn, $generator) {
+                                yield $generator->indent(function () use ($fieldType, $fieldName) {
                                     // Batched hook: delegate to the per-operation HookLoader,
                                     // which resolves the whole batch once and looks this
                                     // instance up by object identity.
@@ -673,20 +553,11 @@ final class DataClassGenerator extends AbstractGenerator
                                         return;
                                     }
 
-                                    $args = [];
-
-                                    foreach ($fieldType->inputPaths as $path) {
-                                        $args[] = $this->buildHookInputAccessor($path, $fields, $plansByFqcn);
-                                    }
-
-                                    yield from $generator->wrap(
-                                        sprintf('get => $this->%s ??= ', $fieldName),
-                                        $generator->dumpCall(
-                                            sprintf('$this->hooks[%s]', var_export($fieldType->hookName, true)),
-                                            '__invoke',
-                                            $args,
-                                        ),
-                                        ';',
+                                    yield sprintf(
+                                        'get => $this->%s ??= $this->hooks[%s]->__invoke($this->%s());',
+                                        $fieldName,
+                                        var_export($fieldType->hookName, true),
+                                        $this->buildMethodName($fieldType),
                                     );
                                 });
                                 yield '}';
@@ -1099,13 +970,13 @@ final class DataClassGenerator extends AbstractGenerator
                         yield '';
                         yield from $generator->docComment(sprintf(
                             '@var %s',
-                            $this->dumpLoadersShape($batchedHooks, $plansByFqcn, $generator),
+                            $this->dumpLoadersShape($batchedHooks, $generator),
                         ));
                         yield 'private readonly array $loaders;';
                     }
 
                     yield '';
-                    yield from $generator->docComment(function () use ($isData, $generator, $payloadShape, $hooksParam, $needsHooksParam, $needsLoadersParam, $batchedHooks, $plansByFqcn) {
+                    yield from $generator->docComment(function () use ($isData, $generator, $payloadShape, $hooksParam, $needsHooksParam, $needsLoadersParam, $batchedHooks) {
                         yield sprintf(
                             '@param %s $data',
                             TypeDumper::dump($payloadShape, $generator->import(...)),
@@ -1135,7 +1006,7 @@ final class DataClassGenerator extends AbstractGenerator
                         if ($needsLoadersParam) {
                             yield sprintf(
                                 '@param %s $loaders',
-                                $this->dumpLoadersShape($batchedHooks, $plansByFqcn, $generator),
+                                $this->dumpLoadersShape($batchedHooks, $generator),
                             );
                         }
                     });
@@ -1189,6 +1060,7 @@ final class DataClassGenerator extends AbstractGenerator
                         yield ') {}';
                     }
 
+                    yield from $this->dumpHookBuildMethods($plan, $generator);
                     yield from $this->dumpCollectMethods($plan, $plansByFqcn, $generator);
                 },
             );
