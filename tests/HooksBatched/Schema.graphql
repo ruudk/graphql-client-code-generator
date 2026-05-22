@@ -1,0 +1,16 @@
+type Query {
+    organizations: [Organization!]!
+}
+
+type Organization {
+    id: ID!
+    name: String!
+    repositories: [Repository!]!
+}
+
+type Repository {
+    id: ID!
+    name: String!
+    ownerId: ID!
+    reviewerId: ID!
+}

@@ -10,6 +10,8 @@ use InvalidArgumentException;
 use ReflectionClass;
 use ReflectionException;
 use ReflectionMethod;
+use ReflectionNamedType;
+use ReflectionParameter;
 use Ruudk\GraphQLCodeGenerator\Attribute\Hook;
 use Ruudk\GraphQLCodeGenerator\TypeInitializer;
 use Symfony\Component\TypeInfo\Exception\UnsupportedException;
@@ -283,6 +285,12 @@ final readonly class Config
      * `#[Hook(name: '...')]` naming the hook for use in `@hook(name: ...)` directives.
      * The return type is inferred from the `__invoke` signature.
      *
+     * A legacy hook is invoked once per object instance with positional arguments.
+     * A batched hook (`#[Hook(name: '...', batched: true)]`) is invoked exactly once
+     * per operation: it receives `array<int, array{...}>` (one input tuple per
+     * occurrence, integer-keyed by the library) and must return/yield
+     * `iterable<int, V>` echoing the same integer keys.
+     *
      * @param class-string $class
      * @throws InvalidArgumentException
      * @throws \Webmozart\Assert\InvalidArgumentException
@@ -300,7 +308,16 @@ final readonly class Config
             $class,
         ));
 
-        $hookName = $attributes[0]->newInstance()->name;
+        $hook = $attributes[0]->newInstance();
+        $hookName = $hook->name;
+        $batched = $hook->batched;
+
+        Assert::regex($hookName, '/^[a-zA-Z_][a-zA-Z0-9_]*$/', sprintf(
+            'Hook name "%s" (on %s) must be a valid PHP identifier.',
+            $hookName,
+            $class,
+        ));
+
         $method = new ReflectionMethod($class, '__invoke');
 
         Assert::keyNotExists($this->hooks, $hookName, sprintf(
@@ -322,11 +339,52 @@ final readonly class Config
             );
         }
 
+        if ($batched) {
+            $parameters = $method->getParameters();
+
+            if (count($parameters) !== 1 || ! $this->isArrayHookParameter($parameters[0])) {
+                throw new InvalidArgumentException(sprintf(
+                    'Batched hook "%s" (%s::__invoke) must accept exactly one array argument: '
+                    . 'public function __invoke(array $inputs): iterable. Each entry of $inputs is '
+                    . "one occurrence's input tuple, keyed by an integer the hook must echo back.",
+                    $hookName,
+                    $class,
+                ));
+            }
+
+            if ( ! $returnType instanceof Type\CollectionType) {
+                throw new InvalidArgumentException(sprintf(
+                    'Batched hook "%s" (%s::__invoke) must return an iterable; declare '
+                    . '@return iterable<int, V> so the value type can be inferred.',
+                    $hookName,
+                    $class,
+                ));
+            }
+
+            $returnType = $returnType->getCollectionValueType();
+        }
+
         $hooks = $this->hooks;
-        $hooks[$hookName] = new HookDefinition($hookName, $class, $returnType);
+        $hooks[$hookName] = new HookDefinition($hookName, $class, $returnType, $batched);
 
         return clone ($this, [
             'hooks' => $hooks,
         ]);
+    }
+
+    /**
+     * A batched hook's single parameter must be `array` (or `iterable`/untyped) — it
+     * receives the whole batch of input tuples.
+     */
+    private function isArrayHookParameter(ReflectionParameter $parameter) : bool
+    {
+        $type = $parameter->getType();
+
+        if ($type === null) {
+            return true;
+        }
+
+        return $type instanceof ReflectionNamedType
+            && in_array($type->getName(), ['array', 'iterable'], true);
     }
 }

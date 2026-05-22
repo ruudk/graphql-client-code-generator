@@ -72,6 +72,7 @@ use Ruudk\GraphQLCodeGenerator\Planner\Plan\DataClassPlan;
 use Ruudk\GraphQLCodeGenerator\Planner\Plan\EnumClassPlan;
 use Ruudk\GraphQLCodeGenerator\Planner\Plan\ErrorClassPlan;
 use Ruudk\GraphQLCodeGenerator\Planner\Plan\ExceptionClassPlan;
+use Ruudk\GraphQLCodeGenerator\Planner\Plan\HookLoaderPlan;
 use Ruudk\GraphQLCodeGenerator\Planner\Plan\InputClassPlan;
 use Ruudk\GraphQLCodeGenerator\Planner\Plan\NodeNotFoundExceptionPlan;
 use Ruudk\GraphQLCodeGenerator\Planner\Plan\OperationClassPlan;
@@ -675,6 +676,12 @@ final class Planner
             $this->propagateUsedHooks($result);
         }
 
+        if ($this->anyClassUsesBatchedHook($result)) {
+            $result->addClass(new HookLoaderPlan(
+                path: $this->config->outputDir . '/HookLoader.php',
+            ));
+        }
+
         if ($this->config->dumpOrThrowProperties || $this->anyClassUsesThrowWhenNull($result)) {
             $result->addClass(new NodeNotFoundExceptionPlan(
                 path: $this->config->outputDir . '/NodeNotFoundException.php',
@@ -771,6 +778,27 @@ final class Planner
         ksort($unused);
 
         return $unused;
+    }
+
+    /**
+     * True when any generated class resolves a hook registered with
+     * `#[Hook(..., batched: true)]` — the trigger for emitting `HookLoader.php`.
+     */
+    private function anyClassUsesBatchedHook(PlannerResult $result) : bool
+    {
+        foreach ($result->classes as $plan) {
+            if ( ! $plan instanceof DataClassPlan) {
+                continue;
+            }
+
+            foreach (array_keys($plan->usedHooks) as $hookName) {
+                if (($this->config->hooks[$hookName] ?? null)?->batched === true) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
 
     private function anyClassUsesThrowWhenNull(PlannerResult $result) : bool

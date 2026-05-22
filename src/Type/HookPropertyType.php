@@ -25,11 +25,14 @@ final class HookPropertyType extends SymfonyType implements WrappingTypeInterfac
 {
     /**
      * @param list<string> $inputPaths
+     * @param bool $batched When true, the hook is resolved by a batched `HookLoader`
+     *                      instead of a per-instance `__invoke` call.
      */
     public function __construct(
         public readonly string $hookName,
         public readonly array $inputPaths,
         private readonly SymfonyType $returnType,
+        public readonly bool $batched = false,
     ) {}
 
     #[Override]
