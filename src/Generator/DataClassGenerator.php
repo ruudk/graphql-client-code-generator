@@ -174,12 +174,16 @@ final class DataClassGenerator extends AbstractGenerator
                 '%s: %s<%s, %s>',
                 $name,
                 $hookLoader,
-                TypeDumper::dump($this->resolveHookInputTuple($name, $plansByFqcn), $generator->import(...)),
-                TypeDumper::dump($this->config->hooks[$name]->returnType, $generator->import(...)),
+                TypeDumper::dump($this->resolveHookInputTuple($name, $plansByFqcn), $generator->import(...), 1),
+                TypeDumper::dump($this->config->hooks[$name]->returnType, $generator->import(...), 1),
             );
         }
 
-        return sprintf('array{%s}', implode(', ', $entries));
+        if ($entries === []) {
+            return 'array{}';
+        }
+
+        return sprintf("array{\n    %s,\n}", implode(",\n    ", $entries));
     }
 
     /**

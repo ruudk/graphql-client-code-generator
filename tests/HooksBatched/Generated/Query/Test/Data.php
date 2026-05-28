@@ -30,7 +30,11 @@ final class Data
     public readonly array $errors;
 
     /**
-     * @var array{findOrgPlan: HookLoader<array{string}, OrgPlan>, computeAccess: HookLoader<array{string, string}, Access>, findUserById: HookLoader<array{string}, null|User>}
+     * @var array{
+     *     findOrgPlan: HookLoader<array{string}, OrgPlan>,
+     *     computeAccess: HookLoader<array{string, string}, Access>,
+     *     findUserById: HookLoader<array{string}, null|User>,
+     * }
      */
     private readonly array $loaders;
 
