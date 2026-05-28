@@ -34,7 +34,7 @@ final class Data
      *     findOrgPlan: HookLoader<array{string}, OrgPlan>,
      *     computeAccess: HookLoader<array{string, string}, Access>,
      *     findUserById: HookLoader<array{string}, null|User>,
-     *     ...<string, HookLoader<array{...}, mixed>>,
+     *     ...<string, HookLoader<mixed, mixed>>,
      * }
      */
     private readonly array $loaders;

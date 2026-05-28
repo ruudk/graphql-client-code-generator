@@ -183,7 +183,7 @@ final class DataClassGenerator extends AbstractGenerator
         // which holds every batched hook in the operation, not just the subset a
         // single nested class consumes. Extras are typed wide; HookLoader's
         // covariant template params let any specific instantiation fit here.
-        $entries[] = sprintf('...<string, %s<array{...}, mixed>>', $hookLoader);
+        $entries[] = sprintf('...<string, %s<mixed, mixed>>', $hookLoader);
 
         return sprintf("array{\n    %s,\n}", implode(",\n    ", $entries));
     }
