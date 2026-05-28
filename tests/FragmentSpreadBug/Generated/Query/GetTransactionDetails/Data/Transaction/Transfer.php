@@ -38,7 +38,7 @@ final class Transfer
      *     'total': array{
      *         'amount': string,
      *         'currency': string,
-     *         ...<int|string, mixed>,
+     *         ...,
      *     },
      *     'transferReversals': list<array{
      *         'createdAt': string,
@@ -49,9 +49,9 @@ final class Transfer
      *             'total': array{
      *                 'amount': string,
      *                 'currency': string,
-     *                 ...<int|string, mixed>,
+     *                 ...,
      *             },
-     *             ...<int|string, mixed>,
+     *             ...,
      *         }>,
      *         'returnMethod': null|string,
      *         'returnedAt': null|string,
@@ -59,11 +59,11 @@ final class Transfer
      *         'total': array{
      *             'amount': string,
      *             'currency': string,
-     *             ...<int|string, mixed>,
+     *             ...,
      *         },
-     *         ...<int|string, mixed>,
+     *         ...,
      *     }>,
-     *     ...<int|string, mixed>,
+     *     ...,
      * } $data
      */
     public function __construct(

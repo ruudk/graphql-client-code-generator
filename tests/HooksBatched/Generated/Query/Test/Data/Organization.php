@@ -42,15 +42,15 @@ final class Organization
      *         'name': string,
      *         'ownerId': string,
      *         'reviewerId': string,
-     *         ...<int|string, mixed>,
+     *         ...,
      *     }>,
-     *     ...<int|string, mixed>,
+     *     ...,
      * } $data
      * @param array{
      *     findOrgPlan: HookLoader<array{string}, OrgPlan>,
      *     computeAccess: HookLoader<array{string, string}, Access>,
      *     findUserById: HookLoader<array{string}, null|User>,
-     *     ...<string, HookLoader<array<int, mixed>, mixed>>,
+     *     ...<string, HookLoader<array{...}, mixed>>,
      * } $loaders
      */
     public function __construct(

@@ -20,7 +20,7 @@ final class MultiList
      * @param array{
      *     '__typename': string,
      *     'id': string,
-     *     ...<int|string, mixed>,
+     *     ...,
      * } $data
      */
     public function __construct(

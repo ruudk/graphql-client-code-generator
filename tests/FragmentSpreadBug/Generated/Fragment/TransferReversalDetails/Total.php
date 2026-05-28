@@ -20,7 +20,7 @@ final class Total
      * @param array{
      *     'amount': string,
      *     'currency': string,
-     *     ...<int|string, mixed>,
+     *     ...,
      * } $data
      */
     public function __construct(

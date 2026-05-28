@@ -42,27 +42,27 @@ final class Data
      * @param array{
      *     'fireAndForget': array{
      *         '__typename': string,
-     *         ...<int|string, mixed>,
+     *         ...,
      *     },
      *     'nested': array{
      *         'inner': array{
      *             '__typename': string,
-     *             ...<int|string, mixed>,
+     *             ...,
      *         },
-     *         ...<int|string, mixed>,
+     *         ...,
      *     },
      *     'withExtraFields': array{
      *         '__typename': string,
      *         'name': string,
-     *         ...<int|string, mixed>,
+     *         ...,
      *     },
-     *     ...<int|string, mixed>,
+     *     ...,
      * } $data
      * @param list<array{
      *     'code': string,
      *     'debugMessage'?: string,
      *     'message': string,
-     *     ...<int|string, mixed>,
+     *     ...,
      * }> $errors
      */
     public function __construct(

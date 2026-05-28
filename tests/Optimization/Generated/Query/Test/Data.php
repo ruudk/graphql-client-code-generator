@@ -33,7 +33,7 @@ final class Data
      *         'description': null|string,
      *         'name': string,
      *         'state': null|string,
-     *         ...<int|string, mixed>,
+     *         ...,
      *     }>,
      *     'viewer': array{
      *         '__typename': string,
@@ -42,15 +42,15 @@ final class Data
      *         'login'?: string,
      *         'name': string,
      *         'url'?: string,
-     *         ...<int|string, mixed>,
+     *         ...,
      *     },
-     *     ...<int|string, mixed>,
+     *     ...,
      * } $data
      * @param list<array{
      *     'code': string,
      *     'debugMessage'?: string,
      *     'message': string,
-     *     ...<int|string, mixed>,
+     *     ...,
      * }> $errors
      */
     public function __construct(

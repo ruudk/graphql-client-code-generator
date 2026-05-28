@@ -14,7 +14,7 @@ final readonly class Error
      * @param array{
      *     'debugMessage'?: string,
      *     'message': string,
-     *     ...<int|string, mixed>,
+     *     ...,
      * } $error
      */
     public function __construct(array $error)

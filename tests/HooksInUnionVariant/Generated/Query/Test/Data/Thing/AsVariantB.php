@@ -16,7 +16,7 @@ final class AsVariantB
      * @param array{
      *     '__typename': 'VariantB',
      *     'realFieldB': string,
-     *     ...<int|string, mixed>,
+     *     ...,
      * } $data
      */
     public function __construct(

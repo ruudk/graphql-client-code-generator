@@ -35,13 +35,13 @@ final class AdminProjectList
      *         'id': string,
      *         'name': string,
      *         'state': null|string,
-     *         ...<int|string, mixed>,
+     *         ...,
      *     }>,
      *     'viewer': array{
      *         'name': string,
-     *         ...<int|string, mixed>,
+     *         ...,
      *     },
-     *     ...<int|string, mixed>,
+     *     ...,
      * } $data
      */
     public function __construct(

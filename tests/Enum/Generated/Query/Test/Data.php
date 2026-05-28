@@ -39,13 +39,13 @@ final class Data
      *     'otherRole': null|string,
      *     'priority': null|string,
      *     'role': null|string,
-     *     ...<int|string, mixed>,
+     *     ...,
      * } $data
      * @param list<array{
      *     'code': string,
      *     'debugMessage'?: string,
      *     'message': string,
-     *     ...<int|string, mixed>,
+     *     ...,
      * }> $errors
      */
     public function __construct(

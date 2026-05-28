@@ -15,7 +15,7 @@ final class Customer
     /**
      * @param array{
      *     'id': scalar,
-     *     ...<int|string, mixed>,
+     *     ...,
      * } $data
      */
     public function __construct(

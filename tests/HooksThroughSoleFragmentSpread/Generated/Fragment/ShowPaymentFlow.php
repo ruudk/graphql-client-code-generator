@@ -25,13 +25,13 @@ final class ShowPaymentFlow
      *     'order': array{
      *         'discountId': string,
      *         'id': string,
-     *         ...<int|string, mixed>,
+     *         ...,
      *     },
-     *     ...<int|string, mixed>,
+     *     ...,
      * } $data
      * @param array{
      *     'findDiscountCodeById': FindDiscountCodeByIdHook,
-     *     ...<int|string, mixed>,
+     *     ...,
      * } $hooks
      */
     public function __construct(

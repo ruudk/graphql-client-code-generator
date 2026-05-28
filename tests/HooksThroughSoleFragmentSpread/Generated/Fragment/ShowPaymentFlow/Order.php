@@ -27,11 +27,11 @@ final class Order
      * @param array{
      *     'discountId': string,
      *     'id': string,
-     *     ...<int|string, mixed>,
+     *     ...,
      * } $data
      * @param array{
      *     'findDiscountCodeById': FindDiscountCodeByIdHook,
-     *     ...<int|string, mixed>,
+     *     ...,
      * } $hooks
      */
     public function __construct(

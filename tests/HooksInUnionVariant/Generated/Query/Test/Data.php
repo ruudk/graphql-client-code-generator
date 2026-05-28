@@ -30,19 +30,19 @@ final class Data
      *         'id': string,
      *         'realFieldA'?: string,
      *         'realFieldB'?: string,
-     *         ...<int|string, mixed>,
+     *         ...,
      *     }>,
-     *     ...<int|string, mixed>,
+     *     ...,
      * } $data
      * @param list<array{
      *     'code': string,
      *     'debugMessage'?: string,
      *     'message': string,
-     *     ...<int|string, mixed>,
+     *     ...,
      * }> $errors
      * @param array{
      *     'findUserById': FindUserByIdHook,
-     *     ...<int|string, mixed>,
+     *     ...,
      * } $hooks
      */
     public function __construct(

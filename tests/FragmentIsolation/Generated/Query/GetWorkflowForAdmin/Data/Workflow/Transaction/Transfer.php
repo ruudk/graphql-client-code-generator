@@ -22,10 +22,10 @@ final class Transfer
      * @param array{
      *     'customer': array{
      *         'id': scalar,
-     *         ...<int|string, mixed>,
+     *         ...,
      *     },
      *     'id': scalar,
-     *     ...<int|string, mixed>,
+     *     ...,
      * } $data
      */
     public function __construct(

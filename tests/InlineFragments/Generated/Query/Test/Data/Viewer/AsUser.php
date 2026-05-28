@@ -16,7 +16,7 @@ final class AsUser
      * @param array{
      *     '__typename': 'User',
      *     'login': string,
-     *     ...<int|string, mixed>,
+     *     ...,
      * } $data
      */
     public function __construct(

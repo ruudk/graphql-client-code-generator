@@ -25,7 +25,7 @@ final class ProjectView
      *     'description': null|string,
      *     'name': string,
      *     'state': null|string,
-     *     ...<int|string, mixed>,
+     *     ...,
      * } $data
      */
     public function __construct(

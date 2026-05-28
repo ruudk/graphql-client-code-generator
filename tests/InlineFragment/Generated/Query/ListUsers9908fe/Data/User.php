@@ -26,7 +26,7 @@ final class User
      *     'firstName': string,
      *     'id': string,
      *     'lastName': string,
-     *     ...<int|string, mixed>,
+     *     ...,
      * } $data
      */
     public function __construct(
