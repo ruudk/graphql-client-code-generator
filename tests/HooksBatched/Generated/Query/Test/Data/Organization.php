@@ -44,7 +44,11 @@ final class Organization
      *         'reviewerId': string,
      *     }>,
      * } $data
-     * @param array{findOrgPlan: HookLoader<array{string}, OrgPlan>, computeAccess: HookLoader<array{string, string}, Access>, findUserById: HookLoader<array{string}, null|User>} $loaders
+     * @param array{
+     *     findOrgPlan: HookLoader<array{string}, OrgPlan>,
+     *     computeAccess: HookLoader<array{string, string}, Access>,
+     *     findUserById: HookLoader<array{string}, null|User>,
+     * } $loaders
      */
     public function __construct(
         private readonly array $data,
