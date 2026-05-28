@@ -18,7 +18,7 @@ final class AsSupportedCountryError
     /**
      * @param array{
      *     '__typename': 'SupportedCountryError',
-     *     ...<int|string, mixed>,
+     *     ...,
      * } $data
      */
     public function __construct(

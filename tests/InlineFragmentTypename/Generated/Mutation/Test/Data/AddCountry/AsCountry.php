@@ -21,7 +21,7 @@ final class AsCountry
      *     '__typename': 'Country',
      *     'id': string,
      *     'name': string,
-     *     ...<int|string, mixed>,
+     *     ...,
      * } $data
      */
     public function __construct(

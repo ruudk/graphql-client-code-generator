@@ -21,9 +21,9 @@ final class AdminViewSystemTransferRow
      *     'canBeCollected': bool,
      *     'transferReversals': list<array{
      *         'id': scalar,
-     *         ...<int|string, mixed>,
+     *         ...,
      *     }>,
-     *     ...<int|string, mixed>,
+     *     ...,
      * } $data
      */
     public function __construct(

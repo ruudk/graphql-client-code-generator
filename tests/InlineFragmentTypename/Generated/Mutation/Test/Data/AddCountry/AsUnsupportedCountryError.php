@@ -20,7 +20,7 @@ final class AsUnsupportedCountryError
      * @param array{
      *     '__typename': 'UnsupportedCountryError',
      *     'code': string,
-     *     ...<int|string, mixed>,
+     *     ...,
      * } $data
      */
     public function __construct(

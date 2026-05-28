@@ -15,7 +15,7 @@ final class TransferReversal
     /**
      * @param array{
      *     'id': scalar,
-     *     ...<int|string, mixed>,
+     *     ...,
      * } $data
      */
     public function __construct(

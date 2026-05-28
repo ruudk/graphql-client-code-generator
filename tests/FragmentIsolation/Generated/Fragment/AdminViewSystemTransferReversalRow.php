@@ -18,9 +18,9 @@ final class AdminViewSystemTransferReversalRow
      * @param array{
      *     'transfer': array{
      *         'metadata': scalar,
-     *         ...<int|string, mixed>,
+     *         ...,
      *     },
-     *     ...<int|string, mixed>,
+     *     ...,
      * } $data
      */
     public function __construct(

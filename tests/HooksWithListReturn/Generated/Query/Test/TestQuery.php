@@ -27,7 +27,7 @@ final readonly class TestQuery {
     /**
      * @param array{
      *     'findUsersByIds': FindUsersByIdsHook,
-     *     ...<int|string, mixed>,
+     *     ...,
      * } $hooks
      */
     public function __construct(

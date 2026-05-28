@@ -33,33 +33,33 @@ final class Data
      *                 'id': string,
      *                 'name': string,
      *                 'status': string,
-     *                 ...<int|string, mixed>,
+     *                 ...,
      *             },
-     *             ...<int|string, mixed>,
+     *             ...,
      *         }>,
      *         'pageInfo': array{
      *             'endCursor': null|string,
      *             'hasNextPage': bool,
      *             'hasPreviousPage': bool,
      *             'startCursor': null|string,
-     *             ...<int|string, mixed>,
+     *             ...,
      *         },
-     *         ...<int|string, mixed>,
+     *         ...,
      *     },
      *     'viewer': null|array{
      *         'createdAt': scalar,
      *         'id': string,
      *         'name': string,
      *         'role': string,
-     *         ...<int|string, mixed>,
+     *         ...,
      *     },
-     *     ...<int|string, mixed>,
+     *     ...,
      * } $data
      * @param list<array{
      *     'code': string,
      *     'debugMessage'?: string,
      *     'message': string,
-     *     ...<int|string, mixed>,
+     *     ...,
      * }> $errors
      */
     public function __construct(

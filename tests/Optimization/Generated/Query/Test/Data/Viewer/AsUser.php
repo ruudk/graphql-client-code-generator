@@ -21,7 +21,7 @@ final class AsUser
      *     '__typename': 'User',
      *     'login': string,
      *     'name': string,
-     *     ...<int|string, mixed>,
+     *     ...,
      * } $data
      */
     public function __construct(

@@ -18,9 +18,9 @@ final class Nested
      * @param array{
      *     'inner': array{
      *         '__typename': string,
-     *         ...<int|string, mixed>,
+     *         ...,
      *     },
-     *     ...<int|string, mixed>,
+     *     ...,
      * } $data
      */
     public function __construct(

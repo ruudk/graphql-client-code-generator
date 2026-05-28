@@ -31,7 +31,7 @@ final class AdminProjectOptions
     /**
      * @param array{
      *     'state': null|string,
-     *     ...<int|string, mixed>,
+     *     ...,
      * } $data
      */
     public function __construct(

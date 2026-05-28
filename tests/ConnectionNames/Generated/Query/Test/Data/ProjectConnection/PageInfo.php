@@ -30,7 +30,7 @@ final class PageInfo
      *     'hasNextPage': bool,
      *     'hasPreviousPage': bool,
      *     'startCursor': null|string,
-     *     ...<int|string, mixed>,
+     *     ...,
      * } $data
      */
     public function __construct(

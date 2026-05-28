@@ -27,22 +27,22 @@ final class Workflow
      *             'canBeCollected': bool,
      *             'customer': array{
      *                 'id': scalar,
-     *                 ...<int|string, mixed>,
+     *                 ...,
      *             },
      *             'id': scalar,
      *             'transferReversals': list<array{
      *                 'id': scalar,
      *                 'transfer': array{
      *                     'metadata': scalar,
-     *                     ...<int|string, mixed>,
+     *                     ...,
      *                 },
-     *                 ...<int|string, mixed>,
+     *                 ...,
      *             }>,
-     *             ...<int|string, mixed>,
+     *             ...,
      *         }>,
-     *         ...<int|string, mixed>,
+     *         ...,
      *     },
-     *     ...<int|string, mixed>,
+     *     ...,
      * } $data
      */
     public function __construct(

@@ -15,7 +15,7 @@ final class Viewer
     /**
      * @param array{
      *     'login': string,
-     *     ...<int|string, mixed>,
+     *     ...,
      * } $data
      */
     public function __construct(

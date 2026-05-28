@@ -34,7 +34,7 @@ final readonly class TestQuery {
      *     'computeAccess': ComputeAccessHook,
      *     'findOrgPlan': FindOrgPlanHook,
      *     'findUserById': FindUserByIdHook,
-     *     ...<int|string, mixed>,
+     *     ...,
      * } $hooks
      */
     public function __construct(

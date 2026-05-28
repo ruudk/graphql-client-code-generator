@@ -20,7 +20,7 @@ final class TransferReversal
      * @param array{
      *     'id': string,
      *     'state': string,
-     *     ...<int|string, mixed>,
+     *     ...,
      * } $data
      */
     public function __construct(

@@ -18,7 +18,7 @@ final class Error
     /**
      * @param array{
      *     '__typename': string,
-     *     ...<int|string, mixed>,
+     *     ...,
      * } $data
      */
     public function __construct(

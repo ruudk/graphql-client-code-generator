@@ -30,29 +30,29 @@ final class Data
      *         '__typename': string,
      *         'fxFee'?: null|array{
      *             '__typename': string,
-     *             ...<int|string, mixed>,
+     *             ...,
      *         },
      *         'id'?: string,
-     *         ...<int|string, mixed>,
+     *         ...,
      *     },
      *     'supportedCountry': array{
      *         'error': null|array{
      *             '__typename': string,
-     *             ...<int|string, mixed>,
+     *             ...,
      *         },
      *         'info': null|array{
      *             'name': string,
-     *             ...<int|string, mixed>,
+     *             ...,
      *         },
-     *         ...<int|string, mixed>,
+     *         ...,
      *     },
-     *     ...<int|string, mixed>,
+     *     ...,
      * } $data
      * @param list<array{
      *     'code': string,
      *     'debugMessage'?: string,
      *     'message': string,
-     *     ...<int|string, mixed>,
+     *     ...,
      * }> $errors
      */
     public function __construct(
