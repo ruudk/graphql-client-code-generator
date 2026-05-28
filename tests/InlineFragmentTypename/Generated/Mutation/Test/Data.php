@@ -25,11 +25,14 @@ final class Data
     /**
      * @param array{
      *     'addCountry': array{
-     *         '__typename': string,
-     *         'code'?: string,
-     *         'id'?: string,
-     *         'name'?: string,
-     *         ...,
+     *         '__typename': 'Country',
+     *         'id': string,
+     *         'name': string,
+     *     }|array{
+     *         '__typename': 'SupportedCountryError',
+     *     }|array{
+     *         '__typename': 'UnsupportedCountryError',
+     *         'code': string,
      *     },
      *     ...,
      * } $data

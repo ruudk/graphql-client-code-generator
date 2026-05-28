@@ -597,8 +597,9 @@ final class SelectionSetPlanner
         $pathFields->addWithPrefix($context->path, $fieldName, $accessorType);
         $pathFields->merge($fragmentResult->pathFields);
 
-        // Merge inline fragment fields into parent payload as optional
-        $this->mergeInlineFragmentPayload($fragmentResult->payloadShape, $payloadShape);
+        // The parent payload already includes this variant — PayloadShapeBuilder
+        // registers it via `PayloadShape::addVariant()` while building the parent
+        // shape at the top of `planNamedTypeSelectionSet()`.
     }
 
     /**
@@ -1106,13 +1107,6 @@ final class SelectionSetPlanner
                 }
             }
         }
-    }
-
-    private function mergeInlineFragmentPayload(
-        PayloadShape $fragmentPayload,
-        PayloadShape $parentPayload,
-    ) : void {
-        $parentPayload->merge($fragmentPayload, asOptional: true);
     }
 
     // Utility methods

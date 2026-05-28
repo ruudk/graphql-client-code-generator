@@ -12,25 +12,7 @@ use Ruudk\GraphQLCodeGenerator\Optimization\Generated\Query\Test\Data\Viewer\AsU
 final class Viewer
 {
     public ?AppUrl $appUrl {
-        get {
-            if (isset($this->appUrl)) {
-                return $this->appUrl;
-            }
-
-            if ($this->data['__typename'] !== 'Application') {
-                return $this->appUrl = null;
-            }
-
-            if (! array_key_exists('url', $this->data)) {
-                return $this->appUrl = null;
-            }
-
-            if (! array_key_exists('name', $this->data)) {
-                return $this->appUrl = null;
-            }
-
-            return $this->appUrl = new AppUrl($this->data);
-        }
+        get => $this->appUrl ??= $this->data['__typename'] === 'Application' ? new AppUrl($this->data) : null;
     }
 
     /**
@@ -42,25 +24,7 @@ final class Viewer
     }
 
     public ?AsUser $asUser {
-        get {
-            if (isset($this->asUser)) {
-                return $this->asUser;
-            }
-
-            if ($this->data['__typename'] !== 'User') {
-                return $this->asUser = null;
-            }
-
-            if (! array_key_exists('login', $this->data)) {
-                return $this->asUser = null;
-            }
-
-            if (! array_key_exists('name', $this->data)) {
-                return $this->asUser = null;
-            }
-
-            return $this->asUser = new AsUser($this->data);
-        }
+        get => $this->asUser ??= $this->data['__typename'] === 'User' ? new AsUser($this->data) : null;
     }
 
     /**
@@ -85,13 +49,17 @@ final class Viewer
 
     /**
      * @param array{
-     *     '__typename': string,
+     *     '__typename': 'Application',
      *     'id': string,
      *     'idAlias': string,
-     *     'login'?: string,
      *     'name': string,
-     *     'url'?: string,
-     *     ...,
+     *     'url': string,
+     * }|array{
+     *     '__typename': 'User',
+     *     'id': string,
+     *     'idAlias': string,
+     *     'login': string,
+     *     'name': string,
      * } $data
      */
     public function __construct(

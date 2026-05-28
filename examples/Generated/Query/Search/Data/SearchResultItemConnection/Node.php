@@ -26,25 +26,7 @@ final class Node
     }
 
     public ?AsIssue $asIssue {
-        get {
-            if (isset($this->asIssue)) {
-                return $this->asIssue;
-            }
-
-            if ($this->data['__typename'] !== 'Issue') {
-                return $this->asIssue = null;
-            }
-
-            if (! array_key_exists('number', $this->data)) {
-                return $this->asIssue = null;
-            }
-
-            if (! array_key_exists('title', $this->data)) {
-                return $this->asIssue = null;
-            }
-
-            return $this->asIssue = new AsIssue($this->data);
-        }
+        get => $this->asIssue ??= $this->data['__typename'] === 'Issue' ? new AsIssue($this->data) : null;
     }
 
     /**
@@ -56,29 +38,7 @@ final class Node
     }
 
     public ?PullRequestInfo $pullRequestInfo {
-        get {
-            if (isset($this->pullRequestInfo)) {
-                return $this->pullRequestInfo;
-            }
-
-            if ($this->data['__typename'] !== 'PullRequest') {
-                return $this->pullRequestInfo = null;
-            }
-
-            if (! array_key_exists('number', $this->data)) {
-                return $this->pullRequestInfo = null;
-            }
-
-            if (! array_key_exists('title', $this->data)) {
-                return $this->pullRequestInfo = null;
-            }
-
-            if (! array_key_exists('merged', $this->data)) {
-                return $this->pullRequestInfo = null;
-            }
-
-            return $this->pullRequestInfo = new PullRequestInfo($this->data);
-        }
+        get => $this->pullRequestInfo ??= $this->data['__typename'] === 'PullRequest' ? new PullRequestInfo($this->data) : null;
     }
 
     /**
@@ -91,11 +51,26 @@ final class Node
 
     /**
      * @param array{
-     *     '__typename': string,
-     *     'merged'?: bool,
-     *     'number'?: int,
-     *     'title'?: string,
-     *     ...,
+     *     '__typename': 'App',
+     * }|array{
+     *     '__typename': 'Discussion',
+     * }|array{
+     *     '__typename': 'Issue',
+     *     'number': int,
+     *     'title': string,
+     * }|array{
+     *     '__typename': 'MarketplaceListing',
+     * }|array{
+     *     '__typename': 'Organization',
+     * }|array{
+     *     '__typename': 'PullRequest',
+     *     'merged': bool,
+     *     'number': int,
+     *     'title': string,
+     * }|array{
+     *     '__typename': 'Repository',
+     * }|array{
+     *     '__typename': 'User',
      * } $data
      */
     public function __construct(

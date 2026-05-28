@@ -17,25 +17,7 @@ final class Thing
     }
 
     public ?AsVariantA $asVariantA {
-        get {
-            if (isset($this->asVariantA)) {
-                return $this->asVariantA;
-            }
-
-            if ($this->data['__typename'] !== 'VariantA') {
-                return $this->asVariantA = null;
-            }
-
-            if (! array_key_exists('id', $this->data)) {
-                return $this->asVariantA = null;
-            }
-
-            if (! array_key_exists('realFieldA', $this->data)) {
-                return $this->asVariantA = null;
-            }
-
-            return $this->asVariantA = new AsVariantA($this->data, $this->hooks);
-        }
+        get => $this->asVariantA ??= $this->data['__typename'] === 'VariantA' ? new AsVariantA($this->data, $this->hooks) : null;
     }
 
     /**
@@ -47,21 +29,7 @@ final class Thing
     }
 
     public ?AsVariantB $asVariantB {
-        get {
-            if (isset($this->asVariantB)) {
-                return $this->asVariantB;
-            }
-
-            if ($this->data['__typename'] !== 'VariantB') {
-                return $this->asVariantB = null;
-            }
-
-            if (! array_key_exists('realFieldB', $this->data)) {
-                return $this->asVariantB = null;
-            }
-
-            return $this->asVariantB = new AsVariantB($this->data);
-        }
+        get => $this->asVariantB ??= $this->data['__typename'] === 'VariantB' ? new AsVariantB($this->data) : null;
     }
 
     /**
@@ -78,11 +46,13 @@ final class Thing
 
     /**
      * @param array{
-     *     '__typename': string,
+     *     '__typename': 'VariantA',
      *     'id': string,
-     *     'realFieldA'?: string,
-     *     'realFieldB'?: string,
-     *     ...,
+     *     'realFieldA': string,
+     * }|array{
+     *     '__typename': 'VariantB',
+     *     'id': string,
+     *     'realFieldB': string,
      * } $data
      * @param array{
      *     'findUserById': FindUserByIdHook,

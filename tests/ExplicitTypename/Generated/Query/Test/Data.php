@@ -22,11 +22,13 @@ final class Data
     /**
      * @param array{
      *     'viewer': array{
-     *         '__typename': string,
-     *         'login'?: string,
+     *         '__typename': 'Application',
      *         'name': string,
-     *         'url'?: string,
-     *         ...,
+     *         'url': string,
+     *     }|array{
+     *         '__typename': 'User',
+     *         'login': string,
+     *         'name': string,
      *     },
      *     ...,
      * } $data

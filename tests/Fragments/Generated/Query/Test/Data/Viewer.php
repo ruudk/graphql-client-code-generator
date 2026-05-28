@@ -13,21 +13,7 @@ use Ruudk\GraphQLCodeGenerator\Fragments\Generated\Fragment\ViewerName;
 final class Viewer
 {
     public ?ApplicationDetails $applicationDetails {
-        get {
-            if (isset($this->applicationDetails)) {
-                return $this->applicationDetails;
-            }
-
-            if ($this->data['__typename'] !== 'Application') {
-                return $this->applicationDetails = null;
-            }
-
-            if (! array_key_exists('url', $this->data)) {
-                return $this->applicationDetails = null;
-            }
-
-            return $this->applicationDetails = new ApplicationDetails($this->data);
-        }
+        get => $this->applicationDetails ??= $this->data['__typename'] === 'Application' ? new ApplicationDetails($this->data) : null;
     }
 
     /**
@@ -39,21 +25,7 @@ final class Viewer
     }
 
     public ?UserDetails $userDetails {
-        get {
-            if (isset($this->userDetails)) {
-                return $this->userDetails;
-            }
-
-            if ($this->data['__typename'] !== 'User') {
-                return $this->userDetails = null;
-            }
-
-            if (! array_key_exists('login', $this->data)) {
-                return $this->userDetails = null;
-            }
-
-            return $this->userDetails = new UserDetails($this->data);
-        }
+        get => $this->userDetails ??= $this->data['__typename'] === 'User' ? new UserDetails($this->data) : null;
     }
 
     /**
@@ -78,11 +50,13 @@ final class Viewer
 
     /**
      * @param array{
-     *     '__typename': string,
-     *     'login'?: string,
+     *     '__typename': 'Application',
      *     'name': string,
-     *     'url'?: string,
-     *     ...,
+     *     'url': string,
+     * }|array{
+     *     '__typename': 'User',
+     *     'login': string,
+     *     'name': string,
      * } $data
      */
     public function __construct(

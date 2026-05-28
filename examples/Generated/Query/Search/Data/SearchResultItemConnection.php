@@ -32,11 +32,26 @@ final class SearchResultItemConnection
     /**
      * @param array{
      *     'nodes': null|list<null|array{
-     *         '__typename': string,
-     *         'merged'?: bool,
-     *         'number'?: int,
-     *         'title'?: string,
-     *         ...,
+     *         '__typename': 'App',
+     *     }|array{
+     *         '__typename': 'Discussion',
+     *     }|array{
+     *         '__typename': 'Issue',
+     *         'number': int,
+     *         'title': string,
+     *     }|array{
+     *         '__typename': 'MarketplaceListing',
+     *     }|array{
+     *         '__typename': 'Organization',
+     *     }|array{
+     *         '__typename': 'PullRequest',
+     *         'merged': bool,
+     *         'number': int,
+     *         'title': string,
+     *     }|array{
+     *         '__typename': 'Repository',
+     *     }|array{
+     *         '__typename': 'User',
      *     }>,
      *     ...,
      * } $data

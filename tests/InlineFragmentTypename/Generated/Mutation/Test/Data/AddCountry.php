@@ -13,25 +13,7 @@ use Ruudk\GraphQLCodeGenerator\InlineFragmentTypename\Generated\Mutation\Test\Da
 final class AddCountry
 {
     public ?AsCountry $asCountry {
-        get {
-            if (isset($this->asCountry)) {
-                return $this->asCountry;
-            }
-
-            if ($this->data['__typename'] !== 'Country') {
-                return $this->asCountry = null;
-            }
-
-            if (! array_key_exists('id', $this->data)) {
-                return $this->asCountry = null;
-            }
-
-            if (! array_key_exists('name', $this->data)) {
-                return $this->asCountry = null;
-            }
-
-            return $this->asCountry = new AsCountry($this->data);
-        }
+        get => $this->asCountry ??= $this->data['__typename'] === 'Country' ? new AsCountry($this->data) : null;
     }
 
     /**
@@ -55,21 +37,7 @@ final class AddCountry
     }
 
     public ?AsUnsupportedCountryError $asUnsupportedCountryError {
-        get {
-            if (isset($this->asUnsupportedCountryError)) {
-                return $this->asUnsupportedCountryError;
-            }
-
-            if ($this->data['__typename'] !== 'UnsupportedCountryError') {
-                return $this->asUnsupportedCountryError = null;
-            }
-
-            if (! array_key_exists('code', $this->data)) {
-                return $this->asUnsupportedCountryError = null;
-            }
-
-            return $this->asUnsupportedCountryError = new AsUnsupportedCountryError($this->data);
-        }
+        get => $this->asUnsupportedCountryError ??= $this->data['__typename'] === 'UnsupportedCountryError' ? new AsUnsupportedCountryError($this->data) : null;
     }
 
     /**
@@ -82,11 +50,14 @@ final class AddCountry
 
     /**
      * @param array{
-     *     '__typename': string,
-     *     'code'?: string,
-     *     'id'?: string,
-     *     'name'?: string,
-     *     ...,
+     *     '__typename': 'Country',
+     *     'id': string,
+     *     'name': string,
+     * }|array{
+     *     '__typename': 'SupportedCountryError',
+     * }|array{
+     *     '__typename': 'UnsupportedCountryError',
+     *     'code': string,
      * } $data
      */
     public function __construct(
