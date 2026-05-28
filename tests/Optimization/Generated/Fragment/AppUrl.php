@@ -20,6 +20,7 @@ final class AppUrl
      * @param array{
      *     'name': string,
      *     'url': string,
+     *     ...<int|string, mixed>,
      * } $data
      */
     public function __construct(

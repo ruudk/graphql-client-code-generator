@@ -32,6 +32,7 @@ final class Viewer
      *     'id': string,
      *     'name': string,
      *     'role': string,
+     *     ...<int|string, mixed>,
      * } $data
      */
     public function __construct(

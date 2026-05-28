@@ -15,6 +15,7 @@ final class ApplicationDetails
     /**
      * @param array{
      *     'url': string,
+     *     ...<int|string, mixed>,
      * } $data
      */
     public function __construct(

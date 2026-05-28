@@ -28,10 +28,13 @@ final class Viewer
      *     'projects': list<array{
      *         'contributorIds': list<string>,
      *         'name': string,
+     *         ...<int|string, mixed>,
      *     }>,
+     *     ...<int|string, mixed>,
      * } $data
      * @param array{
      *     'findUsersByIds': FindUsersByIdsHook,
+     *     ...<int|string, mixed>,
      * } $hooks
      */
     public function __construct(

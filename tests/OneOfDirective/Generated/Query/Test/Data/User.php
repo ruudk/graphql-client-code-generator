@@ -20,6 +20,7 @@ final class User
      * @param array{
      *     'email': string,
      *     'id': string,
+     *     ...<int|string, mixed>,
      * } $data
      */
     public function __construct(

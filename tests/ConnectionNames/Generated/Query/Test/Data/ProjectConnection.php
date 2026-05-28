@@ -30,14 +30,18 @@ final class ProjectConnection
      *             'id': string,
      *             'name': string,
      *             'status': string,
+     *             ...<int|string, mixed>,
      *         },
+     *         ...<int|string, mixed>,
      *     }>,
      *     'pageInfo': array{
      *         'endCursor': null|string,
      *         'hasNextPage': bool,
      *         'hasPreviousPage': bool,
      *         'startCursor': null|string,
+     *         ...<int|string, mixed>,
      *     },
+     *     ...<int|string, mixed>,
      * } $data
      */
     public function __construct(

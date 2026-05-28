@@ -20,6 +20,7 @@ final class WithExtraFields
      * @param array{
      *     '__typename': string,
      *     'name': string,
+     *     ...<int|string, mixed>,
      * } $data
      */
     public function __construct(

@@ -105,6 +105,6 @@ abstract class AbstractGenerator
             $shape[$name] = Type::object($this->config->hooks[$name]->class);
         }
 
-        return Type::arrayShape($shape);
+        return Type::arrayShape($shape, sealed: false);
     }
 }

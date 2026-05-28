@@ -39,6 +39,21 @@ final class TypeDumper
                 $items[] = sprintf('%s: %s', $itemKey, self::dump($itemType, $importer, $indentation + 1));
             }
 
+            if ( ! $type->isSealed()) {
+                $extraKey = $type->getExtraKeyType();
+                $extraValue = $type->getExtraValueType();
+
+                // Always emit `...<K, V>` rather than the bare `...` short form:
+                // PHPStan's `missingType.iterableValue` rule at level 6+ rejects
+                // the implicit `array-key, mixed` extras, treating them as a
+                // missing iterable value type.
+                $items[] = sprintf(
+                    '...<%s, %s>',
+                    self::dump($extraKey ?? Type::arrayKey(), $importer, $indentation + 1),
+                    self::dump($extraValue ?? Type::mixed(), $importer, $indentation + 1),
+                );
+            }
+
             if ($items === []) {
                 return 'array{}';
             }

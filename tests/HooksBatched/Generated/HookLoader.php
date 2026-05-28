@@ -18,8 +18,8 @@ use WeakMap;
  * instance.
  * 
  * @internal
- * @template TInput
- * @template TResult
+ * @template-covariant TInput
+ * @template-covariant TResult
  */
 final class HookLoader
 {

@@ -36,7 +36,9 @@ final class Viewer
      *     'project': null|array{
      *         'id': string,
      *         'name': string,
+     *         ...<int|string, mixed>,
      *     },
+     *     ...<int|string, mixed>,
      * } $data
      */
     public function __construct(

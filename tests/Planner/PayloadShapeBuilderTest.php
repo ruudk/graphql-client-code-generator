@@ -186,6 +186,7 @@ final class PayloadShapeBuilderTest extends TestCase
             <<<'PHPDOC'
                 array{
                     'id': string,
+                    ...<int|string, mixed>,
                 }
                 PHPDOC,
             TypeDumper::dump($shape->toArrayShape()),
@@ -217,7 +218,9 @@ final class PayloadShapeBuilderTest extends TestCase
                     'user': null|array{
                         'email': null|string,
                         'name': string,
+                        ...<int|string, mixed>,
                     },
+                    ...<int|string, mixed>,
                 }
                 PHPDOC,
             TypeDumper::dump($shape->toArrayShape()),
@@ -247,7 +250,9 @@ final class PayloadShapeBuilderTest extends TestCase
                     'users': list<array{
                         'id': string,
                         'name': string,
+                        ...<int|string, mixed>,
                     }>,
+                    ...<int|string, mixed>,
                 }
                 PHPDOC,
             TypeDumper::dump($shape->toArrayShape()),
@@ -318,12 +323,16 @@ final class PayloadShapeBuilderTest extends TestCase
                         'canBeCollected': bool,
                         'customer': null|array{
                             'id': string,
+                            ...<int|string, mixed>,
                         },
                         'id': string,
                         'transferReversals': list<array{
                             'id': string,
+                            ...<int|string, mixed>,
                         }>,
+                        ...<int|string, mixed>,
                     }>,
+                    ...<int|string, mixed>,
                 }
                 PHPDOC,
             TypeDumper::dump($shape->toArrayShape()),
@@ -363,6 +372,7 @@ final class PayloadShapeBuilderTest extends TestCase
                     'email'?: string,
                     'id': string,
                     'role'?: string,
+                    ...<int|string, mixed>,
                 }
                 PHPDOC,
             TypeDumper::dump($shape->toArrayShape()),
@@ -424,7 +434,9 @@ final class PayloadShapeBuilderTest extends TestCase
                         'age': null|int,
                         'email': null|string,
                         'name': string,
+                        ...<int|string, mixed>,
                     },
+                    ...<int|string, mixed>,
                 }
                 PHPDOC,
             TypeDumper::dump($shape->toArrayShape()),
@@ -451,6 +463,7 @@ final class PayloadShapeBuilderTest extends TestCase
                 array{
                     '__typename': string,
                     'id': string,
+                    ...<int|string, mixed>,
                 }
                 PHPDOC,
             TypeDumper::dump($shape->toArrayShape()),
@@ -486,7 +499,9 @@ final class PayloadShapeBuilderTest extends TestCase
                         'lastSeen': null|scalar,
                         'metadata': null|scalar,
                         'name': string,
+                        ...<int|string, mixed>,
                     },
+                    ...<int|string, mixed>,
                 }
                 PHPDOC,
             TypeDumper::dump($shape->toArrayShape()),
@@ -555,10 +570,13 @@ final class PayloadShapeBuilderTest extends TestCase
                         'createdAt': string,
                         'customer': null|array{
                             'name': string,
+                            ...<int|string, mixed>,
                         },
                         'id': string,
                         'state': string,
+                        ...<int|string, mixed>,
                     }>,
+                    ...<int|string, mixed>,
                 }
                 PHPDOC,
             TypeDumper::dump($shape->toArrayShape()),
@@ -626,8 +644,11 @@ final class PayloadShapeBuilderTest extends TestCase
                             'canBeCollected': bool,
                             'id': string,
                             'state': string,
+                            ...<int|string, mixed>,
                         }>,
+                        ...<int|string, mixed>,
                     }>,
+                    ...<int|string, mixed>,
                 }
                 PHPDOC,
             TypeDumper::dump($shape->toArrayShape()),
@@ -770,13 +791,17 @@ final class PayloadShapeBuilderTest extends TestCase
                             'customer': null|array{
                                 'id': string,
                                 'name': string,
+                                ...<int|string, mixed>,
                             },
                             'id': string,
                             'state': string,
                             'transferReversals': list<array{
                                 'id': string,
+                                ...<int|string, mixed>,
                             }>,
+                            ...<int|string, mixed>,
                         }>,
+                        ...<int|string, mixed>,
                     }>,
                     'transaction': null|array{
                         'id': string,
@@ -786,24 +811,31 @@ final class PayloadShapeBuilderTest extends TestCase
                             'customer': null|array{
                                 'id': string,
                                 'name': string,
+                                ...<int|string, mixed>,
                             },
                             'id': string,
                             'state': string,
                             'transferReversals': list<array{
                                 'id': string,
+                                ...<int|string, mixed>,
                             }>,
+                            ...<int|string, mixed>,
                         }>,
+                        ...<int|string, mixed>,
                     },
                     'user': null|array{
                         'email': null|string,
                         'id': string,
                         'name': string,
+                        ...<int|string, mixed>,
                     },
                     'users': list<array{
                         'email': null|string,
                         'id': string,
                         'name': string,
+                        ...<int|string, mixed>,
                     }>,
+                    ...<int|string, mixed>,
                 }
                 PHPDOC,
             TypeDumper::dump($shape->toArrayShape()),
@@ -865,13 +897,17 @@ final class PayloadShapeBuilderTest extends TestCase
                         'transfers'?: list<array{
                             'id': string,
                             'state': string,
+                            ...<int|string, mixed>,
                         }>,
+                        ...<int|string, mixed>,
                     },
                     'user'?: null|array{
                         'email': null|string,
                         'id': string,
                         'name': string,
+                        ...<int|string, mixed>,
                     },
+                    ...<int|string, mixed>,
                 }
                 PHPDOC,
             TypeDumper::dump($shape->toArrayShape()),
@@ -928,11 +964,14 @@ final class PayloadShapeBuilderTest extends TestCase
                         'email'?: null|string,
                         'id': string,
                         'name': string,
+                        ...<int|string, mixed>,
                     },
                     'users'?: list<array{
                         'id': string,
                         'name': string,
+                        ...<int|string, mixed>,
                     }>,
+                    ...<int|string, mixed>,
                 }
                 PHPDOC,
             TypeDumper::dump($shape->toArrayShape()),
@@ -1003,13 +1042,17 @@ final class PayloadShapeBuilderTest extends TestCase
                         'transfers': list<array{
                             'id': string,
                             'state'?: string,
+                            ...<int|string, mixed>,
                         }>,
+                        ...<int|string, mixed>,
                     },
                     'user': null|array{
                         'email'?: null|string,
                         'id': string,
                         'name'?: string,
+                        ...<int|string, mixed>,
                     },
+                    ...<int|string, mixed>,
                 }
                 PHPDOC,
             TypeDumper::dump($shape->toArrayShape()),
@@ -1161,10 +1204,13 @@ final class PayloadShapeBuilderTest extends TestCase
                             'canBeCollected': bool,
                             'customer': null|array{
                                 'id': string,
+                                ...<int|string, mixed>,
                             },
                             'id': string,
                             'state': string,
+                            ...<int|string, mixed>,
                         }>,
+                        ...<int|string, mixed>,
                     }>,
                     'user': null|array{
                         'email': null|string,
@@ -1176,14 +1222,18 @@ final class PayloadShapeBuilderTest extends TestCase
                             'age': null|int,
                             'email': null|string,
                             'name': string,
+                            ...<int|string, mixed>,
                         },
+                        ...<int|string, mixed>,
                     },
                     'viewer': null|array{
                         'address'?: null|string,
                         'email'?: string,
                         'id': string,
                         'role'?: string,
+                        ...<int|string, mixed>,
                     },
+                    ...<int|string, mixed>,
                 }
                 PHPDOC,
             TypeDumper::dump($shape->toArrayShape()),
@@ -1240,7 +1290,9 @@ final class PayloadShapeBuilderTest extends TestCase
                         'lastName'?: string,
                         'role'?: string,
                         'teamSize'?: int,
+                        ...<int|string, mixed>,
                     }>,
+                    ...<int|string, mixed>,
                 }
                 PHPDOC,
             TypeDumper::dump($shape->toArrayShape()),
@@ -1331,7 +1383,9 @@ final class PayloadShapeBuilderTest extends TestCase
                         'lastName'?: string,
                         'role'?: string,
                         'teamSize'?: int,
+                        ...<int|string, mixed>,
                     }>,
+                    ...<int|string, mixed>,
                 }
                 PHPDOC,
             TypeDumper::dump($shape->toArrayShape()),
@@ -1376,7 +1430,9 @@ final class PayloadShapeBuilderTest extends TestCase
                         'lastName'?: string,
                         'role'?: string,
                         'teamSize'?: int,
+                        ...<int|string, mixed>,
                     }>,
+                    ...<int|string, mixed>,
                 }
                 PHPDOC,
             TypeDumper::dump($shape->toArrayShape()),
@@ -1468,7 +1524,9 @@ final class PayloadShapeBuilderTest extends TestCase
                         'lastName'?: string,
                         'role'?: string,
                         'teamSize'?: int,
+                        ...<int|string, mixed>,
                     }>,
+                    ...<int|string, mixed>,
                 }
                 PHPDOC,
             TypeDumper::dump($shape->toArrayShape()),
@@ -1529,7 +1587,9 @@ final class PayloadShapeBuilderTest extends TestCase
                     'canBeCollected': bool,
                     'transferReversals': list<array{
                         'id': string,
+                        ...<int|string, mixed>,
                     }>,
+                    ...<int|string, mixed>,
                 }
                 PHPDOC,
             TypeDumper::dump($shape->toArrayShape()),
@@ -1588,9 +1648,12 @@ final class PayloadShapeBuilderTest extends TestCase
                     'transfers': list<array{
                         'customer': null|array{
                             'id': string,
+                            ...<int|string, mixed>,
                         },
                         'id': string,
+                        ...<int|string, mixed>,
                     }>,
+                    ...<int|string, mixed>,
                 }
                 PHPDOC,
             TypeDumper::dump($shape->toArrayShape()),
@@ -1619,9 +1682,12 @@ final class PayloadShapeBuilderTest extends TestCase
                         'canBeCollected': bool,
                         'customer': null|array{
                             'id': string,
+                            ...<int|string, mixed>,
                         },
                         'id': string,
+                        ...<int|string, mixed>,
                     }>,
+                    ...<int|string, mixed>,
                 }
                 PHPDOC,
             TypeDumper::dump($shape2->toArrayShape()),

@@ -28,22 +28,30 @@ final class Data
      *                 'canBeCollected': bool,
      *                 'customer': array{
      *                     'id': scalar,
+     *                     ...<int|string, mixed>,
      *                 },
      *                 'id': scalar,
      *                 'transferReversals': list<array{
      *                     'id': scalar,
      *                     'transfer': array{
      *                         'metadata': scalar,
+     *                         ...<int|string, mixed>,
      *                     },
+     *                     ...<int|string, mixed>,
      *                 }>,
+     *                 ...<int|string, mixed>,
      *             }>,
+     *             ...<int|string, mixed>,
      *         },
+     *         ...<int|string, mixed>,
      *     },
+     *     ...<int|string, mixed>,
      * } $data
      * @param list<array{
      *     'code': string,
      *     'debugMessage'?: string,
      *     'message': string,
+     *     ...<int|string, mixed>,
      * }> $errors
      */
     public function __construct(

@@ -16,6 +16,7 @@ final class AsApplication
      * @param array{
      *     '__typename': 'Application',
      *     'url': string,
+     *     ...<int|string, mixed>,
      * } $data
      */
     public function __construct(

@@ -34,6 +34,7 @@ final class Data
      *     findOrgPlan: HookLoader<array{string}, OrgPlan>,
      *     computeAccess: HookLoader<array{string, string}, Access>,
      *     findUserById: HookLoader<array{string}, null|User>,
+     *     ...<string, HookLoader<array<int, mixed>, mixed>>,
      * }
      */
     private readonly array $loaders;
@@ -48,18 +49,23 @@ final class Data
      *             'name': string,
      *             'ownerId': string,
      *             'reviewerId': string,
+     *             ...<int|string, mixed>,
      *         }>,
+     *         ...<int|string, mixed>,
      *     }>,
+     *     ...<int|string, mixed>,
      * } $data
      * @param list<array{
      *     'code': string,
      *     'debugMessage'?: string,
      *     'message': string,
+     *     ...<int|string, mixed>,
      * }> $errors
      * @param array{
      *     'computeAccess': ComputeAccessHook,
      *     'findOrgPlan': FindOrgPlanHook,
      *     'findUserById': FindUserByIdHook,
+     *     ...<int|string, mixed>,
      * } $hooks
      */
     public function __construct(

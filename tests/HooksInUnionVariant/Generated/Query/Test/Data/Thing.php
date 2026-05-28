@@ -82,9 +82,11 @@ final class Thing
      *     'id': string,
      *     'realFieldA'?: string,
      *     'realFieldB'?: string,
+     *     ...<int|string, mixed>,
      * } $data
      * @param array{
      *     'findUserById': FindUserByIdHook,
+     *     ...<int|string, mixed>,
      * } $hooks
      */
     public function __construct(

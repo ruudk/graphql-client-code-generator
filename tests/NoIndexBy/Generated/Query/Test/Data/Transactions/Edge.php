@@ -26,10 +26,15 @@ final class Edge
      *                 'items': list<array{
      *                     '__typename': string,
      *                     'id': string,
+     *                     ...<int|string, mixed>,
      *                 }>,
+     *                 ...<int|string, mixed>,
      *             },
+     *             ...<int|string, mixed>,
      *         },
+     *         ...<int|string, mixed>,
      *     },
+     *     ...<int|string, mixed>,
      * } $data
      */
     public function __construct(

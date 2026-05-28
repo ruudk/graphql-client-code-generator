@@ -23,6 +23,7 @@ final class Item
      * @param array{
      *     '__typename': string,
      *     'id': string,
+     *     ...<int|string, mixed>,
      * } $data
      */
     public function __construct(

@@ -32,8 +32,8 @@ final class HookLoaderGenerator extends AbstractGenerator
                 yield 'instance.';
                 yield '';
                 yield '@internal';
-                yield '@template TInput';
-                yield '@template TResult';
+                yield '@template-covariant TInput';
+                yield '@template-covariant TResult';
             });
             yield 'final class HookLoader';
             yield '{';

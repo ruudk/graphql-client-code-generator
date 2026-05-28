@@ -35,13 +35,17 @@ final class Field
      *     'multiList': list<array{
      *         '__typename': string,
      *         'id': string,
+     *         ...<int|string, mixed>,
      *     }>,
      *     'single': array{
      *         '__typename': string,
+     *         ...<int|string, mixed>,
      *     },
      *     'soleList': list<array{
      *         '__typename': string,
+     *         ...<int|string, mixed>,
      *     }>,
+     *     ...<int|string, mixed>,
      * } $data
      */
     public function __construct(

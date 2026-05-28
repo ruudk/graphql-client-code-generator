@@ -20,6 +20,7 @@ final class Project
      * @param array{
      *     'description': null|string,
      *     'name': string,
+     *     ...<int|string, mixed>,
      * } $data
      */
     public function __construct(
