@@ -25,19 +25,25 @@ final class Data
      *         'multiList': list<array{
      *             '__typename': string,
      *             'id': string,
+     *             ...<int|string, mixed>,
      *         }>,
      *         'single': array{
      *             '__typename': string,
+     *             ...<int|string, mixed>,
      *         },
      *         'soleList': list<array{
      *             '__typename': string,
+     *             ...<int|string, mixed>,
      *         }>,
+     *         ...<int|string, mixed>,
      *     },
+     *     ...<int|string, mixed>,
      * } $data
      * @param list<array{
      *     'code': string,
      *     'debugMessage'?: string,
      *     'message': string,
+     *     ...<int|string, mixed>,
      * }> $errors
      */
     public function __construct(

@@ -95,6 +95,7 @@ final class Node
      *     'merged'?: bool,
      *     'number'?: int,
      *     'title'?: string,
+     *     ...<int|string, mixed>,
      * } $data
      */
     public function __construct(

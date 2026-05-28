@@ -81,6 +81,7 @@ final class Viewer
      *     'login'?: string,
      *     'name': string,
      *     'url'?: string,
+     *     ...<int|string, mixed>,
      * } $data
      */
     public function __construct(

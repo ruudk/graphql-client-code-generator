@@ -41,7 +41,7 @@ final readonly class TestClient
         );
         $response = $this->client->sendRequest($request);
         Assert::same(200, $response->getStatusCode(), 'GraphQL server responded with a %2$s status code.');
-        $data = json_decode((string) $response->getBody(), true, JSON_THROW_ON_ERROR);
+        $data = json_decode((string) $response->getBody(), true, 512, JSON_THROW_ON_ERROR);
         Assert::isArray($data, 'GraphQL server did not return an array.');
 
         return $data;

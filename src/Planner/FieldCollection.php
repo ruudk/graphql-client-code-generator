@@ -30,6 +30,6 @@ final class FieldCollection
 
     public function toArrayShape() : SymfonyType
     {
-        return SymfonyType::arrayShape($this->fields);
+        return SymfonyType::arrayShape($this->fields, sealed: false);
     }
 }

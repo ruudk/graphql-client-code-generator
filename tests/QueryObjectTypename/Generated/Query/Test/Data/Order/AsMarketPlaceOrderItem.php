@@ -23,8 +23,10 @@ final class AsMarketPlaceOrderItem
      *     '__typename': 'MarketPlaceOrderItem',
      *     'fxFee': null|array{
      *         '__typename': string,
+     *         ...<int|string, mixed>,
      *     },
      *     'id': string,
+     *     ...<int|string, mixed>,
      * } $data
      */
     public function __construct(

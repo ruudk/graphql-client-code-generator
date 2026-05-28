@@ -28,11 +28,14 @@ final class ProjectSummary
      * @param array{
      *     'creator': array{
      *         'id': string,
+     *         ...<int|string, mixed>,
      *     },
      *     'name': string,
+     *     ...<int|string, mixed>,
      * } $data
      * @param array{
      *     'findUserById': FindUserByIdHook,
+     *     ...<int|string, mixed>,
      * } $hooks
      */
     public function __construct(

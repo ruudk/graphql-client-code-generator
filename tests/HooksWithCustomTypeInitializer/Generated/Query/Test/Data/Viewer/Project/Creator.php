@@ -15,6 +15,7 @@ final class Creator
     /**
      * @param array{
      *     'id': string,
+     *     ...<int|string, mixed>,
      * } $data
      */
     public function __construct(

@@ -15,6 +15,7 @@ final class Transfer
     /**
      * @param array{
      *     'metadata': scalar,
+     *     ...<int|string, mixed>,
      * } $data
      */
     public function __construct(

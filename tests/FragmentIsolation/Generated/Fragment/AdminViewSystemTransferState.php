@@ -21,7 +21,9 @@ final class AdminViewSystemTransferState
      * @param array{
      *     'transferReversals': list<array{
      *         'id': scalar,
+     *         ...<int|string, mixed>,
      *     }>,
+     *     ...<int|string, mixed>,
      * } $data
      */
     public function __construct(

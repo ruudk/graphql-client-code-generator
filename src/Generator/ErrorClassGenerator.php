@@ -36,7 +36,7 @@ final class ErrorClassGenerator extends AbstractGenerator
                         'type' => Type::string(),
                         'optional' => true,
                     ],
-                ]), $generator->import(...))));
+                ], sealed: false), $generator->import(...))));
                 yield 'public function __construct(array $error)';
                 yield '{';
                 yield $generator->indent(function () {

@@ -15,6 +15,7 @@ final class Admin
     /**
      * @param array{
      *     'name': string,
+     *     ...<int|string, mixed>,
      * } $data
      */
     public function __construct(

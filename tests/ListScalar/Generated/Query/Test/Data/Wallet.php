@@ -25,6 +25,7 @@ final class Wallet
      * @param array{
      *     'currencies': list<string>,
      *     'name': string,
+     *     ...<int|string, mixed>,
      * } $data
      */
     public function __construct(

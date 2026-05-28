@@ -42,10 +42,12 @@ final class Repository
      *     'name': string,
      *     'ownerId': string,
      *     'reviewerId': string,
+     *     ...<int|string, mixed>,
      * } $data
      * @param array{
      *     computeAccess: HookLoader<array{string, string}, Access>,
      *     findUserById: HookLoader<array{string}, null|User>,
+     *     ...<string, HookLoader<array<int, mixed>, mixed>>,
      * } $loaders
      */
     public function __construct(

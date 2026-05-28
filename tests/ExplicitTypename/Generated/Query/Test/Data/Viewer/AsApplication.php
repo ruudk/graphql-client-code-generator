@@ -25,6 +25,7 @@ final class AsApplication
      *     '__typename': 'Application',
      *     'name': string,
      *     'url': string,
+     *     ...<int|string, mixed>,
      * } $data
      */
     public function __construct(

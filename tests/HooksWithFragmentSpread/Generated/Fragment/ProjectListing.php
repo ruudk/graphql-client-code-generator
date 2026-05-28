@@ -22,12 +22,15 @@ final class ProjectListing
      * @param array{
      *     'creator': array{
      *         'id': string,
+     *         ...<int|string, mixed>,
      *     },
      *     'description': null|string,
      *     'name': string,
+     *     ...<int|string, mixed>,
      * } $data
      * @param array{
      *     'findUserById': FindUserByIdHook,
+     *     ...<int|string, mixed>,
      * } $hooks
      */
     public function __construct(

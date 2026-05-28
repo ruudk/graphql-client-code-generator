@@ -27,6 +27,7 @@ final class AsIssue
      *     '__typename': 'Issue',
      *     'number': int,
      *     'title': string,
+     *     ...<int|string, mixed>,
      * } $data
      */
     public function __construct(

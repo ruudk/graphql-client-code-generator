@@ -31,6 +31,7 @@ final class Data
      *             'total': array{
      *                 'amount': string,
      *                 'currency': string,
+     *                 ...<int|string, mixed>,
      *             },
      *             'transferReversals': list<array{
      *                 'createdAt': string,
@@ -41,7 +42,9 @@ final class Data
      *                     'total': array{
      *                         'amount': string,
      *                         'currency': string,
+     *                         ...<int|string, mixed>,
      *                     },
+     *                     ...<int|string, mixed>,
      *                 }>,
      *                 'returnMethod': null|string,
      *                 'returnedAt': null|string,
@@ -49,15 +52,21 @@ final class Data
      *                 'total': array{
      *                     'amount': string,
      *                     'currency': string,
+     *                     ...<int|string, mixed>,
      *                 },
+     *                 ...<int|string, mixed>,
      *             }>,
+     *             ...<int|string, mixed>,
      *         }>,
+     *         ...<int|string, mixed>,
      *     },
+     *     ...<int|string, mixed>,
      * } $data
      * @param list<array{
      *     'code': string,
      *     'debugMessage'?: string,
      *     'message': string,
+     *     ...<int|string, mixed>,
      * }> $errors
      */
     public function __construct(

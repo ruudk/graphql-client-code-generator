@@ -93,7 +93,7 @@ final class PayloadShape
                         $existingType->getShape(),
                         $type->getShape(),
                     );
-                    $this->replaceType($key, SymfonyType::arrayShape($mergedElements));
+                    $this->replaceType($key, SymfonyType::arrayShape($mergedElements, sealed: false));
 
                     continue;
                 }
@@ -108,7 +108,7 @@ final class PayloadShape
                             $existingInner->getShape(),
                             $newInner->getShape(),
                         );
-                        $this->replaceType($key, SymfonyType::list(SymfonyType::arrayShape($mergedElements)));
+                        $this->replaceType($key, SymfonyType::list(SymfonyType::arrayShape($mergedElements, sealed: false)));
                     }
                 }
 
@@ -128,6 +128,6 @@ final class PayloadShape
 
     public function toArrayShape() : SymfonyType
     {
-        return SymfonyType::arrayShape($this->shape);
+        return SymfonyType::arrayShape($this->shape, sealed: false);
     }
 }

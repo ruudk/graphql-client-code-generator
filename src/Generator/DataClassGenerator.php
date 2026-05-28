@@ -179,9 +179,11 @@ final class DataClassGenerator extends AbstractGenerator
             );
         }
 
-        if ($entries === []) {
-            return 'array{}';
-        }
+        // Unsealed: nested classes receive `$this->loaders` from the Data class,
+        // which holds every batched hook in the operation, not just the subset a
+        // single nested class consumes. Extras are typed wide; HookLoader's
+        // covariant template params let any specific instantiation fit here.
+        $entries[] = sprintf('...<string, %s<array<int, mixed>, mixed>>', $hookLoader);
 
         return sprintf("array{\n    %s,\n}", implode(",\n    ", $entries));
     }
@@ -552,7 +554,7 @@ final class DataClassGenerator extends AbstractGenerator
             if (isset($shape['__typename'])) {
                 // Use a StringLiteralType for the __typename
                 $shape['__typename'] = new StringLiteralType($possibleTypes[0]);
-                $payloadShape = SymfonyType::arrayShape($shape);
+                $payloadShape = SymfonyType::arrayShape($shape, sealed: false);
             }
         }
 
@@ -1119,7 +1121,7 @@ final class DataClassGenerator extends AbstractGenerator
                                         'type' => SymfonyType::string(),
                                         'optional' => true,
                                     ],
-                                ])), $generator->import(...)),
+                                ], sealed: false)), $generator->import(...)),
                             );
                         }
 

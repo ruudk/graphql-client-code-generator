@@ -34,8 +34,11 @@ final class CustomerConnection
      *         'node': array{
      *             'id': int,
      *             'name': string,
+     *             ...<int|string, mixed>,
      *         },
+     *         ...<int|string, mixed>,
      *     }>,
+     *     ...<int|string, mixed>,
      * } $data
      */
     public function __construct(

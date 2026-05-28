@@ -32,6 +32,7 @@ final readonly class TestQuery {
     /**
      * @param array{
      *     'findDiscountCodeById': FindDiscountCodeByIdHook,
+     *     ...<int|string, mixed>,
      * } $hooks
      */
     public function __construct(

@@ -23,10 +23,13 @@ final class SupportedCountry
      * @param array{
      *     'error': null|array{
      *         '__typename': string,
+     *         ...<int|string, mixed>,
      *     },
      *     'info': null|array{
      *         'name': string,
+     *         ...<int|string, mixed>,
      *     },
+     *     ...<int|string, mixed>,
      * } $data
      */
     public function __construct(

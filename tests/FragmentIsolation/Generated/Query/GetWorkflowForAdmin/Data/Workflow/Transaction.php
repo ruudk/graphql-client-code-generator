@@ -22,9 +22,12 @@ final class Transaction
      *     'transfers': list<array{
      *         'customer': array{
      *             'id': scalar,
+     *             ...<int|string, mixed>,
      *         },
      *         'id': scalar,
+     *         ...<int|string, mixed>,
      *     }>,
+     *     ...<int|string, mixed>,
      * } $data
      */
     public function __construct(

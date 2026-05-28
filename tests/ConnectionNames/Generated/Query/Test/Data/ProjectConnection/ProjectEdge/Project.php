@@ -27,6 +27,7 @@ final class Project
      *     'id': string,
      *     'name': string,
      *     'status': string,
+     *     ...<int|string, mixed>,
      * } $data
      */
     public function __construct(

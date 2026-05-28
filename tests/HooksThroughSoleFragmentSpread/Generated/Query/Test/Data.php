@@ -31,16 +31,21 @@ final class Data
      *         'order': array{
      *             'discountId': string,
      *             'id': string,
+     *             ...<int|string, mixed>,
      *         },
+     *         ...<int|string, mixed>,
      *     },
+     *     ...<int|string, mixed>,
      * } $data
      * @param list<array{
      *     'code': string,
      *     'debugMessage'?: string,
      *     'message': string,
+     *     ...<int|string, mixed>,
      * }> $errors
      * @param array{
      *     'findDiscountCodeById': FindDiscountCodeByIdHook,
+     *     ...<int|string, mixed>,
      * } $hooks
      */
     public function __construct(

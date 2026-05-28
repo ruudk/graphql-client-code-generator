@@ -73,21 +73,27 @@ final class Data
      * @param array{
      *     'admin'?: array{
      *         'name': string,
+     *         ...<int|string, mixed>,
      *     },
      *     'admin2'?: array{
      *         'name': string,
+     *         ...<int|string, mixed>,
      *     },
      *     'user2': array{
      *         'name': string,
+     *         ...<int|string, mixed>,
      *     },
      *     'viewer': array{
      *         'name': string,
+     *         ...<int|string, mixed>,
      *     },
+     *     ...<int|string, mixed>,
      * } $data
      * @param list<array{
      *     'code': string,
      *     'debugMessage'?: string,
      *     'message': string,
+     *     ...<int|string, mixed>,
      * }> $errors
      */
     public function __construct(
