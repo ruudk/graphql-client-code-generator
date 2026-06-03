@@ -1,0 +1,22 @@
+type Query {
+    container: Container!
+}
+
+type Container {
+    id: ID!
+    item: Item!
+}
+
+interface Item {
+    id: ID!
+}
+
+type VariantA implements Item {
+    id: ID!
+    valueA: String!
+}
+
+type VariantB implements Item {
+    id: ID!
+    valueB: String!
+}

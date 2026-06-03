@@ -666,41 +666,186 @@ final class SelectionSetPlanner
     }
 
     /**
-     * Collect and merge field selections from direct selections only
-     * Fragment spread fields must remain isolated and are NOT collected here
+     * Collect and merge field selections from direct selections, enriching the
+     * sub-selection sets of POLYMORPHIC fields that are ALSO selected by same-
+     * type fragment spreads at this level. Only directly-selected field names
+     * surface as keys — spread-only fields stay isolated to the fragment
+     * accessor — and the enrichment is restricted to interface/union-typed
+     * fields, where the recursive class's sealed-arm shape otherwise rejects
+     * the spread-contributed extras (PHPStan: "Sealed array shape does not
+     * accept array with extra key ..."). Concrete-typed fields keep their
+     * isolation because their open shapes accept extras without complaint.
+     *
+     * @throws InvariantViolation
      * @return array<string, FieldNode>
      */
     private function collectMergedFieldSelections(SelectionSetNode $selectionSet, NamedType & Type $type) : array
     {
         $fieldsByName = [];
 
-        // Collect direct field selections ONLY
-        // Fragment spread fields should NOT be collected here - they must remain isolated
-        // and only accessible through fragment accessors
         foreach ($selectionSet->selections as $selection) {
             if ($selection instanceof FieldNode) {
                 $fieldName = $selection->alias->value ?? $selection->name->value;
-
-                if ( ! isset($fieldsByName[$fieldName])) {
-                    $fieldsByName[$fieldName] = [];
-                }
-
+                $fieldsByName[$fieldName] ??= [];
                 $fieldsByName[$fieldName][] = $selection;
             }
         }
 
-        // Merge selections for fields that appear multiple times
+        if ($type instanceof HasFieldsType) {
+            $spreadContributions = null;
+
+            foreach ($fieldsByName as $fieldName => &$selections) {
+                if ($fieldName === '__typename') {
+                    continue;
+                }
+
+                if ( ! $this->fieldTypeIsPolymorphic($type, $fieldName)) {
+                    continue;
+                }
+
+                $spreadContributions ??= $this->collectSpreadContributedFieldSelections($selectionSet, $type, []);
+
+                if (isset($spreadContributions[$fieldName])) {
+                    $selections = [...$selections, ...$spreadContributions[$fieldName]];
+                }
+            }
+
+            unset($selections);
+        }
+
         $mergedFields = [];
         foreach ($fieldsByName as $fieldName => $selections) {
             if (count($selections) === 1) {
                 $mergedFields[$fieldName] = $selections[0];
             } else {
-                // Merge the selection sets of fields that appear multiple times
                 $mergedFields[$fieldName] = $this->mergeFieldNodes($selections);
             }
         }
 
         return $mergedFields;
+    }
+
+    private function fieldTypeIsPolymorphic(HasFieldsType $parent, string $fieldName) : bool
+    {
+        if ($fieldName === '__typename' || ! $parent->hasField($fieldName)) {
+            return false;
+        }
+
+        $fieldType = $parent->getField($fieldName)->getType();
+
+        while ($fieldType instanceof WrappingType) {
+            $fieldType = $fieldType->getWrappedType();
+        }
+
+        return $fieldType instanceof InterfaceType || $fieldType instanceof UnionType;
+    }
+
+    /**
+     * Walk unconditional same-type (or implementor) fragment spreads at this
+     * level and collect their direct field selections by name. Used only to
+     * enrich `collectMergedFieldSelections`' sub-selection merges — never to
+     * surface new public properties.
+     *
+     * @param array<string, true> $visitedFragments
+     * @throws InvariantViolation
+     * @return array<string, list<FieldNode>>
+     */
+    private function collectSpreadContributedFieldSelections(
+        SelectionSetNode $selectionSet,
+        NamedType & Type $parent,
+        array $visitedFragments,
+    ) : array {
+        $fieldsByName = [];
+
+        foreach ($selectionSet->selections as $selection) {
+            if ( ! $selection instanceof FragmentSpreadNode) {
+                continue;
+            }
+
+            $fragmentName = $selection->name->value;
+
+            if (isset($visitedFragments[$fragmentName])) {
+                continue;
+            }
+
+            if ( ! isset($this->fragmentDefinitions[$fragmentName])) {
+                continue;
+            }
+
+            if ($this->spreadHasConditionalDirective($selection)) {
+                continue;
+            }
+
+            $fragmentType = $this->fragmentTypes[$fragmentName];
+            $isSameType = $fragmentType->name() === $parent->name();
+            $satisfies = ! $isSameType
+                && $parent instanceof ObjectType
+                && $this->parentSatisfiesAbstract($parent, $fragmentType);
+
+            if ( ! $isSameType && ! $satisfies) {
+                continue;
+            }
+
+            $fragmentDef = $this->fragmentDefinitions[$fragmentName][0];
+            $newVisited = [
+                ...$visitedFragments,
+                $fragmentName => true,
+            ];
+
+            foreach ($fragmentDef->selectionSet->selections as $sub) {
+                if ($sub instanceof FieldNode) {
+                    $name = $sub->alias->value ?? $sub->name->value;
+                    $fieldsByName[$name] ??= [];
+                    $fieldsByName[$name][] = $sub;
+                }
+            }
+
+            $nested = $this->collectSpreadContributedFieldSelections(
+                $fragmentDef->selectionSet,
+                $parent,
+                $newVisited,
+            );
+
+            foreach ($nested as $name => $selections) {
+                $fieldsByName[$name] ??= [];
+                $fieldsByName[$name] = [...$fieldsByName[$name], ...$selections];
+            }
+        }
+
+        return $fieldsByName;
+    }
+
+    private function spreadHasConditionalDirective(FragmentSpreadNode $spread) : bool
+    {
+        foreach ($spread->directives as $directive) {
+            $name = $directive->name->value;
+
+            if ($name === 'include' || $name === 'skip') {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * @throws InvariantViolation
+     */
+    private function parentSatisfiesAbstract(ObjectType $parent, NamedType $fragmentType) : bool
+    {
+        if ($fragmentType instanceof InterfaceType) {
+            return $parent->implementsInterface($fragmentType);
+        }
+
+        if ($fragmentType instanceof UnionType) {
+            foreach ($fragmentType->getTypes() as $member) {
+                if ($member->name === $parent->name()) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
 
     /**
