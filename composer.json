@@ -10,7 +10,7 @@
         "phpstan/phpdoc-parser": "^2.3",
         "phpstan/phpstan": "^2.2.1",
         "ruudk/code-generator": "^0.4.7",
-        "sebastian/diff": "^7 || ^8",
+        "sebastian/diff": "^7 || ^8 || ^9",
         "symfony/console": "^8.0",
         "symfony/filesystem": "^8.0",
         "symfony/finder": "^8.0",
