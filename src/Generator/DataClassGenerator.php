@@ -800,51 +800,15 @@ final class DataClassGenerator extends AbstractGenerator
                                             return;
                                         }
 
-                                        // For fragments on concrete types when parent is interface/union
-                                        // We need to check both typename and required fields
-                                        if ($requiredFields === []) {
-                                            // No required fields to check, only typename
-                                            yield sprintf(
-                                                'get => $this->%s ??= $this->data[\'__typename\'] === %s ? %s : null;',
-                                                $fieldName,
-                                                var_export($nakedFieldType->fragmentType->name(), true),
-                                                $construct,
-                                            );
-                                        } else {
-                                            // Generate verbose getter with field checks for PHPStan type safety
-                                            yield 'get {';
-                                            yield $generator->indent(function () use ($fieldName, $nakedFieldType, $requiredFields, $construct) {
-                                                yield sprintf('if (isset($this->%s)) {', $fieldName);
-                                                yield '    return $this->' . $fieldName . ';';
-                                                yield '}';
-                                                yield '';
-                                                yield sprintf(
-                                                    'if ($this->data[\'__typename\'] !== %s) {',
-                                                    var_export($nakedFieldType->fragmentType->name(), true),
-                                                );
-                                                yield '    return $this->' . $fieldName . ' = null;';
-                                                yield '}';
-
-                                                // Check all required fields exist
-                                                foreach ($requiredFields as $requiredField) {
-                                                    yield '';
-                                                    yield sprintf(
-                                                        'if (! array_key_exists(%s, $this->data)) {',
-                                                        var_export($requiredField, true),
-                                                    );
-                                                    yield '    return $this->' . $fieldName . ' = null;';
-                                                    yield '}';
-                                                }
-
-                                                yield '';
-                                                yield sprintf(
-                                                    'return $this->%s = %s;',
-                                                    $fieldName,
-                                                    $construct,
-                                                );
-                                            });
-                                            yield '}';
-                                        }
+                                        // For fragments on concrete types when parent is interface/union,
+                                        // the union-of-sealed-arms payload shape lets PHPStan narrow
+                                        // by `__typename` alone — no `array_key_exists` guards needed.
+                                        yield sprintf(
+                                            'get => $this->%s ??= $this->data[\'__typename\'] === %s ? %s : null;',
+                                            $fieldName,
+                                            var_export($nakedFieldType->fragmentType->name(), true),
+                                            $construct,
+                                        );
 
                                         return;
                                     }

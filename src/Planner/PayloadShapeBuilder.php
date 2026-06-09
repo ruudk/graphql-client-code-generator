@@ -22,6 +22,7 @@ use GraphQL\Type\Definition\Type;
 use GraphQL\Type\Definition\UnionType;
 use GraphQL\Type\Definition\WrappingType;
 use GraphQL\Type\Schema;
+use Ruudk\GraphQLCodeGenerator\GraphQL\PossibleTypesFinder;
 use Ruudk\GraphQLCodeGenerator\TypeMapper;
 use Symfony\Component\TypeInfo\Type as SymfonyType;
 use Webmozart\Assert\Assert;
@@ -34,6 +35,8 @@ use Webmozart\Assert\Assert;
  */
 final readonly class PayloadShapeBuilder
 {
+    private PossibleTypesFinder $possibleTypesFinder;
+
     /**
      * @param array<string, array{FragmentDefinitionNode, list<string>}> $fragmentDefinitions
      * @param array<string, Type&NamedType> $fragmentTypes
@@ -43,7 +46,9 @@ final readonly class PayloadShapeBuilder
         private TypeMapper $typeMapper,
         private array $fragmentDefinitions = [],
         private array $fragmentTypes = [],
-    ) {}
+    ) {
+        $this->possibleTypesFinder = new PossibleTypesFinder($this->schema);
+    }
 
     /**
      * Build a payload shape from a selection set
@@ -123,11 +128,29 @@ final readonly class PayloadShapeBuilder
                 $this->processFragmentSpread($selection, $shape, $parentType, $visitedFragments);
             }
         }
+
+        // When the parent is polymorphic and at least one concrete-type variant
+        // was registered, enumerate the schema's remaining possible types as
+        // empty variant arms. This keeps `__typename === 'X'` from being
+        // `always-true` when the client only wrote a fragment for one of
+        // several possible types: PHPStan sees the other typenames as live
+        // alternatives.
+        if (
+            $shape->hasVariants()
+            && ($parentType instanceof UnionType || $parentType instanceof InterfaceType)
+        ) {
+            foreach ($this->possibleTypesFinder->find($parentType) as $possibleTypeName) {
+                if ( ! $shape->hasVariant($possibleTypeName)) {
+                    $shape->addVariant($possibleTypeName, new PayloadShape());
+                }
+            }
+        }
     }
 
     /**
      * Collect all field selections including from same-type fragments
      * @param array<string, true> $visitedFragments
+     * @throws \GraphQL\Error\InvariantViolation
      * @return array<string, list<FieldNode>>
      */
     private function collectAllFieldSelections(
@@ -179,15 +202,25 @@ final readonly class PayloadShapeBuilder
 
             $fragmentType = $this->fragmentTypes[$fragmentName];
 
-            // Skip if different type
-            if ($fragmentType->name() !== $parentType->name()) {
-                continue;
-            }
-
             // Skip if parent is union/interface (needs special processing)
             $isUnionOrInterface = $parentType instanceof UnionType || $parentType instanceof InterfaceType;
 
             if ($isUnionOrInterface) {
+                continue;
+            }
+
+            $isSameType = $fragmentType->name() === $parentType->name();
+
+            // Collect direct fields when the spread is either same-type, or
+            // the concrete parent satisfies the fragment's abstract type
+            // (i.e. it implements the interface or is a union member). For
+            // implementor spreads the abstract fragment's fields are present
+            // unconditionally on the parent at runtime, so its direct fields
+            // belong in the same group.
+            if (
+                ! $isSameType
+                && ! ($parentType instanceof ObjectType && $this->parentSatisfiesAbstract($parentType, $fragmentType))
+            ) {
                 continue;
             }
 
@@ -344,15 +377,69 @@ final readonly class PayloadShapeBuilder
         $fragmentType = $this->schema->getType($fragmentTypeName);
         Assert::isInstanceOf($fragmentType, NamedType::class);
 
-        // Create a sub-shape for this fragment
+        $isSameType = $fragmentType->name() === $parentType->name();
+        $parentIsPolymorphic = $parentType instanceof UnionType || $parentType instanceof InterfaceType;
+
+        // Same-type fragment on union/interface spreads into common fields.
+        if ($isSameType && $parentIsPolymorphic) {
+            $this->processSelections($fragment->selectionSet, $fragmentType, $shape, $visitedFragments);
+
+            return;
+        }
+
+        // Polymorphic parent → variant arms keyed by concrete `__typename`.
+        if ($parentIsPolymorphic) {
+            $variantShape = new PayloadShape();
+            $this->processSelections($fragment->selectionSet, $fragmentType, $variantShape, $visitedFragments);
+            $this->distributeVariant($shape, $fragmentType, $variantShape);
+
+            return;
+        }
+
+        // Concrete parent that satisfies the fragment's type condition: process
+        // the inline fragment's selection set against the concrete parent so
+        // nested abstract spreads resolve in concrete context.
+        if (
+            $parentType instanceof ObjectType
+            && $this->parentSatisfiesAbstract($parentType, $fragmentType)
+        ) {
+            $this->processSelections($fragment->selectionSet, $parentType, $shape, $visitedFragments);
+
+            return;
+        }
+
+        // Fallback (concrete parent, different fragment type): merge with optional.
         $fragmentShape = new PayloadShape();
         $this->processSelections($fragment->selectionSet, $fragmentType, $fragmentShape, $visitedFragments);
-
-        // Determine if fields should be optional
         $isOptional = $this->shouldFieldsBeOptional($parentType, $fragmentType, false);
-
-        // Merge the fragment fields into the main shape
         $shape->merge($fragmentShape, $isOptional);
+    }
+
+    /**
+     * Add a fragment's fields to the appropriate variant arm(s). When the
+     * fragment type is an interface or union, the fields apply to every
+     * concrete implementor of that abstract type — we add the variant to each
+     * one. `__typename` only ever holds a concrete object type's name at
+     * runtime, so abstract type names never appear as their own arms.
+     *
+     * @throws \GraphQL\Error\InvariantViolation
+     */
+    private function distributeVariant(
+        PayloadShape $shape,
+        NamedType $fragmentType,
+        PayloadShape $variantShape,
+    ) : void {
+        if ($fragmentType instanceof ObjectType) {
+            $shape->addVariant($fragmentType->name(), $variantShape);
+
+            return;
+        }
+
+        if ($fragmentType instanceof UnionType || $fragmentType instanceof InterfaceType) {
+            foreach ($this->possibleTypesFinder->find($fragmentType) as $concreteTypeName) {
+                $shape->addVariant($concreteTypeName, $variantShape);
+            }
+        }
     }
 
     /**
@@ -381,14 +468,39 @@ final readonly class PayloadShapeBuilder
             $fragmentName => true,
         ];
 
-        // Determine if fields should be optional
         $hasDirective = $this->hasConditionalDirectives($spread);
         $isSameType = $fragmentType->name() === $parentType->name();
+        $parentIsPolymorphic = $parentType instanceof UnionType || $parentType instanceof InterfaceType;
 
         // For same-type interface/union fragments without directives,
         // merge directly to preserve field requiredness
-        if ($isSameType && ! $hasDirective && ($parentType instanceof UnionType || $parentType instanceof InterfaceType)) {
+        if ($isSameType && ! $hasDirective && $parentIsPolymorphic) {
             $this->processSelections($fragmentDef->selectionSet, $fragmentType, $shape, $newVisited);
+
+            return;
+        }
+
+        // Polymorphic parent → variant arms keyed by concrete `__typename`.
+        if ($parentIsPolymorphic && ! $hasDirective) {
+            $variantShape = new PayloadShape();
+            $this->processSelections($fragmentDef->selectionSet, $fragmentType, $variantShape, $newVisited);
+            $this->distributeVariant($shape, $fragmentType, $variantShape);
+
+            return;
+        }
+
+        // Concrete parent that satisfies the fragment's type condition (parent
+        // implements an interface fragment, or is a member of a union
+        // fragment). The fragment's fields apply unconditionally — process its
+        // selection set with the concrete parent so that any deeper abstract
+        // spreads also resolve against the same concrete type.
+        if (
+            ! $hasDirective
+            && $parentType instanceof ObjectType
+            && ! $isSameType
+            && $this->parentSatisfiesAbstract($parentType, $fragmentType)
+        ) {
+            $this->processSelections($fragmentDef->selectionSet, $parentType, $shape, $newVisited);
 
             return;
         }
@@ -399,6 +511,30 @@ final readonly class PayloadShapeBuilder
 
         $isOptional = $this->shouldFieldsBeOptional($parentType, $fragmentType, $hasDirective);
         $shape->merge($fragmentShape, $isOptional);
+    }
+
+    /**
+     * Is the concrete object type a runtime member of the fragment's abstract
+     * type? True when `$parentType` implements an interface fragment, or is
+     * listed in a union fragment.
+     *
+     * @throws \GraphQL\Error\InvariantViolation
+     */
+    private function parentSatisfiesAbstract(ObjectType $parentType, NamedType $fragmentType) : bool
+    {
+        if ($fragmentType instanceof InterfaceType) {
+            return $parentType->implementsInterface($fragmentType);
+        }
+
+        if ($fragmentType instanceof UnionType) {
+            foreach ($fragmentType->getTypes() as $member) {
+                if ($member->name === $parentType->name()) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
 
     private function shouldFieldsBeOptional(

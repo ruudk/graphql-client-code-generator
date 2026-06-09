@@ -368,11 +368,15 @@ final class PayloadShapeBuilderTest extends TestCase
         self::assertSame(
             <<<'PHPDOC'
                 array{
-                    'address'?: null|string,
-                    'email'?: string,
+                    '__typename': 'AdminViewer',
+                    'email': string,
                     'id': string,
-                    'role'?: string,
-                    ...,
+                    'role': string,
+                }|array{
+                    '__typename': 'UserViewer',
+                    'address': null|string,
+                    'email': string,
+                    'id': string,
                 }
                 PHPDOC,
             TypeDumper::dump($shape->toArrayShape()),
@@ -639,14 +643,18 @@ final class PayloadShapeBuilderTest extends TestCase
             <<<'PHPDOC'
                 array{
                     'search': list<array{
-                        'id'?: string,
-                        'transfers'?: list<array{
+                        '__typename': 'Customer',
+                    }|array{
+                        '__typename': 'Transaction',
+                        'id': string,
+                        'transfers': list<array{
                             'canBeCollected': bool,
                             'id': string,
                             'state': string,
                             ...,
                         }>,
-                        ...,
+                    }|array{
+                        '__typename': 'User',
                     }>,
                     ...,
                 }
@@ -782,10 +790,13 @@ final class PayloadShapeBuilderTest extends TestCase
             <<<'PHPDOC'
                 array{
                     'search': list<array{
-                        'email'?: null|string,
-                        'id'?: string,
-                        'name'?: string,
-                        'transfers'?: list<array{
+                        '__typename': 'Customer',
+                        'id': string,
+                        'name': string,
+                    }|array{
+                        '__typename': 'Transaction',
+                        'id': string,
+                        'transfers': list<array{
                             'canBeCollected': bool,
                             'createdAt': string,
                             'customer': null|array{
@@ -801,7 +812,11 @@ final class PayloadShapeBuilderTest extends TestCase
                             }>,
                             ...,
                         }>,
-                        ...,
+                    }|array{
+                        '__typename': 'User',
+                        'email': null|string,
+                        'id': string,
+                        'name': string,
                     }>,
                     'transaction': null|array{
                         'id': string,
@@ -1195,12 +1210,13 @@ final class PayloadShapeBuilderTest extends TestCase
                 array{
                     'id': string,
                     'search': list<array{
-                        'createdAt'?: scalar,
-                        'email'?: null|string,
-                        'id'?: string,
-                        'lastSeen'?: null|scalar,
-                        'name'?: string,
-                        'transfers'?: list<array{
+                        '__typename': 'Customer',
+                        'id': string,
+                        'name': string,
+                    }|array{
+                        '__typename': 'Transaction',
+                        'id': string,
+                        'transfers': list<array{
                             'canBeCollected': bool,
                             'customer': null|array{
                                 'id': string,
@@ -1210,7 +1226,13 @@ final class PayloadShapeBuilderTest extends TestCase
                             'state': string,
                             ...,
                         }>,
-                        ...,
+                    }|array{
+                        '__typename': 'User',
+                        'createdAt': scalar,
+                        'email': null|string,
+                        'id': string,
+                        'lastSeen': null|scalar,
+                        'name': string,
                     }>,
                     'user': null|array{
                         'email': null|string,
@@ -1227,11 +1249,15 @@ final class PayloadShapeBuilderTest extends TestCase
                         ...,
                     },
                     'viewer': null|array{
-                        'address'?: null|string,
-                        'email'?: string,
+                        '__typename': 'AdminViewer',
+                        'email': string,
                         'id': string,
-                        'role'?: string,
-                        ...,
+                        'role': string,
+                    }|array{
+                        '__typename': 'UserViewer',
+                        'address': null|string,
+                        'email': string,
+                        'id': string,
                     },
                     ...,
                 }
@@ -1281,16 +1307,30 @@ final class PayloadShapeBuilderTest extends TestCase
             <<<'PHPDOC'
                 array{
                     'actors': list<array{
-                        'createdAt'?: scalar,
-                        'department'?: null|string,
-                        'email'?: string,
-                        'firstName'?: string,
+                        '__typename': 'Developer',
+                        'createdAt': scalar,
+                        'department': null|string,
+                        'firstName': string,
                         'id': string,
-                        'languages'?: list<string>,
-                        'lastName'?: string,
-                        'role'?: string,
-                        'teamSize'?: int,
-                        ...,
+                        'languages': list<string>,
+                        'lastName': string,
+                        'role': string,
+                    }|array{
+                        '__typename': 'Manager',
+                        'createdAt': scalar,
+                        'department': null|string,
+                        'firstName': string,
+                        'id': string,
+                        'lastName': string,
+                        'role': string,
+                        'teamSize': int,
+                    }|array{
+                        '__typename': 'RegularUser',
+                        'createdAt': scalar,
+                        'email': string,
+                        'firstName': string,
+                        'id': string,
+                        'lastName': string,
                     }>,
                     ...,
                 }
@@ -1369,21 +1409,37 @@ final class PayloadShapeBuilderTest extends TestCase
             ),
             $queryType,
         );
-        // All fields should be optional since they're type-specific
+        // Each concrete type gets its own sealed arm with the fields its
+        // ancestry contributes — interfaces in the fragment chain widen the
+        // arm rather than introducing arms of their own.
         self::assertSame(
             <<<'PHPDOC'
                 array{
                     'actors': list<array{
-                        'createdAt'?: scalar,
-                        'department'?: null|string,
-                        'email'?: string,
-                        'firstName'?: string,
-                        'id'?: string,
-                        'languages'?: list<string>,
-                        'lastName'?: string,
-                        'role'?: string,
-                        'teamSize'?: int,
-                        ...,
+                        '__typename': 'Developer',
+                        'createdAt': scalar,
+                        'department': null|string,
+                        'firstName': string,
+                        'id': string,
+                        'languages': list<string>,
+                        'lastName': string,
+                        'role': string,
+                    }|array{
+                        '__typename': 'Manager',
+                        'createdAt': scalar,
+                        'department': null|string,
+                        'firstName': string,
+                        'id': string,
+                        'lastName': string,
+                        'role': string,
+                        'teamSize': int,
+                    }|array{
+                        '__typename': 'RegularUser',
+                        'createdAt': scalar,
+                        'email': string,
+                        'firstName': string,
+                        'id': string,
+                        'lastName': string,
                     }>,
                     ...,
                 }
@@ -1424,13 +1480,24 @@ final class PayloadShapeBuilderTest extends TestCase
             <<<'PHPDOC'
                 array{
                     'actors': list<array{
-                        'department'?: null|string,
-                        'firstName'?: string,
+                        '__typename': 'Developer',
+                        'firstName': string,
                         'id': string,
-                        'lastName'?: string,
-                        'role'?: string,
-                        'teamSize'?: int,
-                        ...,
+                        'lastName': string,
+                        'role': string,
+                    }|array{
+                        '__typename': 'Manager',
+                        'department': null|string,
+                        'firstName': string,
+                        'id': string,
+                        'lastName': string,
+                        'role': string,
+                        'teamSize': int,
+                    }|array{
+                        '__typename': 'RegularUser',
+                        'firstName': string,
+                        'id': string,
+                        'lastName': string,
                     }>,
                     ...,
                 }
@@ -1508,23 +1575,37 @@ final class PayloadShapeBuilderTest extends TestCase
             ),
             $queryType,
         );
-        // Fields with directives should be optional
-        // __typename is always present
+        // Fields contributed by a `@include`/`@skip` fragment are optional in
+        // every arm that receives them; fields selected directly inside an
+        // unconditional inline fragment stay required for that arm.
         self::assertSame(
             <<<'PHPDOC'
                 array{
                     'actors': list<array{
-                        '__typename': string,
+                        '__typename': 'Developer',
                         'createdAt'?: scalar,
                         'department'?: null|string,
-                        'email'?: string,
                         'firstName'?: string,
                         'id'?: string,
                         'languages'?: list<string>,
                         'lastName'?: string,
                         'role'?: string,
+                    }|array{
+                        '__typename': 'Manager',
+                        'createdAt'?: scalar,
+                        'department'?: null|string,
+                        'firstName'?: string,
+                        'id'?: string,
+                        'lastName'?: string,
+                        'role'?: string,
                         'teamSize'?: int,
-                        ...,
+                    }|array{
+                        '__typename': 'RegularUser',
+                        'createdAt'?: scalar,
+                        'email': string,
+                        'firstName'?: string,
+                        'id'?: string,
+                        'lastName'?: string,
                     }>,
                     ...,
                 }

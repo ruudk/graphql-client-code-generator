@@ -36,13 +36,17 @@ final class Data
      *         ...,
      *     }>,
      *     'viewer': array{
-     *         '__typename': string,
+     *         '__typename': 'Application',
      *         'id': string,
      *         'idAlias': string,
-     *         'login'?: string,
      *         'name': string,
-     *         'url'?: string,
-     *         ...,
+     *         'url': string,
+     *     }|array{
+     *         '__typename': 'User',
+     *         'id': string,
+     *         'idAlias': string,
+     *         'login': string,
+     *         'name': string,
      *     },
      *     ...,
      * } $data

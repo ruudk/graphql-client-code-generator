@@ -1,0 +1,20 @@
+query Test {
+    container {
+        ...ContainerBase
+        item {
+            ... on VariantA {
+                valueA
+            }
+            ... on VariantB {
+                valueB
+            }
+        }
+    }
+}
+
+fragment ContainerBase on Container {
+    id
+    item {
+        id
+    }
+}

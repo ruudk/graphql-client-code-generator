@@ -2,19 +2,16 @@
 
 declare(strict_types=1);
 
-namespace Ruudk\GraphQLCodeGenerator\InlineFragmentTypename\Generated\Mutation\Test;
+namespace Ruudk\GraphQLCodeGenerator\SpreadAddsFieldsToPolymorphicField\Generated\Query\Test;
 
-use Ruudk\GraphQLCodeGenerator\InlineFragmentTypename\Generated\Mutation\Test\Data\AddCountry;
+use Ruudk\GraphQLCodeGenerator\SpreadAddsFieldsToPolymorphicField\Generated\Query\Test\Data\Container;
 
 // This file was automatically generated and should not be edited.
 
 final class Data
 {
-    /**
-     * @api
-     */
-    public AddCountry $addCountry {
-        get => $this->addCountry ??= new AddCountry($this->data['addCountry']);
+    public Container $container {
+        get => $this->container ??= new Container($this->data['container']);
     }
 
     /**
@@ -24,15 +21,18 @@ final class Data
 
     /**
      * @param array{
-     *     'addCountry': array{
-     *         '__typename': 'Country',
+     *     'container': array{
      *         'id': string,
-     *         'name': string,
-     *     }|array{
-     *         '__typename': 'SupportedCountryError',
-     *     }|array{
-     *         '__typename': 'UnsupportedCountryError',
-     *         'code': string,
+     *         'item': array{
+     *             '__typename': 'VariantA',
+     *             'id': string,
+     *             'valueA': string,
+     *         }|array{
+     *             '__typename': 'VariantB',
+     *             'id': string,
+     *             'valueB': string,
+     *         },
+     *         ...,
      *     },
      *     ...,
      * } $data

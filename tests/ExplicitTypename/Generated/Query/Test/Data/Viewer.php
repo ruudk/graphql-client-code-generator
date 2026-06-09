@@ -16,25 +16,7 @@ final class Viewer
     }
 
     public ?AsApplication $asApplication {
-        get {
-            if (isset($this->asApplication)) {
-                return $this->asApplication;
-            }
-
-            if ($this->data['__typename'] !== 'Application') {
-                return $this->asApplication = null;
-            }
-
-            if (! array_key_exists('url', $this->data)) {
-                return $this->asApplication = null;
-            }
-
-            if (! array_key_exists('name', $this->data)) {
-                return $this->asApplication = null;
-            }
-
-            return $this->asApplication = new AsApplication($this->data);
-        }
+        get => $this->asApplication ??= $this->data['__typename'] === 'Application' ? new AsApplication($this->data) : null;
     }
 
     /**
@@ -50,21 +32,7 @@ final class Viewer
     }
 
     public ?UserDetails $userDetails {
-        get {
-            if (isset($this->userDetails)) {
-                return $this->userDetails;
-            }
-
-            if ($this->data['__typename'] !== 'User') {
-                return $this->userDetails = null;
-            }
-
-            if (! array_key_exists('login', $this->data)) {
-                return $this->userDetails = null;
-            }
-
-            return $this->userDetails = new UserDetails($this->data);
-        }
+        get => $this->userDetails ??= $this->data['__typename'] === 'User' ? new UserDetails($this->data) : null;
     }
 
     /**
@@ -77,11 +45,13 @@ final class Viewer
 
     /**
      * @param array{
-     *     '__typename': string,
-     *     'login'?: string,
+     *     '__typename': 'Application',
      *     'name': string,
-     *     'url'?: string,
-     *     ...,
+     *     'url': string,
+     * }|array{
+     *     '__typename': 'User',
+     *     'login': string,
+     *     'name': string,
      * } $data
      */
     public function __construct(

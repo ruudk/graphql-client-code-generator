@@ -2,22 +2,17 @@
 
 declare(strict_types=1);
 
-namespace Ruudk\GraphQLCodeGenerator\HooksInUnionVariant\Generated\Query\Test\Data;
+namespace Ruudk\GraphQLCodeGenerator\SpreadAddsFieldsToPolymorphicField\Generated\Query\Test\Data\Container;
 
-use Ruudk\GraphQLCodeGenerator\HooksInUnionVariant\FindUserByIdHook;
-use Ruudk\GraphQLCodeGenerator\HooksInUnionVariant\Generated\Query\Test\Data\Thing\AsVariantA;
-use Ruudk\GraphQLCodeGenerator\HooksInUnionVariant\Generated\Query\Test\Data\Thing\AsVariantB;
+use Ruudk\GraphQLCodeGenerator\SpreadAddsFieldsToPolymorphicField\Generated\Query\Test\Data\Container\Item\AsVariantA;
+use Ruudk\GraphQLCodeGenerator\SpreadAddsFieldsToPolymorphicField\Generated\Query\Test\Data\Container\Item\AsVariantB;
 
 // This file was automatically generated and should not be edited.
 
-final class Thing
+final class Item
 {
-    public string $__typename {
-        get => $this->__typename ??= $this->data['__typename'];
-    }
-
     public ?AsVariantA $asVariantA {
-        get => $this->asVariantA ??= $this->data['__typename'] === 'VariantA' ? new AsVariantA($this->data, $this->hooks) : null;
+        get => $this->asVariantA ??= $this->data['__typename'] === 'VariantA' ? new AsVariantA($this->data) : null;
     }
 
     /**
@@ -48,19 +43,14 @@ final class Thing
      * @param array{
      *     '__typename': 'VariantA',
      *     'id': string,
-     *     'realFieldA': string,
+     *     'valueA': string,
      * }|array{
      *     '__typename': 'VariantB',
      *     'id': string,
-     *     'realFieldB': string,
+     *     'valueB': string,
      * } $data
-     * @param array{
-     *     'findUserById': FindUserByIdHook,
-     *     ...,
-     * } $hooks
      */
     public function __construct(
         private readonly array $data,
-        private readonly array $hooks,
     ) {}
 }

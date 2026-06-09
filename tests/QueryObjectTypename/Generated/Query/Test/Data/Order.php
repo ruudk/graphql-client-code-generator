@@ -11,25 +11,7 @@ use Ruudk\GraphQLCodeGenerator\QueryObjectTypename\Generated\Query\Test\Data\Ord
 final class Order
 {
     public ?AsMarketPlaceOrderItem $asMarketPlaceOrderItem {
-        get {
-            if (isset($this->asMarketPlaceOrderItem)) {
-                return $this->asMarketPlaceOrderItem;
-            }
-
-            if ($this->data['__typename'] !== 'MarketPlaceOrderItem') {
-                return $this->asMarketPlaceOrderItem = null;
-            }
-
-            if (! array_key_exists('id', $this->data)) {
-                return $this->asMarketPlaceOrderItem = null;
-            }
-
-            if (! array_key_exists('fxFee', $this->data)) {
-                return $this->asMarketPlaceOrderItem = null;
-            }
-
-            return $this->asMarketPlaceOrderItem = new AsMarketPlaceOrderItem($this->data);
-        }
+        get => $this->asMarketPlaceOrderItem ??= $this->data['__typename'] === 'MarketPlaceOrderItem' ? new AsMarketPlaceOrderItem($this->data) : null;
     }
 
     /**
@@ -42,13 +24,14 @@ final class Order
 
     /**
      * @param array{
-     *     '__typename': string,
-     *     'fxFee'?: null|array{
+     *     '__typename': 'MarketPlaceOrderItem',
+     *     'fxFee': null|array{
      *         '__typename': string,
      *         ...,
      *     },
-     *     'id'?: string,
-     *     ...,
+     *     'id': string,
+     * }|array{
+     *     '__typename': 'OtherOrderItem',
      * } $data
      */
     public function __construct(

@@ -26,11 +26,13 @@ final class Data
     /**
      * @param array{
      *     'things': list<array{
-     *         '__typename': string,
+     *         '__typename': 'VariantA',
      *         'id': string,
-     *         'realFieldA'?: string,
-     *         'realFieldB'?: string,
-     *         ...,
+     *         'realFieldA': string,
+     *     }|array{
+     *         '__typename': 'VariantB',
+     *         'id': string,
+     *         'realFieldB': string,
      *     }>,
      *     ...,
      * } $data

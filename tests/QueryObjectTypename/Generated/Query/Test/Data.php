@@ -27,13 +27,14 @@ final class Data
     /**
      * @param array{
      *     'order': array{
-     *         '__typename': string,
-     *         'fxFee'?: null|array{
+     *         '__typename': 'MarketPlaceOrderItem',
+     *         'fxFee': null|array{
      *             '__typename': string,
      *             ...,
      *         },
-     *         'id'?: string,
-     *         ...,
+     *         'id': string,
+     *     }|array{
+     *         '__typename': 'OtherOrderItem',
      *     },
      *     'supportedCountry': array{
      *         'error': null|array{
