@@ -14,6 +14,7 @@ use Ruudk\GraphQLCodeGenerator\Config\ConfigLoader;
 use Ruudk\GraphQLCodeGenerator\Executor\PlanExecutor;
 use Ruudk\GraphQLCodeGenerator\GraphQL\HookDirectiveSchemaExtender;
 use Ruudk\GraphQLCodeGenerator\GraphQL\IndexByDirectiveSchemaExtender;
+use Ruudk\GraphQLCodeGenerator\GraphQL\OperationArgumentDirectiveSchemaExtender;
 use Ruudk\GraphQLCodeGenerator\GraphQL\ThrowWhenNullDirectiveSchemaExtender;
 use Ruudk\GraphQLCodeGenerator\Planner;
 use SebastianBergmann\Diff\Differ;
@@ -125,6 +126,10 @@ final class GenerateCommand
 
                     if ($configItem->throwWhenNullDirective) {
                         $schema = ThrowWhenNullDirectiveSchemaExtender::extend($schema);
+                    }
+
+                    if ($configItem->operationArguments !== []) {
+                        $schema = OperationArgumentDirectiveSchemaExtender::extend($schema, $configItem->operationArguments);
                     }
 
                     $this->filesystem->dumpFile(

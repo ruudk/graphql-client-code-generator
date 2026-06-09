@@ -63,6 +63,7 @@ use Ruudk\GraphQLCodeGenerator\Config\Config;
 use Ruudk\GraphQLCodeGenerator\GraphQL\AST\Printer;
 use Ruudk\GraphQLCodeGenerator\GraphQL\DocumentNodeWithSource;
 use Ruudk\GraphQLCodeGenerator\GraphQL\FragmentDefinitionNodeWithSource;
+use Ruudk\GraphQLCodeGenerator\GraphQL\OperationArgumentDirectiveSchemaExtender;
 use Ruudk\GraphQLCodeGenerator\GraphQL\PossibleTypesFinder;
 use Ruudk\GraphQLCodeGenerator\PHP\Visitor\ClassConstantFinder;
 use Ruudk\GraphQLCodeGenerator\PHP\Visitor\FragmentFinder;
@@ -91,6 +92,7 @@ use Ruudk\GraphQLCodeGenerator\Validator\IndexByValidator;
 use Ruudk\GraphQLCodeGenerator\Visitor\DefinedFragmentsVisitor;
 use Ruudk\GraphQLCodeGenerator\Visitor\HookFieldRemover;
 use Ruudk\GraphQLCodeGenerator\Visitor\IndexByRemover;
+use Ruudk\GraphQLCodeGenerator\Visitor\OperationArgumentDirectiveRemover;
 use Ruudk\GraphQLCodeGenerator\Visitor\ThrowWhenNullRemover;
 use Ruudk\GraphQLCodeGenerator\Visitor\UsedFragmentsVisitor;
 use Stringable;
@@ -167,7 +169,15 @@ final class Planner
         ];
 
         $this->schemaLoader = new SchemaLoader(new Filesystem());
-        $this->schema = $this->schemaLoader->load($config->schema, $config->indexByDirective, $config->hooks !== [], $config->throwWhenNullDirective);
+        $schema = $this->schemaLoader->load($config->schema, $config->indexByDirective, $config->hooks !== [], $config->throwWhenNullDirective);
+
+        // Auto-inject the marker directives (e.g. @requiresActor) into the schema so operations
+        // using them validate. They are stripped from the operation before it is sent to the server.
+        if ($config->operationArguments !== []) {
+            $schema = OperationArgumentDirectiveSchemaExtender::extend($schema, $config->operationArguments);
+        }
+
+        $this->schema = $schema;
         $this->optimizer = new Optimizer($this->schema);
         $this->possibleTypesFinder = new PossibleTypesFinder($this->schema);
 
@@ -1006,6 +1016,21 @@ final class Planner
 
         $operationType = ucfirst($operation->operation);
 
+        $extraParameters = [];
+        foreach ($this->config->operationArguments as $operationArgument) {
+            if ($operationArgument->operations !== []
+                && ! in_array($operation->operation, $operationArgument->operations, true)) {
+                continue;
+            }
+
+            if ($operationArgument->directive !== null
+                && ! $this->directiveProcessor->hasDirective($operation->directives, $operationArgument->directive)) {
+                continue;
+            }
+
+            $extraParameters[] = $operationArgument;
+        }
+
         if ($this->config->indexByDirective) {
             $document = new IndexByRemover()->__invoke($document);
         }
@@ -1016,6 +1041,18 @@ final class Planner
 
         if ($this->config->throwWhenNullDirective) {
             $document = new ThrowWhenNullRemover()->__invoke($document);
+        }
+
+        $directiveNames = array_values(array_unique(array_filter(
+            array_map(
+                static fn($operationArgument) => $operationArgument->directive,
+                $this->config->operationArguments,
+            ),
+            static fn(?string $directive) => $directive !== null,
+        )));
+
+        if ($directiveNames !== []) {
+            $document = new OperationArgumentDirectiveRemover($directiveNames)->__invoke($document);
         }
 
         $operationDefinition = Printer::doPrint($document);
@@ -1071,6 +1108,7 @@ final class Planner
             $operationDefinition,
             $variables,
             $source,
+            $extraParameters,
         );
 
         // Create the error class plan

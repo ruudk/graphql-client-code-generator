@@ -111,6 +111,14 @@ final class OperationClassGenerator extends AbstractGenerator
                     yield ') {}';
 
                     $parameters = $generator->indent(function () use ($plan, $generator) {
+                        foreach ($plan->extraParameters as $extraParameter) {
+                            yield sprintf(
+                                '%s $%s,',
+                                $this->dumpPHPType($extraParameter->type, $generator->import(...)),
+                                $extraParameter->name,
+                            );
+                        }
+
                         foreach ($plan->variables as $name => $phpType) {
                             yield sprintf(
                                 '%s $%s%s,',
@@ -138,7 +146,7 @@ final class OperationClassGenerator extends AbstractGenerator
                         }
                     });
 
-                    if ($plan->variables !== []) {
+                    if ($plan->variables !== [] || $plan->extraParameters !== []) {
                         yield 'public function execute(';
                         yield $parameters;
                         yield sprintf(
@@ -186,6 +194,10 @@ final class OperationClassGenerator extends AbstractGenerator
                             });
                             yield '],';
                             yield 'self::OPERATION_NAME,';
+
+                            foreach ($plan->extraParameters as $extraParameter) {
+                                yield sprintf('%s: $%s,', $extraParameter->name, $extraParameter->name);
+                            }
                         });
                         yield ');';
                         yield '';
@@ -226,7 +238,7 @@ final class OperationClassGenerator extends AbstractGenerator
                             yield sprintf('@throws %s', $generator->import($failedException));
                         });
 
-                        if ($plan->variables !== []) {
+                        if ($plan->variables !== [] || $plan->extraParameters !== []) {
                             yield 'public function executeOrThrow(';
                             yield $parameters;
                             yield sprintf(
@@ -244,6 +256,10 @@ final class OperationClassGenerator extends AbstractGenerator
                         yield $generator->indent(function () use ($plan, $failedException, $generator) {
                             yield '$data = $this->execute(';
                             yield $generator->indent(function () use ($plan) {
+                                foreach ($plan->extraParameters as $extraParameter) {
+                                    yield sprintf('$%s,', $extraParameter->name);
+                                }
+
                                 foreach ($plan->variables as $name => $phpType) {
                                     yield sprintf('$%s,', $name);
                                 }

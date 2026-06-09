@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Ruudk\GraphQLCodeGenerator\Planner\Plan;
 
+use Ruudk\GraphQLCodeGenerator\Config\OperationArgument;
 use Ruudk\GraphQLCodeGenerator\Planner\Source\GraphQLFileSource;
 use Ruudk\GraphQLCodeGenerator\Planner\Source\InlineSource;
 use Symfony\Component\TypeInfo\Type as SymfonyType;
@@ -12,6 +13,7 @@ final readonly class OperationClassPlan
 {
     /**
      * @param array<string, SymfonyType> $variables
+     * @param list<OperationArgument> $extraParameters
      */
     public function __construct(
         public string $path,
@@ -22,5 +24,6 @@ final readonly class OperationClassPlan
         public string $operationDefinition,
         public array $variables,
         public GraphQLFileSource | InlineSource $source,
+        public array $extraParameters = [],
     ) {}
 }

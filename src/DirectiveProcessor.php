@@ -60,6 +60,20 @@ final class DirectiveProcessor
     }
 
     /**
+     * @param NodeList<DirectiveNode> $directives
+     */
+    public function hasDirective(NodeList $directives, string $name) : bool
+    {
+        foreach ($directives as $directive) {
+            if ($directive->name->value === $name) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
      * Extract the @hook directive's `name` and `input` arguments.
      *
      * @param NodeList<DirectiveNode> $directives

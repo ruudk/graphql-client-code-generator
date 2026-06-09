@@ -1,0 +1,6 @@
+mutation CreateThing($name: String!) @requiresActor {
+    createThing(name: $name) {
+        id
+        name
+    }
+}
