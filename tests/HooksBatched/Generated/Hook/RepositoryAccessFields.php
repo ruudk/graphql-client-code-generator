@@ -1,0 +1,29 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Ruudk\GraphQLCodeGenerator\HooksBatched\Generated\Hook;
+
+// This file was automatically generated and should not be edited.
+
+final class RepositoryAccessFields
+{
+    public string $ownerId {
+        get => $this->ownerId ??= $this->data['ownerId'];
+    }
+
+    public string $reviewerId {
+        get => $this->reviewerId ??= $this->data['reviewerId'];
+    }
+
+    /**
+     * @param array{
+     *     'ownerId': string,
+     *     'reviewerId': string,
+     *     ...,
+     * } $data
+     */
+    public function __construct(
+        private readonly array $data,
+    ) {}
+}

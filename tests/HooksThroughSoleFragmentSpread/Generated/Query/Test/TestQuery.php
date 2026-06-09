@@ -24,6 +24,9 @@ final readonly class TestQuery {
           order {
             id
             discountId
+            ... on Order {
+              discountId
+            }
           }
         }
         

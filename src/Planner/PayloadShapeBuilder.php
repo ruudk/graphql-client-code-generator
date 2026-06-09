@@ -10,6 +10,7 @@ use GraphQL\Language\AST\FragmentSpreadNode;
 use GraphQL\Language\AST\InlineFragmentNode;
 use GraphQL\Language\AST\NodeList;
 use GraphQL\Language\AST\SelectionSetNode;
+use GraphQL\Language\AST\StringValueNode;
 use GraphQL\Type\Definition\EnumType;
 use GraphQL\Type\Definition\HasFieldsType;
 use GraphQL\Type\Definition\InterfaceType;
@@ -22,6 +23,7 @@ use GraphQL\Type\Definition\Type;
 use GraphQL\Type\Definition\UnionType;
 use GraphQL\Type\Definition\WrappingType;
 use GraphQL\Type\Schema;
+use Ruudk\GraphQLCodeGenerator\Config\HookDefinition;
 use Ruudk\GraphQLCodeGenerator\TypeMapper;
 use Symfony\Component\TypeInfo\Type as SymfonyType;
 use Webmozart\Assert\Assert;
@@ -37,12 +39,14 @@ final readonly class PayloadShapeBuilder
     /**
      * @param array<string, array{FragmentDefinitionNode, list<string>}> $fragmentDefinitions
      * @param array<string, Type&NamedType> $fragmentTypes
+     * @param array<string, HookDefinition> $hooks
      */
     public function __construct(
         private Schema $schema,
         private TypeMapper $typeMapper,
         private array $fragmentDefinitions = [],
         private array $fragmentTypes = [],
+        private array $hooks = [],
     ) {}
 
     /**
@@ -91,6 +95,28 @@ final readonly class PayloadShapeBuilder
             } else {
                 $shape->addRequired($fieldName, $fieldPayloadShape);
             }
+        }
+
+        // Hook fields are synthetic, but the data the hook needs is injected
+        // into the operation — so its `requires` selection must be part of the
+        // payload the server returns.
+        foreach ($selectionSet->selections as $selection) {
+            if ( ! $selection instanceof FieldNode) {
+                continue;
+            }
+
+            $hookName = $this->hookName($selection);
+
+            if ($hookName === null || ! isset($this->hooks[$hookName])) {
+                continue;
+            }
+
+            $this->processSelections(
+                $this->hooks[$hookName]->requiresFragment->selectionSet,
+                $parentType,
+                $shape,
+                $visitedFragments,
+            );
         }
 
         // Process inline fragments and type-specific/conditional fragment spreads
@@ -467,12 +493,26 @@ final readonly class PayloadShapeBuilder
 
     private function hasHookDirective(FieldNode $node) : bool
     {
+        return $this->hookName($node) !== null;
+    }
+
+    /**
+     * The `name` of a field's `@hook` directive, or null when it has none.
+     */
+    private function hookName(FieldNode $node) : ?string
+    {
         foreach ($node->directives as $directive) {
-            if ($directive->name->value === 'hook') {
-                return true;
+            if ($directive->name->value !== 'hook') {
+                continue;
+            }
+
+            foreach ($directive->arguments as $argument) {
+                if ($argument->name->value === 'name' && $argument->value instanceof StringValueNode) {
+                    return $argument->value->value;
+                }
             }
         }
 
-        return false;
+        return null;
     }
 }

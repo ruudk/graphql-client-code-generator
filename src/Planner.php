@@ -14,7 +14,9 @@ use GraphQL\Language\AST\OperationDefinitionNode;
 use GraphQL\Language\Parser;
 use GraphQL\Type\Definition\EnumType;
 use GraphQL\Type\Definition\InputObjectType;
+use GraphQL\Type\Definition\InterfaceType;
 use GraphQL\Type\Definition\NamedType;
+use GraphQL\Type\Definition\ObjectType;
 use GraphQL\Type\Definition\Type;
 use GraphQL\Type\Schema;
 use GraphQL\Validator\DocumentValidator;
@@ -80,6 +82,7 @@ use Ruudk\GraphQLCodeGenerator\Planner\Plan\OperationClassPlan;
 use Ruudk\GraphQLCodeGenerator\Planner\PlannerResult;
 use Ruudk\GraphQLCodeGenerator\Planner\SelectionSetPlanner;
 use Ruudk\GraphQLCodeGenerator\Planner\Source\GraphQLFileSource;
+use Ruudk\GraphQLCodeGenerator\Planner\Source\HookInputSource;
 use Ruudk\GraphQLCodeGenerator\Planner\Source\InlineFragmentSource;
 use Ruudk\GraphQLCodeGenerator\Planner\Source\InlineSource;
 use Ruudk\GraphQLCodeGenerator\Planner\Source\TwigFileSource;
@@ -90,7 +93,7 @@ use Ruudk\GraphQLCodeGenerator\Type\ThrowWhenNullPropertyType;
 use Ruudk\GraphQLCodeGenerator\Type\TypeHelper;
 use Ruudk\GraphQLCodeGenerator\Validator\IndexByValidator;
 use Ruudk\GraphQLCodeGenerator\Visitor\DefinedFragmentsVisitor;
-use Ruudk\GraphQLCodeGenerator\Visitor\HookFieldRemover;
+use Ruudk\GraphQLCodeGenerator\Visitor\HookFieldInjector;
 use Ruudk\GraphQLCodeGenerator\Visitor\IndexByRemover;
 use Ruudk\GraphQLCodeGenerator\Visitor\OperationArgumentDirectiveRemover;
 use Ruudk\GraphQLCodeGenerator\Visitor\ThrowWhenNullRemover;
@@ -587,7 +590,7 @@ final class Planner
             ]);
 
             if ($this->config->hooks !== []) {
-                $validationDocument = new HookFieldRemover()->__invoke($validationDocument);
+                $validationDocument = new HookFieldInjector($this->config->hooks)->__invoke($validationDocument);
             }
 
             $errors = DocumentValidator::validate($this->schema, $validationDocument, $this->validatorRules);
@@ -661,6 +664,76 @@ final class Planner
                 $planResult->payloadShape,
                 $this->possibleTypesFinder->find($type),
                 $fragment,
+                null,
+                $planResult->inlineFragmentRequiredFields,
+                false,
+                true,
+            ));
+        }
+
+        // Plan the data classes hooks receive (built from each hook's `requires`
+        // fragment). Runs after user fragments are registered so a `requires`
+        // fragment may itself spread a user fragment.
+        $hookDataClassNames = [];
+
+        foreach ($this->config->hooks as $hook) {
+            Assert::keyNotExists($hookDataClassNames, $hook->requiresClassName, sprintf(
+                'Hooks "%s" and "%s" both generate a data class named "%s".',
+                $hookDataClassNames[$hook->requiresClassName] ?? '?',
+                $hook->name,
+                $hook->requiresClassName,
+            ));
+            $hookDataClassNames[$hook->requiresClassName] = $hook->name;
+
+            $type = Type::getNamedType($this->schema->getType($hook->requiresTypeCondition));
+
+            Assert::notNull($type, sprintf(
+                'Hook "%s" requires unknown type "%s".',
+                $hook->name,
+                $hook->requiresTypeCondition,
+            ));
+            Assert::isInstanceOfAny($type, [ObjectType::class, InterfaceType::class], sprintf(
+                'Hook "%s" requires type "%s", which must be an object or interface type.',
+                $hook->name,
+                $hook->requiresTypeCondition,
+            ));
+
+            $errors = DocumentValidator::validate(
+                $this->schema,
+                new DocumentNode([
+                    'definitions' => new NodeList([$hook->requiresFragment]),
+                ]),
+                $this->validatorRules,
+            );
+
+            if ($errors !== []) {
+                throw new Exception(sprintf(
+                    'The `requires` fragment of hook "%s" is invalid: %s',
+                    $hook->name,
+                    implode(PHP_EOL, array_map(fn($error) => $error->getMessage(), $errors)),
+                ));
+            }
+
+            $source = new HookInputSource($hook->class, $hook->name);
+
+            $planResult = $planner->plan(
+                $source,
+                $hook->requiresFragment->selectionSet,
+                $type,
+                $this->config->outputDir . '/Hook/' . $hook->requiresClassName,
+                $hook->requiresFqcn,
+                'fragment',
+            );
+
+            $result->addClass(new DataClassPlan(
+                $source,
+                $this->config->outputDir . '/Hook/' . $hook->requiresClassName . '.php',
+                $hook->requiresFqcn,
+                $type,
+                $planResult->fields,
+                $planResult->payloadShape,
+                $this->possibleTypesFinder->find($type),
+                $hook->requiresFragment,
                 null,
                 $planResult->inlineFragmentRequiredFields,
                 false,
@@ -966,7 +1039,7 @@ final class Planner
         $validationDocument = $document;
 
         if ($this->config->hooks !== []) {
-            $validationDocument = new HookFieldRemover()->__invoke($validationDocument);
+            $validationDocument = new HookFieldInjector($this->config->hooks)->__invoke($validationDocument);
         }
 
         $errors = DocumentValidator::validate($this->schema, $validationDocument, $this->validatorRules);
@@ -1036,7 +1109,7 @@ final class Planner
         }
 
         if ($this->config->hooks !== []) {
-            $document = new HookFieldRemover()->__invoke($document);
+            $document = new HookFieldInjector($this->config->hooks)->__invoke($document);
         }
 
         if ($this->config->throwWhenNullDirective) {

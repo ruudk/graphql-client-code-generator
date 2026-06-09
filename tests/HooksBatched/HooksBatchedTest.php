@@ -104,33 +104,39 @@ final class HooksBatchedTest extends GraphQLTestCase
         // --- The batching evidence -------------------------------------------
 
         // Each hook ran exactly once (the outer array has a single entry) and
-        // that single batch carried the distinct inputs, de-duplicated by
-        // value and in first-seen graph order.
+        // that single batch carried every occurrence, in graph order, as a
+        // typed data object built from the hook's `requires` fragment.
 
-        // Org-level hook: one batch, all 3 organizations distinct.
+        // Org-level hook: one batch holding all 3 organizations.
+        self::assertCount(1, $findOrgPlan->batches);
         self::assertSame(
-            [[['org-1'], ['org-2'], ['org-3']]],
-            $findOrgPlan->batches,
+            ['org-1', 'org-2', 'org-3'],
+            array_map(fn($organization) => $organization->id, $findOrgPlan->batches[0]),
         );
 
-        // Repository-level single-field hook: 6 repositories, but only 2
-        // distinct owner ids — what used to be 6 separate invocations is now
-        // one call with 2 inputs.
+        // Repository-level single-field hook: one batch holding all 6
+        // repositories — what used to be 6 separate invocations.
+        self::assertCount(1, $findUserById->batches);
         self::assertSame(
-            [[['user-1'], ['user-2']]],
-            $findUserById->batches,
+            ['user-1', 'user-1', 'user-2', 'user-1', 'user-2', 'user-1'],
+            array_map(fn($repository) => $repository->ownerId, $findUserById->batches[0]),
         );
 
-        // Repository-level two-field hook: 6 repositories collapse to 4
-        // distinct (ownerId, reviewerId) tuples.
+        // Repository-level two-field hook: one batch of 6 repositories.
+        self::assertCount(1, $computeAccess->batches);
         self::assertSame(
-            [[
+            [
                 ['user-1', 'user-2'],
                 ['user-1', 'user-1'],
                 ['user-2', 'user-1'],
+                ['user-1', 'user-2'],
                 ['user-2', 'user-2'],
-            ]],
-            $computeAccess->batches,
+                ['user-1', 'user-1'],
+            ],
+            array_map(
+                fn($repository) => [$repository->ownerId, $repository->reviewerId],
+                $computeAccess->batches[0],
+            ),
         );
     }
 
@@ -202,10 +208,10 @@ final class HooksBatchedTest extends GraphQLTestCase
         self::assertSame($owner, $first->owner);
         self::assertSame('Alice', $second->owner?->name);
 
-        // Both repositories share owner "user-1", so the de-duplicated batch
-        // holds a single input and both resolve to the same User instance.
+        // One invocation, holding both repositories; both share owner "user-1"
+        // so they resolve to the same User instance.
         self::assertCount(1, $findUserById->batches);
-        self::assertCount(1, $findUserById->batches[0]);
+        self::assertCount(2, $findUserById->batches[0]);
         self::assertSame($owner, $second->owner);
     }
 

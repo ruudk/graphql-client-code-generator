@@ -5,7 +5,7 @@ query Test {
         ... on VariantA {
             id
             realFieldA
-            user @hook(name: "findUserById", input: ["id"])
+            user @hook(name: "findUserById")
         }
         ... on VariantB {
             realFieldB

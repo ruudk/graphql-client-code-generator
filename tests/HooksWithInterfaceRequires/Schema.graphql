@@ -1,0 +1,18 @@
+type Query {
+    articles: [Article!]!
+    videos: [Video!]!
+}
+
+interface Node {
+    id: ID!
+}
+
+type Article implements Node {
+    id: ID!
+    title: String!
+}
+
+type Video implements Node {
+    id: ID!
+    duration: Int!
+}

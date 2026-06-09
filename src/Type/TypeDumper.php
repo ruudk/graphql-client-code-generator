@@ -20,13 +20,6 @@ final class TypeDumper
             return sprintf('null|%s', self::dump($type->getWrappedType(), $importer, $indentation));
         }
 
-        if ($type instanceof ArrayTupleType) {
-            return sprintf('array{%s}', implode(', ', array_map(
-                fn(Type $element) => self::dump($element, $importer, $indentation),
-                $type->elements,
-            )));
-        }
-
         if ($type instanceof Type\ArrayShapeType) {
             $items = [];
 

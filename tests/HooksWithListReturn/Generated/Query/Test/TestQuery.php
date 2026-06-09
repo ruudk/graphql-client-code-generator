@@ -18,6 +18,9 @@ final readonly class TestQuery {
             projects {
               name
               contributorIds
+              ... on Project {
+                contributorIds
+              }
             }
           }
         }

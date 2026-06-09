@@ -5,8 +5,18 @@ declare(strict_types=1);
 namespace Ruudk\GraphQLCodeGenerator\HooksWithSymfonyAutowire;
 
 use Ruudk\GraphQLCodeGenerator\Attribute\Hook;
+use Ruudk\GraphQLCodeGenerator\HooksWithSymfonyAutowire\Generated\Hook\ProjectCreatorId;
 
-#[Hook(name: 'findUserById')]
+#[Hook(
+    name: 'findUserById',
+    requires: <<<'GRAPHQL'
+        fragment ProjectCreatorId on Project {
+          creator {
+            id
+          }
+        }
+        GRAPHQL
+)]
 final readonly class FindUserByIdHook
 {
     /**
@@ -16,8 +26,8 @@ final readonly class FindUserByIdHook
         private array $users = [],
     ) {}
 
-    public function __invoke(string $id) : ?User
+    public function __invoke(ProjectCreatorId $project) : ?User
     {
-        return $this->users[$id] ?? null;
+        return $this->users[$project->creator->id] ?? null;
     }
 }

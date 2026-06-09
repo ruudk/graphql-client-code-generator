@@ -5,9 +5,9 @@ declare(strict_types=1);
 namespace Ruudk\GraphQLCodeGenerator;
 
 use GraphQL\Language\AST\DirectiveNode;
-use GraphQL\Language\AST\ListValueNode;
 use GraphQL\Language\AST\NodeList;
 use GraphQL\Language\AST\StringValueNode;
+use InvalidArgumentException;
 
 final class DirectiveProcessor
 {
@@ -74,12 +74,13 @@ final class DirectiveProcessor
     }
 
     /**
-     * Extract the @hook directive's `name` and `input` arguments.
+     * Extract the @hook directive's `name`. The data a hook needs is declared on the
+     * hook class via `#[Hook(requires: ...)]` — the call site is just `@hook(name: "x")`.
      *
      * @param NodeList<DirectiveNode> $directives
-     * @return null|array{name: string, input: list<string>}
+     * @throws InvalidArgumentException
      */
-    public function getHookDirective(NodeList $directives) : ?array
+    public function getHookDirective(NodeList $directives) : ?string
     {
         foreach ($directives as $directive) {
             if ($directive->name->value !== 'hook') {
@@ -87,21 +88,18 @@ final class DirectiveProcessor
             }
 
             $name = null;
-            $input = [];
 
             foreach ($directive->arguments as $argument) {
-                if ($argument->name->value === 'name' && $argument->value instanceof StringValueNode) {
-                    $name = $argument->value->value;
-
-                    continue;
+                if ($argument->name->value === 'input') {
+                    throw new InvalidArgumentException(
+                        'The @hook `input:` argument has been removed. A hook now declares '
+                        . 'the data it needs via #[Hook(requires: ...)]; the call site is '
+                        . 'just @hook(name: "...").',
+                    );
                 }
 
-                if ($argument->name->value === 'input' && $argument->value instanceof ListValueNode) {
-                    foreach ($argument->value->values as $value) {
-                        if ($value instanceof StringValueNode) {
-                            $input[] = $value->value;
-                        }
-                    }
+                if ($argument->name->value === 'name' && $argument->value instanceof StringValueNode) {
+                    $name = $argument->value->value;
                 }
             }
 
@@ -109,10 +107,7 @@ final class DirectiveProcessor
                 continue;
             }
 
-            return [
-                'name' => $name,
-                'input' => $input,
-            ];
+            return $name;
         }
 
         return null;

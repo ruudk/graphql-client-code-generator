@@ -6,13 +6,14 @@ namespace Ruudk\GraphQLCodeGenerator\HooksThroughSoleFragmentSpread\Generated\Fr
 
 use Ruudk\GraphQLCodeGenerator\HooksThroughSoleFragmentSpread\DiscountCode;
 use Ruudk\GraphQLCodeGenerator\HooksThroughSoleFragmentSpread\FindDiscountCodeByIdHook;
+use Ruudk\GraphQLCodeGenerator\HooksThroughSoleFragmentSpread\Generated\Hook\OrderDiscountId;
 
 // This file was automatically generated and should not be edited.
 
 final class Order
 {
     public ?DiscountCode $discountCode {
-        get => $this->discountCode ??= $this->hooks['findDiscountCodeById']->__invoke($this->discountId);
+        get => $this->discountCode ??= $this->hooks['findDiscountCodeById']->__invoke($this->buildOrderDiscountId());
     }
 
     public string $discountId {
@@ -38,4 +39,12 @@ final class Order
         private readonly array $data,
         private readonly array $hooks,
     ) {}
+
+    /**
+     * @internal
+     */
+    public function buildOrderDiscountId() : OrderDiscountId
+    {
+        return new OrderDiscountId($this->data);
+    }
 }

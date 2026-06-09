@@ -6,6 +6,7 @@ namespace Ruudk\GraphQLCodeGenerator\HooksWithFragmentSpread\Generated\Fragment;
 
 use Ruudk\GraphQLCodeGenerator\HooksWithFragmentSpread\FindUserByIdHook;
 use Ruudk\GraphQLCodeGenerator\HooksWithFragmentSpread\Generated\Fragment\ProjectSummary\Creator;
+use Ruudk\GraphQLCodeGenerator\HooksWithFragmentSpread\Generated\Hook\ProjectCreatorId;
 use Ruudk\GraphQLCodeGenerator\HooksWithFragmentSpread\User;
 
 // This file was automatically generated and should not be edited.
@@ -21,7 +22,7 @@ final class ProjectSummary
     }
 
     public ?User $user {
-        get => $this->user ??= $this->hooks['findUserById']->__invoke($this->creator->id);
+        get => $this->user ??= $this->hooks['findUserById']->__invoke($this->buildProjectCreatorId());
     }
 
     /**
@@ -42,4 +43,12 @@ final class ProjectSummary
         private readonly array $data,
         private readonly array $hooks,
     ) {}
+
+    /**
+     * @internal
+     */
+    public function buildProjectCreatorId() : ProjectCreatorId
+    {
+        return new ProjectCreatorId($this->data);
+    }
 }

@@ -5,18 +5,23 @@ declare(strict_types=1);
 namespace Ruudk\GraphQLCodeGenerator\HooksBatched;
 
 use Ruudk\GraphQLCodeGenerator\Attribute\Hook;
+use Ruudk\GraphQLCodeGenerator\HooksBatched\Generated\Hook\OrganizationId;
 
 /**
- * Batched org-level hook taking a single field. Records every batch it is
- * invoked with so the test can measure its invocation count.
+ * Batched org-level hook. Records every batch it is invoked with so the test
+ * can measure its invocation count.
  */
-#[Hook(name: 'findOrgPlan', batched: true)]
+#[Hook(name: 'findOrgPlan', requires: <<<'GRAPHQL'
+    fragment OrganizationId on Organization {
+      id
+    }
+    GRAPHQL, batched: true)]
 final class FindOrgPlanHook
 {
     /**
      * The `$inputs` array of every `__invoke` call, in order.
      *
-     * @var list<array<int, array{string}>>
+     * @var list<array<int, OrganizationId>>
      */
     public array $batches = [];
 
@@ -28,15 +33,15 @@ final class FindOrgPlanHook
     ) {}
 
     /**
-     * @param array<int, array{string}> $inputs
+     * @param array<int, OrganizationId> $inputs
      * @return iterable<int, OrgPlan>
      */
     public function __invoke(array $inputs) : iterable
     {
         $this->batches[] = $inputs;
 
-        foreach ($inputs as $key => [$id]) {
-            yield $key => $this->plans[$id] ?? new OrgPlan($id, 'free');
+        foreach ($inputs as $key => $organization) {
+            yield $key => $this->plans[$organization->id] ?? new OrgPlan($organization->id, 'free');
         }
     }
 }

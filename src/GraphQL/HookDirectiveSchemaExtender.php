@@ -31,13 +31,11 @@ final readonly class HookDirectiveSchemaExtender
 
         if ($existing !== null) {
             Assert::eq($existing->locations, ['FIELD'], 'Expected @hook to be on FIELD');
-            Assert::count($existing->args, 2, 'Expected @hook to have 2 arguments');
+            Assert::count($existing->args, 1, 'Expected @hook to have 1 argument');
 
-            [$name, $input] = $existing->args;
+            [$name] = $existing->args;
             Assert::eq($name->name, 'name', 'Expected @hook first argument to be named "name"');
             Assert::eq(Type::nonNull(Type::string()), $name->getType(), 'Expected @hook "name" argument to be a non-null string');
-            Assert::eq($input->name, 'input', 'Expected @hook second argument to be named "input"');
-            Assert::eq(Type::nonNull(Type::listOf(Type::nonNull(Type::string()))), $input->getType(), 'Expected @hook "input" argument to be a non-null list of non-null strings');
 
             return $schema;
         }
@@ -46,7 +44,7 @@ final readonly class HookDirectiveSchemaExtender
             $schema,
             Parser::parse(
                 <<<'GRAPHQL'
-                    directive @hook(name: String!, input: [String!]!) on FIELD
+                    directive @hook(name: String!) on FIELD
                     GRAPHQL,
             ),
         );

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Ruudk\GraphQLCodeGenerator\HooksWithListReturn\Generated\Query\Test\Data\Viewer;
 
 use Ruudk\GraphQLCodeGenerator\HooksWithListReturn\FindUsersByIdsHook;
+use Ruudk\GraphQLCodeGenerator\HooksWithListReturn\Generated\Hook\ProjectContributorIds;
 use Ruudk\GraphQLCodeGenerator\HooksWithListReturn\User;
 
 // This file was automatically generated and should not be edited.
@@ -22,7 +23,7 @@ final class Project
      * @var list<User>
      */
     public array $contributors {
-        get => $this->contributors ??= $this->hooks['findUsersByIds']->__invoke($this->contributorIds);
+        get => $this->contributors ??= $this->hooks['findUsersByIds']->__invoke($this->buildProjectContributorIds());
     }
 
     public string $name {
@@ -44,4 +45,12 @@ final class Project
         private readonly array $data,
         private readonly array $hooks,
     ) {}
+
+    /**
+     * @internal
+     */
+    public function buildProjectContributorIds() : ProjectContributorIds
+    {
+        return new ProjectContributorIds($this->data);
+    }
 }

@@ -5,6 +5,9 @@ declare(strict_types=1);
 namespace Ruudk\GraphQLCodeGenerator\HooksBatched\Generated\Query\Test\Data;
 
 use Ruudk\GraphQLCodeGenerator\HooksBatched\Access;
+use Ruudk\GraphQLCodeGenerator\HooksBatched\Generated\Hook\OrganizationId;
+use Ruudk\GraphQLCodeGenerator\HooksBatched\Generated\Hook\RepositoryAccessFields;
+use Ruudk\GraphQLCodeGenerator\HooksBatched\Generated\Hook\RepositoryOwnerId;
 use Ruudk\GraphQLCodeGenerator\HooksBatched\Generated\HookLoader;
 use Ruudk\GraphQLCodeGenerator\HooksBatched\Generated\Query\Test\Data\Organization\Repository;
 use Ruudk\GraphQLCodeGenerator\HooksBatched\OrgPlan;
@@ -47,9 +50,9 @@ final class Organization
      *     ...,
      * } $data
      * @param array{
-     *     findOrgPlan: HookLoader<array{string}, OrgPlan>,
-     *     computeAccess: HookLoader<array{string, string}, Access>,
-     *     findUserById: HookLoader<array{string}, null|User>,
+     *     findOrgPlan: HookLoader<OrganizationId, OrgPlan>,
+     *     computeAccess: HookLoader<RepositoryAccessFields, Access>,
+     *     findUserById: HookLoader<RepositoryOwnerId, null|User>,
      *     ...<string, HookLoader<mixed, mixed>>,
      * } $loaders
      */
@@ -57,4 +60,12 @@ final class Organization
         private readonly array $data,
         private readonly array $loaders,
     ) {}
+
+    /**
+     * @internal
+     */
+    public function buildOrganizationId() : OrganizationId
+    {
+        return new OrganizationId($this->data);
+    }
 }

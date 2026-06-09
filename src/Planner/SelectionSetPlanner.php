@@ -26,12 +26,14 @@ use GraphQL\Type\Definition\WrappingType;
 use GraphQL\Type\Schema;
 use LogicException;
 use Ruudk\GraphQLCodeGenerator\Config\Config;
+use Ruudk\GraphQLCodeGenerator\Config\HookDefinition;
 use Ruudk\GraphQLCodeGenerator\DirectiveProcessor;
 use Ruudk\GraphQLCodeGenerator\GraphQL\AST\InjectedTypenameFieldNode;
 use Ruudk\GraphQLCodeGenerator\GraphQL\FragmentDefinitionNodeWithSource;
 use Ruudk\GraphQLCodeGenerator\GraphQL\PossibleTypesFinder;
 use Ruudk\GraphQLCodeGenerator\Planner\Plan\DataClassPlan;
 use Ruudk\GraphQLCodeGenerator\Planner\Source\GraphQLFileSource;
+use Ruudk\GraphQLCodeGenerator\Planner\Source\HookInputSource;
 use Ruudk\GraphQLCodeGenerator\Planner\Source\InlineFragmentSource;
 use Ruudk\GraphQLCodeGenerator\Planner\Source\InlineSource;
 use Ruudk\GraphQLCodeGenerator\Planner\Source\TwigFileSource;
@@ -98,7 +100,7 @@ final class SelectionSetPlanner
      * @throws LogicException
      */
     public function plan(
-        GraphQLFileSource | InlineFragmentSource | InlineSource | TwigFileSource $source,
+        GraphQLFileSource | HookInputSource | InlineFragmentSource | InlineSource | TwigFileSource $source,
         SelectionSetNode $selectionSet,
         Type $parent,
         string $outputDirectory,
@@ -141,7 +143,7 @@ final class SelectionSetPlanner
      * @throws LogicException
      */
     public function planSelectionSet(
-        GraphQLFileSource | InlineFragmentSource | InlineSource | TwigFileSource $source,
+        GraphQLFileSource | HookInputSource | InlineFragmentSource | InlineSource | TwigFileSource $source,
         SelectionSetNode $selectionSet,
         Type $type,
         PlanningContext $context,
@@ -219,7 +221,7 @@ final class SelectionSetPlanner
      * @throws LogicException
      */
     private function planNamedTypeSelectionSet(
-        GraphQLFileSource | InlineFragmentSource | InlineSource | TwigFileSource $source,
+        GraphQLFileSource | HookInputSource | InlineFragmentSource | InlineSource | TwigFileSource $source,
         SelectionSetNode $selectionSet,
         NamedType & Type $type,
         PlanningContext $context,
@@ -233,6 +235,7 @@ final class SelectionSetPlanner
             $this->typeMapper,
             $this->fragmentDefinitions,
             $this->fragmentTypes,
+            $this->config->hooks,
         );
         $payloadShape = $payloadShapeBuilder->buildPayloadShape($selectionSet, $type);
 
@@ -313,7 +316,7 @@ final class SelectionSetPlanner
      * @throws LogicException
      */
     private function processFieldSelection(
-        GraphQLFileSource | InlineFragmentSource | InlineSource | TwigFileSource $source,
+        GraphQLFileSource | HookInputSource | InlineFragmentSource | InlineSource | TwigFileSource $source,
         FieldNode $selection,
         Type $parent,
         PlanningContext $context,
@@ -325,20 +328,27 @@ final class SelectionSetPlanner
 
         // Hook fields are synthetic — they don't exist in the schema and their value comes from
         // a user-supplied callable at runtime rather than from the server response.
-        $hookDirective = $this->directiveProcessor->getHookDirective($selection->directives);
+        $hookName = $this->directiveProcessor->getHookDirective($selection->directives);
 
-        if ($hookDirective !== null) {
+        if ($hookName !== null) {
             Assert::keyExists(
                 $this->config->hooks,
-                $hookDirective['name'],
-                sprintf('Hook "%s" used in selection is not registered via Config::withHook().', $hookDirective['name']),
+                $hookName,
+                sprintf('Hook "%s" used in selection is not registered via Config::withHook().', $hookName),
             );
 
-            $hook = $this->config->hooks[$hookDirective['name']];
+            $hook = $this->config->hooks[$hookName];
+
+            // The @hook field may only sit on a type the hook declares it supports.
+            // (The hook's required fields are merged into $payloadShape by
+            // PayloadShapeBuilder; they are deliberately kept out of $fields so the
+            // caller's typed API is not polluted by the hook's internals.)
+            $this->assertHookSiteType($parent, $hook);
 
             $fields->add($fieldName, new HookPropertyType(
                 $hook->name,
-                $hookDirective['input'],
+                $hook->requiresFqcn,
+                $hook->requiresClassName,
                 $hook->returnType,
                 $hook->batched,
             ));
@@ -443,12 +453,43 @@ final class SelectionSetPlanner
     }
 
     /**
+     * A `@hook` field may only be placed on a selection whose type is the one the
+     * hook declares in its `requires` fragment — that exact object type, or (when
+     * the hook's condition is an interface) any object type implementing it.
+     *
+     * @throws InvalidArgumentException
+     */
+    private function assertHookSiteType(Type $parent, HookDefinition $hook) : void
+    {
+        $parentName = $parent instanceof NamedType ? $parent->name() : (string) $parent;
+        $matches = $parentName === $hook->requiresTypeCondition;
+
+        if ( ! $matches && $parent instanceof ObjectType) {
+            foreach ($parent->getInterfaces() as $interface) {
+                if ($interface->name() === $hook->requiresTypeCondition) {
+                    $matches = true;
+
+                    break;
+                }
+            }
+        }
+
+        Assert::true($matches, sprintf(
+            'Hook "%s" requires type "%s" but @hook(name: "%s") is used on a "%s" selection.',
+            $hook->name,
+            $hook->requiresTypeCondition,
+            $hook->name,
+            $parentName,
+        ));
+    }
+
+    /**
      * @throws InvalidArgumentException
      * @throws InvariantViolation
      * @throws LogicException
      */
     private function processNestedSelection(
-        GraphQLFileSource | InlineFragmentSource | InlineSource | TwigFileSource $source,
+        GraphQLFileSource | HookInputSource | InlineFragmentSource | InlineSource | TwigFileSource $source,
         FieldNode $selection,
         string $fieldName,
         Type $fieldType,
@@ -521,7 +562,7 @@ final class SelectionSetPlanner
      * @throws LogicException
      */
     private function processInlineFragment(
-        GraphQLFileSource | InlineFragmentSource | InlineSource | TwigFileSource $source,
+        GraphQLFileSource | HookInputSource | InlineFragmentSource | InlineSource | TwigFileSource $source,
         InlineFragmentNode $selection,
         Type $parent,
         PlanningContext $context,
@@ -559,6 +600,7 @@ final class SelectionSetPlanner
             $this->typeMapper,
             $this->fragmentDefinitions,
             $this->fragmentTypes,
+            $this->config->hooks,
         );
 
         // Using fragmentType as parent ensures fields won't be marked optional.
@@ -603,6 +645,7 @@ final class SelectionSetPlanner
 
     /**
      * @throws InvalidArgumentException
+     * @throws \InvalidArgumentException
      */
     private function processFragmentSpread(
         FragmentSpreadNode $selection,
@@ -956,7 +999,7 @@ final class SelectionSetPlanner
      * @throws InvariantViolation
      */
     private function createDataClassPlan(
-        GraphQLFileSource | InlineFragmentSource | InlineSource | TwigFileSource $source,
+        GraphQLFileSource | HookInputSource | InlineFragmentSource | InlineSource | TwigFileSource $source,
         NamedType & Type $parentType,
         SelectionSetResult $result,
         PlanningContext $context,
@@ -1038,7 +1081,7 @@ final class SelectionSetPlanner
     }
 
     private function createInlineFragmentClassPlan(
-        GraphQLFileSource | InlineFragmentSource | InlineSource | TwigFileSource $source,
+        GraphQLFileSource | HookInputSource | InlineFragmentSource | InlineSource | TwigFileSource $source,
         NamedType & Type $fragmentType,
         FieldCollection $fields,
         PayloadShape $payloadShape,
@@ -1064,6 +1107,9 @@ final class SelectionSetPlanner
         $this->result->addClass($dataClass);
     }
 
+    /**
+     * @throws \InvalidArgumentException
+     */
     private function storeInlineFragmentRequiredFields(
         InlineFragmentNode $selection,
         string $inlineFragmentKey,
@@ -1076,6 +1122,7 @@ final class SelectionSetPlanner
     /**
      * Recursively collect all field names from a selection set
      * @param list<string> $requiredFields
+     * @throws \InvalidArgumentException
      */
     private function collectRequiredFieldsFromSelectionSet(
         SelectionSetNode $selectionSet,

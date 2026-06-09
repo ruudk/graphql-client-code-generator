@@ -5,7 +5,7 @@ query Test {
             name
             contributorIds
 
-            contributors @hook(name: "findUsersByIds", input: ["contributorIds"])
+            contributors @hook(name: "findUsersByIds")
         }
     }
 }

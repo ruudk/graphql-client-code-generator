@@ -5,8 +5,12 @@ declare(strict_types=1);
 namespace Ruudk\GraphQLCodeGenerator\Config;
 
 use Closure;
+use GraphQL\Error\SyntaxError;
+use GraphQL\Language\AST\FragmentDefinitionNode;
+use GraphQL\Language\Parser;
 use GraphQL\Type\Schema;
 use InvalidArgumentException;
+use JsonException;
 use ReflectionClass;
 use ReflectionException;
 use ReflectionMethod;
@@ -284,19 +288,22 @@ final readonly class Config
 
     /**
      * Register a hook. The class must be invokable (`__invoke`) and must carry
-     * `#[Hook(name: '...')]` naming the hook for use in `@hook(name: ...)` directives.
-     * The return type is inferred from the `__invoke` signature.
+     * `#[Hook(name: '...', requires: self::REQUIRES)]`.
      *
-     * A legacy hook is invoked once per object instance with positional arguments.
-     * A batched hook (`#[Hook(name: '...', batched: true)]`) is invoked exactly once
-     * per operation: it receives `array<int, array{...}>` (one input tuple per
-     * occurrence, integer-keyed by the library) and must return/yield
-     * `iterable<int, V>` echoing the same integer keys.
+     * `requires` is a named GraphQL fragment declaring the data the hook needs; the
+     * generator injects that selection into queries that use the hook and hands the
+     * hook a typed object built from it. The return type is inferred from `__invoke`.
+     *
+     * A legacy hook is invoked once per object instance: `__invoke(DataClass $input): V`.
+     * A batched hook (`#[Hook(..., batched: true)]`) is invoked exactly once per
+     * operation: `__invoke(array<int, DataClass> $inputs): iterable<int, V>`, echoing the
+     * integer keys it was given.
      *
      * @param class-string $class
      * @throws InvalidArgumentException
      * @throws \Webmozart\Assert\InvalidArgumentException
      * @throws ReflectionException
+     * @throws JsonException
      */
     public function withHook(string $class) : self
     {
@@ -319,6 +326,41 @@ final readonly class Config
             $hookName,
             $class,
         ));
+
+        try {
+            $document = Parser::parse($hook->requires);
+        } catch (SyntaxError $exception) {
+            throw new InvalidArgumentException(
+                sprintf('The `requires` of hook "%s" (%s) is not valid GraphQL.', $hookName, $class),
+                previous: $exception,
+            );
+        }
+
+        Assert::count($document->definitions, 1, sprintf(
+            'The `requires` of hook "%s" (%s) must contain exactly one named fragment.',
+            $hookName,
+            $class,
+        ));
+
+        $fragment = $document->definitions[0];
+
+        Assert::isInstanceOf($fragment, FragmentDefinitionNode::class, sprintf(
+            'The `requires` of hook "%s" (%s) must be a named fragment '
+            . '(fragment Name on Type { ... }).',
+            $hookName,
+            $class,
+        ));
+
+        $requiresClassName = $fragment->name->value;
+
+        Assert::regex($requiresClassName, '/^[A-Z][a-zA-Z0-9_]*$/', sprintf(
+            'The `requires` fragment name "%s" of hook "%s" must be a valid PHP class name.',
+            $requiresClassName,
+            $hookName,
+        ));
+
+        $requiresTypeCondition = $fragment->typeCondition->name->value;
+        $requiresFqcn = $this->namespace . '\\Hook\\' . $requiresClassName;
 
         $method = new ReflectionMethod($class, '__invoke');
 
@@ -348,9 +390,10 @@ final readonly class Config
                 throw new InvalidArgumentException(sprintf(
                     'Batched hook "%s" (%s::__invoke) must accept exactly one array argument: '
                     . 'public function __invoke(array $inputs): iterable. Each entry of $inputs is '
-                    . "one occurrence's input tuple, keyed by an integer the hook must echo back.",
+                    . 'one occurrence\'s %s, integer-keyed by the library.',
                     $hookName,
                     $class,
+                    $requiresClassName,
                 ));
             }
 
@@ -367,7 +410,16 @@ final readonly class Config
         }
 
         $hooks = $this->hooks;
-        $hooks[$hookName] = new HookDefinition($hookName, $class, $returnType, $batched);
+        $hooks[$hookName] = new HookDefinition(
+            $hookName,
+            $class,
+            $returnType,
+            $batched,
+            $fragment,
+            $requiresClassName,
+            $requiresFqcn,
+            $requiresTypeCondition,
+        );
 
         return clone ($this, [
             'hooks' => $hooks,
