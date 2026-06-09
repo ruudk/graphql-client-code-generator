@@ -1,0 +1,7 @@
+query Test {
+    node {
+        ... on Project {
+            owner @hook(name: "findOwner")
+        }
+    }
+}

@@ -1,0 +1,22 @@
+type Query {
+    node: Node!
+}
+
+interface Node {
+    id: ID!
+}
+
+type Project implements Node {
+    id: ID!
+    name: String!
+    ownerId: ID!
+}
+
+type Organization implements Node {
+    id: ID!
+    title: String!
+}
+
+type User {
+    id: ID!
+}

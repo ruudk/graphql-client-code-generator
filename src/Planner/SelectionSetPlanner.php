@@ -1130,9 +1130,20 @@ final class SelectionSetPlanner
     ) : void {
         foreach ($selectionSet->selections as $selection) {
             if ($selection instanceof FieldNode && $selection->name->value !== '__typename') {
-                // Hook fields are synthesized client-side and never present in the raw response,
-                // so they must not be used as presence guards for discriminating union/interface variants.
-                if ($this->directiveProcessor->getHookDirective($selection->directives) !== null) {
+                // The synthetic hook field itself is never present in the raw response, so it
+                // cannot guard the variant. But the data the hook `requires` IS injected into
+                // the operation and returned by the server, so those fields must guard the
+                // variant — otherwise the parent's optional payload offsets are never narrowed
+                // for the leaf class that consumes them.
+                $hookName = $this->directiveProcessor->getHookDirective($selection->directives);
+
+                if ($hookName !== null) {
+                    $hook = $this->config->hooks[$hookName] ?? null;
+
+                    if ($hook !== null) {
+                        $this->collectRequiredFieldsFromSelectionSet($hook->requiresFragment->selectionSet, $requiredFields);
+                    }
+
                     continue;
                 }
 
