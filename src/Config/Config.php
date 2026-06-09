@@ -32,6 +32,7 @@ final readonly class Config
      * @param list<string> $inlineProcessingDirectories
      * @param list<string> $twigProcessingDirectories
      * @param array<string, HookDefinition> $hooks
+     * @param list<OperationArgument> $operationArguments
      */
     private function __construct(
         public Schema | string $schema,
@@ -65,6 +66,7 @@ final readonly class Config
         public bool $formatOperationFiles = false,
         public array $hooks = [],
         public bool $symfonyAutowireHooks = false,
+        public array $operationArguments = [],
     ) {}
 
     public static function create(
@@ -369,6 +371,48 @@ final readonly class Config
 
         return clone ($this, [
             'hooks' => $hooks,
+        ]);
+    }
+
+    /**
+     * Register an extra parameter to inject into generated operation methods.
+     *
+     * The parameter is prepended to `execute()`/`executeOrThrow()` and forwarded
+     * positionally to the client's `graphql()` call (after the operation name).
+     *
+     * When `$directive` is given, the parameter only applies to operations carrying
+     * that directive (e.g. `mutation Foo @requiresActor`). When `$directive` is null,
+     * it applies to every operation whose type is listed in `$operations`.
+     *
+     * `$operations` restricts which operation types the argument may target. Leave it
+     * empty (the default) to allow any operation type.
+     *
+     * @param list<'query'|'mutation'> $operations
+     * @throws \Webmozart\Assert\InvalidArgumentException
+     */
+    public function withOperationArgument(
+        string $name,
+        Type $type,
+        ?string $directive = null,
+        array $operations = [],
+    ) : self {
+        Assert::regex($name, '/^[a-zA-Z_][a-zA-Z0-9_]*$/', sprintf(
+            'Operation argument name "%s" must be a valid PHP identifier.',
+            $name,
+        ));
+
+        if ($directive !== null) {
+            Assert::regex($directive, '/^[a-zA-Z_][a-zA-Z0-9_]*$/', sprintf(
+                'Operation argument directive "%s" must be a valid GraphQL directive name.',
+                $directive,
+            ));
+        }
+
+        $operationArguments = $this->operationArguments;
+        $operationArguments[] = new OperationArgument($name, $type, $directive, $operations);
+
+        return clone ($this, [
+            'operationArguments' => $operationArguments,
         ]);
     }
 

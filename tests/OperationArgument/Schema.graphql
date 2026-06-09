@@ -1,0 +1,12 @@
+type Query {
+    ping: String!
+}
+
+type Mutation {
+    createThing(name: String!): Thing!
+}
+
+type Thing {
+    id: ID!
+    name: String!
+}

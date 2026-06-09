@@ -408,6 +408,7 @@ enum SearchType: string
 - **Custom `@indexBy` directive** for O(1) lookups instead of O(n) searching
 - **Custom `@throwWhenNull` directive** - drop nullability per-field and throw a typed exception when the server returns null
 - **Custom `@hook` directive** - enrich responses with local data resolved lazily at access time
+- **Operation arguments** via `withOperationArgument()` - inject extra typed parameters (e.g. an actor) into `execute()` and forward them to your client, optionally gated by a custom directive
 - **Fragment dependency injection** - automatically includes required fragments
 - **Automatic query optimization** - merges fragments, simplifies inline fragments
 
@@ -1022,6 +1023,135 @@ Notes:
   twice.
 - Omitting `batched` (or `batched: false`) keeps the existing per-instance behaviour — this is
   not a breaking change. Legacy and batched hooks can be mixed in one query.
+
+### 🎭 Inject Extra Arguments with `withOperationArgument()`
+
+Sometimes a generated operation needs to forward something to your client that is *not* a GraphQL
+variable — an actor, a tenant, a correlation id, an idempotency key. `withOperationArgument()`
+prepends an extra typed parameter to the generated `execute()` / `executeOrThrow()` methods and
+forwards it positionally to your client's `graphql()` call (right after the operation name):
+
+```php
+use Symfony\Component\TypeInfo\Type;
+
+Config::create(/* ... */)
+    ->withOperationArgument(
+        name: 'actor',
+        type: Type::object(Actor::class),
+        directive: 'requiresActor', // opt-in: only operations tagged @requiresActor
+    );
+```
+
+- **Opt-in via a directive** — pass `directive: 'requiresActor'` and only operations carrying
+  `@requiresActor` receive the extra parameter. The directive is local to your operation: it is
+  registered automatically (so validation passes) and stripped from the query sent to the server.
+- **Apply to every operation** — omit `directive` and the parameter is injected into *all*
+  operations.
+- **Restrict by operation type** — pass `operations: ['mutation']` (or `['query']`) to limit which
+  operation types the argument may target. The default is an empty array, which allows any type.
+- Call `withOperationArgument()` multiple times to inject more than one argument; they are emitted
+  in registration order, before the GraphQL variables.
+
+<!-- source: tests/OperationArgument/CreateThing.graphql -->
+```graphql
+mutation CreateThing($name: String!) @requiresActor {
+    createThing(name: $name) {
+        id
+        name
+    }
+}
+```
+
+**Generated code** — `Actor $actor` leads the signature and is forwarded to `graphql()`, while the
+`@requiresActor` directive is gone from `OPERATION_DEFINITION`:
+
+<!-- source: tests/OperationArgument/Generated/Mutation/CreateThing/CreateThingMutation.php -->
+```php
+<?php
+
+declare(strict_types=1);
+
+namespace Ruudk\GraphQLCodeGenerator\OperationArgument\Generated\Mutation\CreateThing;
+
+use Ruudk\GraphQLCodeGenerator\OperationArgument\Actor;
+use Ruudk\GraphQLCodeGenerator\OperationArgument\ActorTestClient;
+use Stringable;
+
+// This file was automatically generated and should not be edited.
+
+final readonly class CreateThingMutation {
+    public const string OPERATION_NAME = 'CreateThing';
+    public const string OPERATION_DEFINITION = <<<'GRAPHQL'
+        mutation CreateThing($name: String!) {
+          createThing(name: $name) {
+            id
+            name
+          }
+        }
+        
+        GRAPHQL;
+
+    public function __construct(
+        private ActorTestClient $client,
+    ) {}
+
+    /**
+     * @api
+     */
+    public function execute(
+        Actor $actor,
+        Stringable|string $name,
+    ) : Data {
+        $data = $this->client->graphql(
+            self::OPERATION_DEFINITION,
+            [
+                'name' => (string) $name,
+            ],
+            self::OPERATION_NAME,
+            actor: $actor,
+        );
+
+        return new Data(
+            $data['data'] ?? [], // @phpstan-ignore argument.type
+            $data['errors'] ?? [] // @phpstan-ignore argument.type
+        );
+    }
+
+    /**
+     * @api
+     * @throws CreateThingMutationFailedException
+     */
+    public function executeOrThrow(
+        Actor $actor,
+        Stringable|string $name,
+    ) : Data {
+        $data = $this->execute(
+            $actor,
+            $name,
+        );
+
+        if ($data->errors !== []) {
+            throw new CreateThingMutationFailedException($data);
+        }
+
+        return $data;
+    }
+}
+```
+
+Your client's `graphql()` method receives the extra argument(s) positionally, so add them to its
+signature (make them optional if only some operations forward them):
+
+```php
+public function graphql(
+    string $query,
+    array $variables = [],
+    ?string $operationName = null,
+    ?Actor $actor = null,
+) : array {
+    // forward $actor to the transport — e.g. as a header
+}
+```
 
 ## Requirements
 
