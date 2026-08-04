@@ -59,7 +59,7 @@ final class DumpOrThrowsTest extends GraphQLTestCase
         ]));
         // Test that executeOrThrow() throws exception when there are errors
         $this->expectException(Generated\Query\Test\TestQueryFailedException::class);
-        $this->expectExceptionMessage('Something went wrong');
+        $this->expectExceptionMessageIsOrContains('Something went wrong');
         $query->executeOrThrow();
     }
 

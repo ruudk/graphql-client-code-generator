@@ -44,7 +44,7 @@ final class FragmentFinderTest extends TestCase
     public function testThrowsWhenUsedOnConstructorParameter() : void
     {
         $this->expectException(InvalidArgumentException::class);
-        $this->expectExceptionMessage('The #[GeneratedGraphQLFragment] attribute cannot be used on constructor parameters. Found on "App\UserMapper::__construct::$data". Use it on a non-constructor method parameter instead.');
+        $this->expectExceptionMessageIsOrContains('The #[GeneratedGraphQLFragment] attribute cannot be used on constructor parameters. Found on "App\UserMapper::__construct::$data". Use it on a non-constructor method parameter instead.');
 
         $this->collect(
             <<<'PHP'
