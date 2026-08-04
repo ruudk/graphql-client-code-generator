@@ -18,7 +18,7 @@ use Ruudk\GraphQLCodeGenerator\GraphQL\OperationArgumentDirectiveSchemaExtender;
 use Ruudk\GraphQLCodeGenerator\GraphQL\ThrowWhenNullDirectiveSchemaExtender;
 use Ruudk\GraphQLCodeGenerator\Planner;
 use SebastianBergmann\Diff\Differ;
-use SebastianBergmann\Diff\Output\UnifiedDiffOutputBuilder;
+use SebastianBergmann\Diff\Output\StrictUnifiedDiffOutputBuilder;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Attribute\Option;
 use Symfony\Component\Console\Command\Command;
@@ -180,7 +180,10 @@ final class GenerateCommand
 
                     $errors = false;
 
-                    $differ = new Differ(new UnifiedDiffOutputBuilder("--- Actual\n+++ Expected\n"));
+                    $differ = new Differ(new StrictUnifiedDiffOutputBuilder([
+                        'fromFile' => 'Actual',
+                        'toFile' => 'Expected',
+                    ]));
 
                     foreach ($files as $path => $content) {
                         if (isset($actual[$path]) && $content !== $actual[$path]) {
