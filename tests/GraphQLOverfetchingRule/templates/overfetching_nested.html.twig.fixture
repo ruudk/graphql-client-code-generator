@@ -1,0 +1,22 @@
+{% types {
+    data: '\\Ruudk\\GraphQLCodeGenerator\\Twig\\Generated\\Fragment\\AdminProjectList',
+} %}
+
+{% graphql %}
+fragment AdminProjectList on Query {
+  viewer {
+    name
+  }
+  projects {
+    ...AdminProjectRow
+  }
+}
+{% endgraphql %}
+
+{% if data.viewer %}
+    <h1>Good day</h1>
+{% endif %}
+
+{% for project in data.projects %}
+    {{ include('_project_row.html.twig', {project: project.adminProjectRow}) }}
+{% endfor %}
