@@ -283,6 +283,8 @@ final class Planner
         }
 
         $operationsToInject = [];
+        $claimedAttributes = [];
+        $skippedAttributes = [];
 
         if ($this->config->inlineProcessingDirectories !== []) {
             $finder = Finder::create()
@@ -298,8 +300,9 @@ final class Planner
                 $classConstants = new ClassConstantFinder();
                 $stmts = new NodeTraverser(new NameResolver(), $classConstants)->traverse($stmts);
 
-                $operationFinder = new OperationFinder($classConstants->constants);
+                $operationFinder = new OperationFinder($classConstants->constants, $this->config->scope);
                 new NodeTraverser($operationFinder)->traverse($stmts);
+                $skippedAttributes = [...$skippedAttributes, ...$operationFinder->skipped];
 
                 foreach ($operationFinder->operations as $className => $methods) {
                     foreach ($methods as $method => $properties) {
@@ -310,6 +313,7 @@ final class Planner
                                 $property,
                             ]));
                             $shortHash = substr($hash, 0, 6);
+                            $claimedAttributes[] = sprintf('%s::%s::$%s', $className, $method, $property);
 
                             $document = Parser::parse($operation);
                             Assert::count($document->definitions, 1);
@@ -344,8 +348,9 @@ final class Planner
                     }
                 }
 
-                $fragmentFinder = new FragmentFinder($classConstants->constants);
+                $fragmentFinder = new FragmentFinder($classConstants->constants, $this->config->scope);
                 new NodeTraverser($fragmentFinder)->traverse($stmts);
+                $skippedAttributes = [...$skippedAttributes, ...$fragmentFinder->skipped];
 
                 foreach ($fragmentFinder->fragments as $className => $methods) {
                     foreach ($methods as $method => $properties) {
@@ -356,6 +361,7 @@ final class Planner
                                 $property,
                             ]));
                             $shortHash = substr($hash, 0, 6);
+                            $claimedAttributes[] = sprintf('%s::%s::$%s', $className, $method, $property);
 
                             $document = Parser::parse($fragmentString);
                             Assert::count($document->definitions, 1, sprintf(
@@ -479,6 +485,7 @@ final class Planner
         $this->variableParser = new VariableParser($this->typeMapper);
 
         $result = new PlannerResult();
+        $result->setAttributes($claimedAttributes, $skippedAttributes);
 
         // Create the planner
         $planner = new SelectionSetPlanner(

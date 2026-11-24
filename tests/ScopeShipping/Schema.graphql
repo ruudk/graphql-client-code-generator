@@ -1,0 +1,7 @@
+type Query {
+    parcels: [Parcel!]!
+}
+
+type Parcel {
+    trackingCode: String!
+}

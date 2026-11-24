@@ -483,6 +483,58 @@ final readonly class SomeController
 
 **No separate `.graphql` files needed**—your GraphQL lives right next to where it's used, but you still get full type safety and validation!
 
+#### 🗂️ Several Schemas in One Codebase
+
+A config picks up every `#[GeneratedGraphQLClient]` and `#[GeneratedGraphQLFragment]` in the directories it processes. When two configs with their own schema process the same directory, give each a scope, and name that scope on the attribute:
+
+```php
+return [
+    Config::create(__DIR__ . '/billing.graphql', __DIR__, __DIR__ . '/src/Generated/Billing', 'App\\Generated\\Billing', BillingClient::class)
+        ->withInlineProcessingDirectory(__DIR__ . '/src')
+        ->withScope('billing'),
+    Config::create(__DIR__ . '/shipping.graphql', __DIR__, __DIR__ . '/src/Generated/Shipping', 'App\\Generated\\Shipping', ShippingClient::class)
+        ->withInlineProcessingDirectory(__DIR__ . '/src')
+        ->withScope('shipping'),
+];
+```
+
+<!-- source: tests/Scope/BillingController.php -->
+```php
+<?php
+
+declare(strict_types=1);
+
+namespace Ruudk\GraphQLCodeGenerator\Scope;
+
+use Ruudk\GraphQLCodeGenerator\Attribute\GeneratedGraphQLClient;
+use Ruudk\GraphQLCodeGenerator\Scope\Generated\Query\BillingViewerece69a\BillingViewerQuery;
+
+final readonly class BillingController
+{
+    private const string OPERATION = <<<'GRAPHQL'
+        query BillingViewer {
+          viewer {
+            login
+          }
+        }
+        GRAPHQL;
+
+    public function __construct(
+        #[GeneratedGraphQLClient(self::OPERATION, scope: 'billing')]
+        public BillingViewerQuery $query,
+    ) {}
+
+    public function getLogin() : string
+    {
+        return $this->query->execute()->viewer->login;
+    }
+}
+```
+
+A scope is a string, written out on the attribute. The scopes must be equal: a config without a scope only takes the attributes without one. The generator fails when an attribute names a scope that none of the configs reading it has.
+
+`.graphql` files have no scope: give each config its own `withQueriesDir()`. Twig blocks have none either and are read from the inline processing directories, so enable Twig in only one of the configs that share a directory.
+
 ### 🧩 Inline GraphQL Fragments
 
 A service that operates on a slice of data can **publish its own data contract** as a fragment via `#[GeneratedGraphQLFragment]`. Callers spread the fragment into their queries and hand the resulting typed object back to the service — without having to know which fields the service reads internally.

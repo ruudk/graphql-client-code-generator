@@ -11,5 +11,6 @@ final readonly class GeneratedGraphQLClient
 {
     public function __construct(
         public string $operation,
+        public ?string $scope = null,
     ) {}
 }

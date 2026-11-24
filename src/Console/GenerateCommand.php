@@ -17,6 +17,7 @@ use Ruudk\GraphQLCodeGenerator\GraphQL\IndexByDirectiveSchemaExtender;
 use Ruudk\GraphQLCodeGenerator\GraphQL\OperationArgumentDirectiveSchemaExtender;
 use Ruudk\GraphQLCodeGenerator\GraphQL\ThrowWhenNullDirectiveSchemaExtender;
 use Ruudk\GraphQLCodeGenerator\Planner;
+use Ruudk\GraphQLCodeGenerator\Planner\UnclaimedAttributes;
 use SebastianBergmann\Diff\Differ;
 use SebastianBergmann\Diff\Output\StrictUnifiedDiffOutputBuilder;
 use Symfony\Component\Console\Attribute\AsCommand;
@@ -74,6 +75,7 @@ final class GenerateCommand
         ));
 
         $exitCode = Command::SUCCESS;
+        $plans = [];
 
         $io->title('GraphQL Client Code Generator');
 
@@ -159,6 +161,7 @@ final class GenerateCommand
             try {
                 // Planning phase - discovers types
                 $plan = new Planner($configItem)->plan();
+                $plans[] = $plan;
 
                 // Execution phase - uses discovered types from plan
                 $executor = new PlanExecutor($configItem);
@@ -279,6 +282,26 @@ final class GenerateCommand
 
                 $exitCode = Command::FAILURE;
             }
+        }
+
+        if (count($plans) !== $configCount) {
+            return $exitCode;
+        }
+
+        $unclaimed = UnclaimedAttributes::find(...$plans);
+
+        foreach ($unclaimed as $location => $scope) {
+            $io->writeln(sprintf(
+                '<error>%s %s, which no config that reads it has</error>',
+                $location,
+                $scope === null ? 'has no scope' : sprintf('has the scope "%s"', $scope),
+            ));
+        }
+
+        if ($unclaimed !== []) {
+            $io->error('Found inline attributes that no config generates code for. Give each the scope of its config, set with Config::withScope().');
+
+            return Command::FAILURE;
         }
 
         return $exitCode;

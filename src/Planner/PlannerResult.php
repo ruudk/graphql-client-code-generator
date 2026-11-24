@@ -46,6 +46,22 @@ final class PlannerResult
     public private(set) array $unusedFragments = [];
 
     /**
+     * The inline attributes this config generates for, by where they are, like
+     * `App\SomeController::__construct::$query`.
+     *
+     * @var list<string>
+     */
+    public private(set) array $claimedAttributes = [];
+
+    /**
+     * The inline attributes this config left to another one, by where they are,
+     * with the scope they name.
+     *
+     * @var array<string, ?string>
+     */
+    public private(set) array $skippedAttributes = [];
+
+    /**
      * @param object $class A plan object with a path property
      */
     public function addClass(object $class) : void
@@ -83,6 +99,16 @@ final class PlannerResult
     public function setOperationsToInject(array $operationsToInject) : void
     {
         $this->operationsToInject = $operationsToInject;
+    }
+
+    /**
+     * @param list<string> $claimed
+     * @param array<string, ?string> $skipped
+     */
+    public function setAttributes(array $claimed, array $skipped) : void
+    {
+        $this->claimedAttributes = $claimed;
+        $this->skippedAttributes = $skipped;
     }
 
     /**

@@ -1,0 +1,43 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Ruudk\GraphQLCodeGenerator\Scope\Generated\Query\BillingViewerece69a;
+
+use Ruudk\GraphQLCodeGenerator\TestClient;
+
+// This file was automatically generated and should not be edited.
+
+final readonly class BillingViewerQuery {
+    public const string OPERATION_NAME = 'BillingViewer';
+    public const string OPERATION_DEFINITION = <<<'GRAPHQL'
+        query BillingViewer {
+          viewer {
+            login
+          }
+        }
+        
+        GRAPHQL;
+
+    public function __construct(
+        private TestClient $client,
+    ) {}
+
+    /**
+     * @api
+     */
+    public function execute() : Data
+    {
+        $data = $this->client->graphql(
+            self::OPERATION_DEFINITION,
+            [
+            ],
+            self::OPERATION_NAME,
+        );
+
+        return new Data(
+            $data['data'] ?? [], // @phpstan-ignore argument.type
+            $data['errors'] ?? [] // @phpstan-ignore argument.type
+        );
+    }
+}

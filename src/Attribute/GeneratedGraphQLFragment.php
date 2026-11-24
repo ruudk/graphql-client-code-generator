@@ -11,5 +11,6 @@ final readonly class GeneratedGraphQLFragment
 {
     public function __construct(
         public string $fragment,
+        public ?string $scope = null,
     ) {}
 }

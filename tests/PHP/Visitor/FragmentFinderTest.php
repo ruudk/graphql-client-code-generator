@@ -41,6 +41,50 @@ final class FragmentFinderTest extends TestCase
         );
     }
 
+    public function testFindsFragmentOfItsScope() : void
+    {
+        self::assertSame(
+            [
+                'App\UserMapper' => [
+                    'mapMany' => [
+                        'users' => 'fragment UserName on User { id }',
+                    ],
+                ],
+            ],
+            $this->collectScoped('billing', "fragment: self::FRAGMENT, scope: 'billing'")->fragments,
+        );
+    }
+
+    public function testSkipsFragmentOfAnotherScope() : void
+    {
+        $finder = $this->collectScoped('billing', "self::FRAGMENT, 'shipping'");
+
+        self::assertSame(
+            [[], [
+                'App\UserMapper::mapMany::$users' => 'shipping',
+            ]],
+            [$finder->fragments, $finder->skipped],
+        );
+    }
+
+    public function testThrowsForAScopeItCanNotRead() : void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessageIsOrContains('Cannot read the scope of #[GeneratedGraphQLFragment] on "App\UserMapper::mapMany::$users". Write it as a string, like \'billing\'.');
+
+        $this->collectScoped('billing', 'self::FRAGMENT, Scopes::BILLING');
+    }
+
+    public function testSkipsScopedFragmentWithoutAScope() : void
+    {
+        self::assertSame([], $this->collectScoped(null, "self::FRAGMENT, 'billing'")->fragments);
+    }
+
+    public function testSkipsFragmentWithoutAScopeWithOne() : void
+    {
+        self::assertSame([], $this->collectScoped('billing', 'self::FRAGMENT')->fragments);
+    }
+
     public function testThrowsWhenUsedOnConstructorParameter() : void
     {
         $this->expectException(InvalidArgumentException::class);
@@ -62,7 +106,29 @@ final class FragmentFinderTest extends TestCase
         );
     }
 
-    private function collect(string $code) : FragmentFinder
+    private function collectScoped(?string $scope, string $arguments) : FragmentFinder
+    {
+        return $this->collect(
+            sprintf(
+                <<<'PHP'
+                    <?php
+                    namespace App;
+                    use Ruudk\GraphQLCodeGenerator\Attribute\GeneratedGraphQLFragment;
+                    final class UserMapper {
+                        private const string FRAGMENT = 'fragment UserName on User { id }';
+                        public function mapMany(
+                            #[GeneratedGraphQLFragment(%s)]
+                            array $users,
+                        ) : void {}
+                    }
+                    PHP,
+                $arguments,
+            ),
+            $scope,
+        );
+    }
+
+    private function collect(string $code, ?string $scope = null) : FragmentFinder
     {
         $stmts = new ParserFactory()->createForNewestSupportedVersion()->parse($code);
         self::assertNotNull($stmts);
@@ -70,7 +136,7 @@ final class FragmentFinderTest extends TestCase
         $classConstants = new ClassConstantFinder();
         $stmts = new NodeTraverser(new NameResolver(), $classConstants)->traverse($stmts);
 
-        $finder = new FragmentFinder($classConstants->constants);
+        $finder = new FragmentFinder($classConstants->constants, $scope);
         new NodeTraverser($finder)->traverse($stmts);
 
         return $finder;

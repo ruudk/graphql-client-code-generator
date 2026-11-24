@@ -71,6 +71,7 @@ final readonly class Config
         public array $hooks = [],
         public bool $symfonyAutowireHooks = false,
         public array $operationArguments = [],
+        public ?string $scope = null,
     ) {}
 
     public static function create(
@@ -276,6 +277,19 @@ final readonly class Config
     {
         return clone ($this, [
             'inlineProcessingDirectories' => array_merge($this->inlineProcessingDirectories, [$directory], array_values($directories)),
+        ]);
+    }
+
+    /**
+     * Limits this config to the `#[GeneratedGraphQLClient]` and `#[GeneratedGraphQLFragment]`
+     * attributes that name the same scope, so several configs can process the same
+     * directories, each with its own schema. A config without a scope only takes
+     * the attributes without one.
+     */
+    public function withScope(string $scope) : self
+    {
+        return clone ($this, [
+            'scope' => $scope,
         ]);
     }
 

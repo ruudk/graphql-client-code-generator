@@ -40,6 +40,34 @@ final class EnsureSyncCommandTest extends TestCase
         self::assertStringContainsString('not used', $output);
     }
 
+    public function testEnsureSyncSucceedsWhenEveryScopeHasAConfig() : void
+    {
+        $tester = $this->buildTester();
+
+        $exitCode = $tester->execute([
+            '--config' => [__DIR__ . '/Fixtures/with-scopes.php'],
+            '--ensure-sync' => true,
+        ]);
+
+        self::assertSame(Command::SUCCESS, $exitCode, $tester->getDisplay());
+    }
+
+    public function testEnsureSyncFailsWhenNoConfigHasTheScopeOfAnAttribute() : void
+    {
+        $tester = $this->buildTester();
+
+        $exitCode = $tester->execute([
+            '--config' => [__DIR__ . '/Fixtures/with-scope-no-config-has.php'],
+            '--ensure-sync' => true,
+        ]);
+
+        self::assertSame(Command::FAILURE, $exitCode, $tester->getDisplay());
+        self::assertStringContainsString(
+            'Ruudk\GraphQLCodeGenerator\Scope\CheckoutController::__construct::$parcels has the scope "shipping", which no config that reads it has',
+            $tester->getDisplay(),
+        );
+    }
+
     private function buildTester() : CommandTester
     {
         $command = new Command('generate');

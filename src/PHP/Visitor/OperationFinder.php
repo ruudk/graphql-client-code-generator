@@ -17,6 +17,11 @@ final class OperationFinder extends NodeVisitorAbstract
      * @var array<string, array<string, array<string, string>>>
      */
     public private(set) array $operations = [];
+
+    /**
+     * @var array<string, ?string>
+     */
+    public private(set) array $skipped = [];
     private ?string $className = null;
 
     /**
@@ -24,6 +29,7 @@ final class OperationFinder extends NodeVisitorAbstract
      */
     public function __construct(
         private array $constants,
+        private ?string $scope = null,
     ) {}
 
     /**
@@ -61,13 +67,20 @@ final class OperationFinder extends NodeVisitorAbstract
                         continue;
                     }
 
-                    if (count($attr->args) !== 1) {
+                    $value = AttributeArguments::find($attr, 'operation', 0);
+
+                    if ($value === null) {
                         continue;
                     }
 
-                    $arg = $attr->args[0];
+                    $location = sprintf('%s::%s::$%s', $this->className, $node->name->toString(), $param->var->name);
+                    $scope = AttributeArguments::scope($attr, $location);
 
-                    $value = $arg->value;
+                    if ($scope !== $this->scope) {
+                        $this->skipped[$location] = $scope;
+
+                        continue;
+                    }
 
                     if ($value instanceof Node\Expr\ClassConstFetch && $value->name instanceof Node\Identifier) {
                         $value = $this->constants[$value->name->toString()];
