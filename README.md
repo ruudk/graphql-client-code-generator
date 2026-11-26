@@ -1,6 +1,6 @@
 <p align="center">
     <strong>GraphQL Client Code Generator for PHP</strong><br>
-    <em>Transform your GraphQL queries into type-safe, zero-dependency PHP 8.4+ code. Let the generator handle types, validation, and boilerplate—you just write queries.</em>
+    <em>Transform your GraphQL queries into type-safe, zero-dependency PHP 8.5+ code. Let the generator handle types, validation, and boilerplate—you just write queries.</em>
 </p>
 <p align="center">
     <a href="https://packagist.org/packages/ruudk/graphql-client-code-generator"><img src="https://poser.pugx.org/ruudk/graphql-client-code-generator/v?style=for-the-badge" alt="Latest Stable Version"></a>
@@ -1163,7 +1163,7 @@ public function graphql(
 
 ## Requirements
 
-- **PHP 8.4+** (uses property hooks, readonly classes, and other modern features)
+- **PHP 8.5+** (uses property hooks, readonly classes, and other modern features)
 - **Composer** for installation
 
 ## Philosophy
