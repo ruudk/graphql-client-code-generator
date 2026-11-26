@@ -37,6 +37,7 @@ final readonly class InlineFragmentOptimizer
         $typeInfo = new TypeInfo($this->schema);
 
         // @phpstan-ignore argument.type
+        // @mago-expect analysis:less-specific-nested-argument-type
         $wrapped = Visitor::visitWithTypeInfo($typeInfo, [
             NodeKind::INLINE_FRAGMENT => [
                 'leave' => static function (Node $node) use ($typeInfo): ?NodeList {
@@ -55,11 +56,6 @@ final readonly class InlineFragmentOptimizer
             ],
         ]);
 
-        $new = Visitor::visit($node, $wrapped);
-
-        Assert::isInstanceOf($new, Node::class);
-        Assert::isAOf($new, $node::class);
-
-        return $new;
+        return VisitedNode::of($node, Visitor::visit($node, $wrapped));
     }
 }

@@ -52,11 +52,11 @@ pre-commit:
       glob: "*.twig"
       run: vendor/bin/mago twig:lint
 
-    phpstan:
+    mago-analyze:
       glob:
-      - "*.php"
-      - "*.neon"
-      run: vendor/bin/phpstan
+        - "*.php"
+        - "mago.toml"
+      run: vendor/bin/mago analyze
 
     phpunit:
       glob: "*.php"

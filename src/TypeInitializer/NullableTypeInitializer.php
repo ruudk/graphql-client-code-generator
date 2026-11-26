@@ -11,7 +11,7 @@ use Symfony\Component\TypeInfo\Type;
 
 /**
  * @phpstan-import-type CodeLine from CodeGenerator
- * @implements TypeInitializer<Type\NullableType<*>>
+ * @implements TypeInitializer<Type\NullableType<Type>>
  */
 final readonly class NullableTypeInitializer implements TypeInitializer
 {

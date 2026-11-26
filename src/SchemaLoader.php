@@ -43,9 +43,8 @@ final class SchemaLoader
 
             Assert::isArray($introspection, 'Expected introspection to be an array');
             Assert::keyExists($introspection, 'data', 'Expected introspection to have a "data" key');
-            Assert::isArray($introspection['data'], 'Expected introspection data to be an array');
+            Assert::isMap($introspection['data'], 'Expected introspection data to be an array');
 
-            // @phpstan-ignore argument.type (expects array<string, mixed>, array<mixed, mixed> given)
             $schema = BuildClientSchema::build($introspection['data']);
         }
 

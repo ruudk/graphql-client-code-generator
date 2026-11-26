@@ -49,8 +49,7 @@ final class OptimizationTest extends GraphQLTestCase
         self::assertTrue($result->viewer->isUser);
         self::assertSame('ruudk', $result->viewer->asUser?->login);
         self::assertSame('Ruud Kamphuis', $result->viewer->asUser->name);
-        self::assertNull($result->viewer->appUrl?->url);
-        self::assertNull($result->viewer->appUrl?->appName->name);
+        self::assertNull($result->viewer->appUrl);
         self::assertCount(1, $result->projects);
         [$project] = $result->projects;
         // Test Project properties - all fields should be directly accessible (from merged inline fragments)

@@ -88,7 +88,7 @@ final readonly class FragmentOptimizer
             }
         }
 
-        $new = Visitor::visit($node, [
+        return VisitedNode::of($node, Visitor::visit($node, [
             NodeKind::FRAGMENT_DEFINITION => static function (Node $node) use ($requiredFragments) {
                 Assert::isInstanceOf($node, FragmentDefinitionNode::class);
 
@@ -98,12 +98,7 @@ final readonly class FragmentOptimizer
 
                 return Visitor::removeNode();
             },
-        ]);
-
-        Assert::isInstanceOf($new, DocumentNode::class);
-        Assert::isAOf($new, $node::class);
-
-        return $new;
+        ]));
     }
 
     /**

@@ -10,7 +10,7 @@ use Symfony\Component\TypeInfo\Type\GenericType;
 use Symfony\Component\TypeInfo\TypeIdentifier;
 
 /**
- * @extends Type\CollectionType<Type\GenericType<Type\BuiltinType<TypeIdentifier::ARRAY>>>
+ * @extends Type\CollectionType<Type\GenericType>
  */
 final class IndexByCollectionType extends Type\CollectionType
 {

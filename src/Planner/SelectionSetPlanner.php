@@ -39,6 +39,7 @@ use Ruudk\GraphQLCodeGenerator\Planner\Source\InlineSource;
 use Ruudk\GraphQLCodeGenerator\Planner\Source\TwigFileSource;
 use Ruudk\GraphQLCodeGenerator\RecursiveTypeFinder;
 use Ruudk\GraphQLCodeGenerator\Type\FragmentObjectType;
+use Ruudk\GraphQLCodeGenerator\Type\GeneratedClassName;
 use Ruudk\GraphQLCodeGenerator\Type\HookPropertyType;
 use Ruudk\GraphQLCodeGenerator\Type\IndexByCollectionType;
 use Ruudk\GraphQLCodeGenerator\Type\StringLiteralType;
@@ -260,7 +261,7 @@ final class SelectionSetPlanner
             fields: $fields,
             pathFields: $pathFields,
             payloadShape: $payloadShape,
-            resultType: SymfonyType::object($context->fqcn),
+            resultType: SymfonyType::object(GeneratedClassName::of($context->fqcn)),
         );
     }
 
@@ -892,7 +893,13 @@ final class SelectionSetPlanner
             return null;
         }
 
-        $validFields = array_filter($indexByFields, static fn($fieldPath) => $fieldPath !== []);
+        $validFields = [];
+
+        foreach ($indexByFields as $key => $fieldPath) {
+            if ($fieldPath !== []) {
+                $validFields[$key] = $fieldPath;
+            }
+        }
 
         if ($validFields === []) {
             return null;

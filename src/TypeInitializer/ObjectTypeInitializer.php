@@ -14,7 +14,7 @@ use Symfony\Component\TypeInfo\Type\ObjectType;
  *           type-specific `TypeInitializer` instances via `Config::withTypeInitializer()`;
  *           they run before this one.
  *
- * @implements TypeInitializer<Type\ObjectType<*>>
+ * @implements TypeInitializer<Type\ObjectType<class-string>>
  */
 final readonly class ObjectTypeInitializer implements TypeInitializer
 {

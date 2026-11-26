@@ -11,6 +11,7 @@ final class TypeDumper
 {
     /**
      * @param callable(string): string $importer
+     * @param non-negative-int $indentation
      */
     public static function dump(Type $type, ?callable $importer = null, int $indentation = 0): string
     {

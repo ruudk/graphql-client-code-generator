@@ -28,7 +28,7 @@ final readonly class DuplicateFieldOptimizer
      */
     public function __invoke(Node $node, array $fragmentDefinitions): Node
     {
-        $new = Visitor::visit($node, [
+        return VisitedNode::of($node, Visitor::visit($node, [
             NodeKind::SELECTION_SET => [
                 'enter' => static function (Node $node) {
                     Assert::isInstanceOf($node, SelectionSetNode::class);
@@ -65,11 +65,6 @@ final readonly class DuplicateFieldOptimizer
                     return $node;
                 },
             ],
-        ]);
-
-        Assert::isInstanceOf($new, Node::class);
-        Assert::isAOf($new, $node::class);
-
-        return $new;
+        ]));
     }
 }

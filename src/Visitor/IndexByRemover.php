@@ -25,7 +25,7 @@ final readonly class IndexByRemover
      */
     public function __invoke(Node $node): Node
     {
-        $new = Visitor::visit($node, [
+        return VisitedNode::of($node, Visitor::visit($node, [
             NodeKind::DIRECTIVE => static function (Node $node): ?VisitorRemoveNode {
                 Assert::isInstanceOf($node, DirectiveNode::class);
 
@@ -35,11 +35,6 @@ final readonly class IndexByRemover
 
                 return Visitor::removeNode();
             },
-        ]);
-
-        Assert::isInstanceOf($new, Node::class);
-        Assert::isAOf($new, $node::class);
-
-        return $new;
+        ]));
     }
 }

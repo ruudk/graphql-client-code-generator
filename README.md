@@ -93,7 +93,10 @@ foreach ($data->search->nodes ?? [] as $node) {
     }
 
     if ($node->pullRequestInfo !== null) {
-        dump(asPullRequest: $node->pullRequestInfo->title . ' is merged: ' . $node->pullRequestInfo->merged);
+        dump(
+            asPullRequest: $node->pullRequestInfo->title . ' is merged: '
+                . var_export($node->pullRequestInfo->merged, true),
+        );
     }
 }
 ```
@@ -215,7 +218,10 @@ foreach ($data->search->nodes ?? [] as $node) {
     }
 
     if ($node->pullRequestInfo !== null) {
-        dump(asPullRequest: $node->pullRequestInfo->title . ' is merged: ' . $node->pullRequestInfo->merged);
+        dump(
+            asPullRequest: $node->pullRequestInfo->title . ' is merged: '
+                . var_export($node->pullRequestInfo->merged, true),
+        );
     }
 }
 ```
@@ -1362,7 +1368,10 @@ foreach ($data->search->nodes ?? [] as $node) {
     }
 
     if ($node->pullRequestInfo !== null) {
-        dump(asPullRequest: $node->pullRequestInfo->title . ' is merged: ' . $node->pullRequestInfo->merged);
+        dump(
+            asPullRequest: $node->pullRequestInfo->title . ' is merged: '
+                . var_export($node->pullRequestInfo->merged, true),
+        );
     }
 }
 ```
@@ -1412,8 +1421,7 @@ Check out the `examples/` directory for complete working examples:
 ## Contributing
 
 Contributions welcome! This project uses:
-- **Mago** for formatting and linting PHP and Twig
-- **PHPStan** (level 9!) for static analysis
+- **Mago** for formatting, linting and static analysis of PHP and Twig
 - **PHPUnit** for testing
 
 Run the quality checks:
@@ -1421,9 +1429,9 @@ Run the quality checks:
 ```bash
 vendor/bin/mago format
 vendor/bin/mago lint
+vendor/bin/mago analyze
 vendor/bin/mago twig:fmt
 vendor/bin/mago twig:lint
-vendor/bin/phpstan
 vendor/bin/phpunit
 ```
 

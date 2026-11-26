@@ -18,7 +18,13 @@ foreach (Finder::create()->files()->depth(1)->in(__DIR__)->name('*Test.php') as 
         continue;
     }
 
-    $test = new $class($file->getFilenameWithoutExtension());
+    $name = $file->getFilenameWithoutExtension();
+
+    if ($name === '') {
+        continue;
+    }
+
+    $test = new $class($name);
     $reflector = new ReflectionClass($test);
     $reflector->getMethod('setUp')->invoke($test);
     $config[] = $test->getConfig();

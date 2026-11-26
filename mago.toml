@@ -3,6 +3,7 @@ php-version = "8.5"
 
 [source]
 paths = [
+    ".mago",
     "bin/graphql-client-code-generator",
     "composer-dependency-analyser.php",
     "examples",
@@ -10,6 +11,9 @@ paths = [
     "tests",
 ]
 includes = ["vendor"]
+
+[extension-hosts.graphql]
+command = ["php", ".mago/extensions.php"]
 
 [formatter]
 excludes = ["**/Generated/**"]
@@ -35,3 +39,8 @@ no-isset = { enabled = false }
 prefer-early-continue = { enabled = false }
 too-many-methods = { enabled = false }
 too-many-properties = { enabled = false }
+
+[analyzer]
+# Values from json_decode(), require and untyped clients are validated right
+# after they are assigned, so assigning `mixed` itself is not a problem.
+ignore = ["mixed-assignment"]

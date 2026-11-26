@@ -27,7 +27,7 @@ final readonly class IncludeAndSkipDirectiveOptimizer
      */
     public function __invoke(Node $node, array $fragmentDefinitions): Node
     {
-        $new = Visitor::visit($node, [
+        return VisitedNode::of($node, Visitor::visit($node, [
             NodeKind::FIELD => [
                 'enter' => static function (Node $node) {
                     Assert::isInstanceOf($node, FieldNode::class);
@@ -76,11 +76,6 @@ final readonly class IncludeAndSkipDirectiveOptimizer
                     return $node;
                 },
             ],
-        ]);
-
-        Assert::isInstanceOf($new, Node::class);
-        Assert::isAOf($new, $node::class);
-
-        return $new;
+        ]));
     }
 }

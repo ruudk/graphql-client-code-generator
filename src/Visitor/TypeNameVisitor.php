@@ -80,11 +80,6 @@ final readonly class TypeNameVisitor
             },
         ]);
 
-        $new = Visitor::visit($node, $wrapped);
-
-        Assert::isInstanceOf($new, Node::class);
-        Assert::isAOf($new, $node::class);
-
-        return $new;
+        return VisitedNode::of($node, Visitor::visit($node, $wrapped));
     }
 }

@@ -65,11 +65,12 @@ final class FragmentPayloadShapeTest extends TestCase
         }
 
         self::assertNotNull($detailsField);
-        self::assertNotNull($detailsField->selectionSet, 'Details field should have a selection set');
+        $selectionSet = $detailsField->selectionSet;
+        self::assertNotNull($selectionSet, 'Details field should have a selection set');
         // Build payload shape for the details field selection
         $detailType = $schema->getType('Detail');
         self::assertNotNull($detailType, 'Detail type should exist');
-        $shape = $builder->buildPayloadShape($detailsField->selectionSet, $detailType);
+        $shape = $builder->buildPayloadShape($selectionSet, $detailType);
         $shapeString = (string) $shape->toArrayShape();
         // Should have BOTH key (from DetailBasic fragment) and value (from direct selection)
         self::assertStringContainsString("'key': string", $shapeString, 'Should include key from DetailBasic fragment');
@@ -133,11 +134,12 @@ final class FragmentPayloadShapeTest extends TestCase
         }
 
         self::assertNotNull($payoutsField);
-        self::assertNotNull($payoutsField->selectionSet, 'Payouts field should have a selection set');
+        $selectionSet = $payoutsField->selectionSet;
+        self::assertNotNull($selectionSet, 'Payouts field should have a selection set');
         // Build payload shape for the payouts field selection
         $payoutType = $schema->getType('Payout');
         self::assertNotNull($payoutType, 'Payout type should exist');
-        $shape = $builder->buildPayloadShape($payoutsField->selectionSet, $payoutType);
+        $shape = $builder->buildPayloadShape($selectionSet, $payoutType);
         $shapeString = (string) $shape->toArrayShape();
         // Should have BOTH id (from PayoutRow fragment) and reason (from direct selection)
         self::assertStringContainsString("'id': string", $shapeString, 'Should include id from PayoutRow fragment');

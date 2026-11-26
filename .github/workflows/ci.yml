@@ -88,11 +88,11 @@ jobs:
       - name: Run Mago linter
         run: vendor/bin/mago lint --reporting-format=github
 
+      - name: Run Mago analyzer
+        run: vendor/bin/mago analyze --reporting-format=github
+
       - name: Check Twig formatting
         run: vendor/bin/mago twig:fmt --check
 
       - name: Run Mago Twig linter
         run: vendor/bin/mago twig:lint --reporting-format=github
-
-      - name: Run PHPStan
-        run: vendor/bin/phpstan analyse --ansi

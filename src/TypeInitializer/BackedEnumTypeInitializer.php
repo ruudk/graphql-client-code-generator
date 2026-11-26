@@ -7,9 +7,10 @@ namespace Ruudk\GraphQLCodeGenerator\TypeInitializer;
 use Override;
 use Ruudk\CodeGenerator\CodeGenerator;
 use Symfony\Component\TypeInfo\Type;
+use Symfony\Component\TypeInfo\TypeIdentifier;
 
 /**
- * @implements TypeInitializer<Type\BackedEnumType<*, *>>
+ * @implements TypeInitializer<Type\BackedEnumType<class-string<\BackedEnum>, Type\BuiltinType<TypeIdentifier::INT>|Type\BuiltinType<TypeIdentifier::STRING>>>
  */
 final readonly class BackedEnumTypeInitializer implements TypeInitializer
 {

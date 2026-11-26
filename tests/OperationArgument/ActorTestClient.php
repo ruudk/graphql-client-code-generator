@@ -38,13 +38,9 @@ final readonly class ActorTestClient
         $request = new Request(
             'POST',
             'https://api.github.com/graphql',
-            array_filter(
-                [
-                    'Content-type' => 'application/json',
-                    'X-Actor' => $actor?->id,
-                ],
-                static fn($value) => !is_null($value),
-            ),
+            $actor === null
+                ? ['Content-type' => 'application/json']
+                : ['Content-type' => 'application/json', 'X-Actor' => $actor->id],
             json_encode(
                 array_filter(
                     [

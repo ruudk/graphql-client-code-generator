@@ -45,7 +45,7 @@ final readonly class HookFieldInjector
      */
     public function __invoke(Node $node): Node
     {
-        $new = Visitor::visit($node, [
+        return VisitedNode::of($node, Visitor::visit($node, [
             NodeKind::FIELD => function (Node $node): ?InlineFragmentNode {
                 Assert::isInstanceOf($node, FieldNode::class);
 
@@ -76,12 +76,7 @@ final readonly class HookFieldInjector
 
                 return null;
             },
-        ]);
-
-        Assert::isInstanceOf($new, Node::class);
-        Assert::isAOf($new, $node::class);
-
-        return $new;
+        ]));
     }
 
     /**

@@ -87,6 +87,7 @@ use Ruudk\GraphQLCodeGenerator\Planner\Source\InlineSource;
 use Ruudk\GraphQLCodeGenerator\Planner\Source\TwigFileSource;
 use Ruudk\GraphQLCodeGenerator\Twig\GraphQLExtension;
 use Ruudk\GraphQLCodeGenerator\Twig\GraphQLNodeFinder;
+use Ruudk\GraphQLCodeGenerator\Type\GeneratedClassName;
 use Ruudk\GraphQLCodeGenerator\Type\HookPropertyType;
 use Ruudk\GraphQLCodeGenerator\Type\ThrowWhenNullPropertyType;
 use Ruudk\GraphQLCodeGenerator\Type\TypeHelper;
@@ -318,12 +319,14 @@ final class Planner
                             [$definition] = $document->definitions;
                             Assert::isInstanceOf($definition, OperationDefinitionNode::class);
 
-                            Assert::notNull($definition->name, 'Expected operation to have a name');
+                            $name = $definition->name;
+
+                            Assert::notNull($name, 'Expected operation to have a name');
 
                             $usedTypesCollector->analyze($document);
 
                             $operationType = $definition->operation;
-                            $operationName = $definition->name->value;
+                            $operationName = $name->value;
 
                             $operationsToInject[$file->getPathname()][$method][$property] = $this->fullyQualified(
                                 ucfirst($operationType),
@@ -458,7 +461,7 @@ final class Planner
 
             if ($type instanceof EnumType) {
                 $this->enumTypes[$typeName] ??= new BackedEnumType(
-                    $this->fullyQualified('Enum', $typeName),
+                    GeneratedClassName::ofBackedEnum($this->fullyQualified('Enum', $typeName)),
                     SymfonyType::string(),
                 );
 
@@ -466,7 +469,10 @@ final class Planner
             }
 
             if ($type instanceof InputObjectType) {
-                $this->inputObjectTypes[$typeName] ??= SymfonyType::object($this->fullyQualified('Input', $typeName));
+                $this->inputObjectTypes[$typeName] ??= SymfonyType::object(GeneratedClassName::of($this->fullyQualified(
+                    'Input',
+                    $typeName,
+                )));
 
                 continue;
             }
@@ -1208,7 +1214,7 @@ final class Planner
             $operationDir . '/' . $operationName . $operationType . '.php',
             $operationName . $operationType,
             $operationNamespaceName,
-            $operation->name->value,
+            $operationName,
             $operationType,
             $operationDefinition,
             $variables,

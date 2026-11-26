@@ -9,7 +9,7 @@ use GraphQL\Type\Definition\Type;
 use Symfony\Component\TypeInfo\Type as SymfonyType;
 
 /**
- * @extends SymfonyType\ObjectType<object>
+ * @extends SymfonyType\ObjectType<class-string>
  */
 final class FragmentObjectType extends SymfonyType\ObjectType
 {
@@ -18,6 +18,6 @@ final class FragmentObjectType extends SymfonyType\ObjectType
         public readonly string $fragmentName,
         public readonly NamedType&Type $fragmentType,
     ) {
-        parent::__construct($className);
+        parent::__construct(GeneratedClassName::of($className));
     }
 }

@@ -104,16 +104,16 @@ final class GenerateCommand
                         $client = $client();
                     }
 
-                    Assert::object($client);
-                    Assert::methodExists($client, 'graphql');
+                    $graphql = [$client, 'graphql'];
 
-                    $response = $client->graphql(Introspection::getIntrospectionQuery());
+                    Assert::isCallable($graphql, 'The introspection client must have a graphql() method');
+
+                    $response = $graphql(Introspection::getIntrospectionQuery());
 
                     Assert::isArray($response);
                     Assert::keyExists($response, 'data');
-                    Assert::isArray($response['data']);
+                    Assert::isMap($response['data']);
 
-                    // @phpstan-ignore argument.type (expects array<string, mixed>, array<mixed, mixed> given)
                     $schema = BuildClientSchema::build($response['data']);
 
                     if ($configItem->indexByDirective) {

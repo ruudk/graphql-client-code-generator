@@ -8,7 +8,6 @@ use Override;
 use PhpParser\Node;
 use PhpParser\Node\Stmt\Namespace_;
 use PhpParser\Node\Stmt\Use_;
-use PhpParser\Node\Stmt\UseUse;
 use PhpParser\NodeVisitorAbstract;
 
 final class UseStatementInserter extends NodeVisitorAbstract
@@ -201,7 +200,7 @@ final class UseStatementInserter extends NodeVisitorAbstract
         $newUses = [];
         foreach ($fqcns as $fqcn) {
             $newUses[] = new Use_([
-                new UseUse(new Node\Name($fqcn)),
+                new Node\UseItem(new Node\Name($fqcn)),
             ]);
             $this->insertedFqcns[$fqcn] = true;
         }
@@ -228,7 +227,7 @@ final class UseStatementInserter extends NodeVisitorAbstract
         $newUses = [];
         foreach ($fqcns as $fqcn) {
             $newUses[] = new Use_([
-                new UseUse(new Node\Name($fqcn)),
+                new Node\UseItem(new Node\Name($fqcn)),
             ]);
         }
 
@@ -244,7 +243,7 @@ final class UseStatementInserter extends NodeVisitorAbstract
         $newUses = [$node];
         foreach ($fqcns as $fqcn) {
             $newUses[] = new Use_([
-                new UseUse(new Node\Name($fqcn)),
+                new Node\UseItem(new Node\Name($fqcn)),
             ]);
         }
 
