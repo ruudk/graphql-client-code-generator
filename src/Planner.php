@@ -422,7 +422,7 @@ final class Planner
 
             $finder = Finder::create()
                 ->files()
-                ->in($this->config->inlineProcessingDirectories)
+                ->in($this->config->twigProcessingDirectories)
                 ->name('*.twig')
                 ->contains('{% graphql %}');
 

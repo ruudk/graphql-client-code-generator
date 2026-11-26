@@ -1,0 +1,6 @@
+{# Lives in the inline processing directory, but not in a Twig processing directory, so it must be ignored. #}
+{% graphql %}
+fragment OutsideTwigProcessingDirectory on TypeThatDoesNotExist {
+  id
+}
+{% endgraphql %}
