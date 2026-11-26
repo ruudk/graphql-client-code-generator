@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Ruudk\GraphQLCodeGenerator\HooksWithInterfaceRequires;
 
 use Override;
-use Ruudk\GraphQLCodeGenerator\Config\Config;
+use Ruudk\GraphQLCodeGenerator\Config\SchemaConfig;
 use Ruudk\GraphQLCodeGenerator\GraphQLTestCase;
 use Ruudk\GraphQLCodeGenerator\HooksWithInterfaceRequires\Generated\Query\Test\TestQuery;
 
@@ -17,7 +17,7 @@ use Ruudk\GraphQLCodeGenerator\HooksWithInterfaceRequires\Generated\Query\Test\T
 final class HooksWithInterfaceRequiresTest extends GraphQLTestCase
 {
     #[Override]
-    public function getConfig(): Config
+    public function getConfig(): SchemaConfig
     {
         return parent::getConfig()->withHook(FindOwnerHook::class);
     }

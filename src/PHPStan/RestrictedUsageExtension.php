@@ -34,7 +34,14 @@ final readonly class RestrictedUsageExtension implements
      */
     public function __construct(array $configs)
     {
-        $this->namespaces = array_map(static fn($config) => $config->namespace, ConfigLoader::load(...$configs));
+        $namespaces = [];
+        foreach (ConfigLoader::load(...$configs) as $config) {
+            foreach ($config->schemas as $schemaConfig) {
+                $namespaces[] = $schemaConfig->namespace;
+            }
+        }
+
+        $this->namespaces = $namespaces;
     }
 
     #[Override]

@@ -7,7 +7,7 @@ namespace Ruudk\GraphQLCodeGenerator\HooksWithCustomTypeInitializer;
 use Generator;
 use Override;
 use Ruudk\CodeGenerator\CodeGenerator;
-use Ruudk\GraphQLCodeGenerator\Config\Config;
+use Ruudk\GraphQLCodeGenerator\Config\SchemaConfig;
 use Ruudk\GraphQLCodeGenerator\GraphQLTestCase;
 use Ruudk\GraphQLCodeGenerator\HooksWithCustomTypeInitializer\Generated\Query\Test\TestQuery;
 use Ruudk\GraphQLCodeGenerator\TypeInitializer\DelegatingTypeInitializer;
@@ -18,7 +18,7 @@ use Symfony\Component\TypeInfo\Type\ObjectType;
 final class HooksWithCustomTypeInitializerTest extends GraphQLTestCase
 {
     #[Override]
-    public function getConfig(): Config
+    public function getConfig(): SchemaConfig
     {
         return parent::getConfig()
             ->withHook(FindUserByIdHook::class)

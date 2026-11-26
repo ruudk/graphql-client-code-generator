@@ -8,21 +8,21 @@ use PHPUnit\Framework\TestCase;
 use RecursiveDirectoryIterator;
 use RecursiveIteratorIterator;
 use Ruudk\GraphQLCodeGenerator\Config\Config;
+use Ruudk\GraphQLCodeGenerator\Config\SchemaConfig;
 use Ruudk\GraphQLCodeGenerator\Planner;
 use Ruudk\GraphQLCodeGenerator\Planner\Plan\DataClassPlan;
 use SplFileInfo;
 
 final class NestedFragmentPayloadShapeTest extends TestCase
 {
-    private function createTestConfig(string $schema, string $queries): Config
+    private function createTestConfig(string $schema, string $queries): SchemaConfig
     {
         $tempDir = sys_get_temp_dir() . '/graphql-test-' . uniqid();
         mkdir($tempDir, 0o777, true);
         file_put_contents($tempDir . '/schema.graphql', $schema);
         file_put_contents($tempDir . '/query.graphql', $queries);
-        $config = Config::create(
+        $config = SchemaConfig::create(
             schema: $tempDir . '/schema.graphql',
-            projectDir: $tempDir,
             outputDir: $tempDir . '/generated',
             namespace: 'Test\\Generated',
             client: 'TestClient',
@@ -69,7 +69,7 @@ final class NestedFragmentPayloadShapeTest extends TestCase
             }
         ';
         $config = $this->createTestConfig($schema, $queries);
-        $planner = new Planner($config);
+        $planner = new Planner(Config::create(sys_get_temp_dir())->withSchema($config), $config);
         $result = $planner->plan();
         // Find the Detail class within ItemWithDetails fragment
         $detailClass = null;
@@ -119,7 +119,7 @@ final class NestedFragmentPayloadShapeTest extends TestCase
             }
         ';
         $config = $this->createTestConfig($schema, $queries);
-        $planner = new Planner($config);
+        $planner = new Planner(Config::create(sys_get_temp_dir())->withSchema($config), $config);
         $result = $planner->plan();
         // Find the Payout class within PaymentDetails fragment
         $payoutClass = null;

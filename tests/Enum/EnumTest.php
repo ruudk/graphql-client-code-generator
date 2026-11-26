@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Ruudk\GraphQLCodeGenerator\Enum;
 
 use Override;
-use Ruudk\GraphQLCodeGenerator\Config\Config;
+use Ruudk\GraphQLCodeGenerator\Config\SchemaConfig;
 use Ruudk\GraphQLCodeGenerator\Enum\Generated\Enum\Role;
 use Ruudk\GraphQLCodeGenerator\Enum\Generated\Enum\State;
 use Ruudk\GraphQLCodeGenerator\Enum\Generated\Query\Test\TestQuery;
@@ -15,7 +15,7 @@ use Symfony\Component\TypeInfo\Type;
 final class EnumTest extends GraphQLTestCase
 {
     #[Override]
-    public function getConfig(): Config
+    public function getConfig(): SchemaConfig
     {
         return parent::getConfig()
             ->enableAddUnknownCaseToEnums()

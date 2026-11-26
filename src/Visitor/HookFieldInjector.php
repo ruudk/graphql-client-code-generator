@@ -60,7 +60,7 @@ final readonly class HookFieldInjector
                         $this->hooks,
                         $hookName,
                         sprintf(
-                            'Hook "%s" used in a @hook directive is not registered via Config::withHook().',
+                            'Hook "%s" used in a @hook directive is not registered via SchemaConfig::withHook().',
                             $hookName,
                         ),
                     );

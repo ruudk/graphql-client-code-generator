@@ -8,7 +8,7 @@ use GuzzleHttp\Psr7\Response;
 use Http\Mock\Client;
 use Override;
 use Psr\Http\Message\RequestInterface;
-use Ruudk\GraphQLCodeGenerator\Config\Config;
+use Ruudk\GraphQLCodeGenerator\Config\SchemaConfig;
 use Ruudk\GraphQLCodeGenerator\GraphQLTestCase;
 use Ruudk\GraphQLCodeGenerator\OperationArgument\Generated\Mutation\CreateThing\CreateThingMutation;
 use Symfony\Component\TypeInfo\Type;
@@ -16,14 +16,14 @@ use Symfony\Component\TypeInfo\Type;
 final class OperationArgumentTest extends GraphQLTestCase
 {
     #[Override]
-    public function getConfig(): Config
+    public function getConfig(): SchemaConfig
     {
-        return Config::create(
+        return SchemaConfig::create(
             schema: __DIR__ . '/Schema.graphql',
-            projectDir: dirname(__DIR__, 2),
             outputDir: __DIR__ . '/Generated',
             namespace: __NAMESPACE__ . '\\Generated',
             client: ActorTestClient::class,
+            name: 'OperationArgument',
         )
             ->withQueriesDir(__DIR__)
             ->enableDumpOrThrowMethods()

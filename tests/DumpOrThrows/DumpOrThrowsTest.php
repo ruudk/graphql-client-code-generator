@@ -5,14 +5,14 @@ declare(strict_types=1);
 namespace Ruudk\GraphQLCodeGenerator\DumpOrThrows;
 
 use Override;
-use Ruudk\GraphQLCodeGenerator\Config\Config;
+use Ruudk\GraphQLCodeGenerator\Config\SchemaConfig;
 use Ruudk\GraphQLCodeGenerator\DumpOrThrows\Generated\Query\Test\TestQuery;
 use Ruudk\GraphQLCodeGenerator\GraphQLTestCase;
 
 final class DumpOrThrowsTest extends GraphQLTestCase
 {
     #[Override]
-    public function getConfig(): Config
+    public function getConfig(): SchemaConfig
     {
         return parent::getConfig()->enableDumpOrThrowMethods()->enableDumpOrThrowProperties();
     }

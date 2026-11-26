@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Ruudk\GraphQLCodeGenerator\ListScalar;
 
 use Override;
-use Ruudk\GraphQLCodeGenerator\Config\Config;
+use Ruudk\GraphQLCodeGenerator\Config\SchemaConfig;
 use Ruudk\GraphQLCodeGenerator\GraphQLTestCase;
 use Ruudk\GraphQLCodeGenerator\ListScalar\Generated\Query\Test\TestQuery;
 use Ruudk\GraphQLCodeGenerator\ListScalar\ValueObjects\Currency;
@@ -23,7 +23,7 @@ use Symfony\Component\TypeInfo\Type;
 final class ListScalarTest extends GraphQLTestCase
 {
     #[Override]
-    public function getConfig(): Config
+    public function getConfig(): SchemaConfig
     {
         return parent::getConfig()->withScalar('Currency', Type::string(), Type::object(Currency::class));
     }

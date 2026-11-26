@@ -68,37 +68,46 @@ final class GenerateCommand
             return Command::FAILURE;
         }
 
-        $allConfigs = ConfigLoader::load(...array_map(static fn(string $path) => Path::makeAbsolute(
+        $schemas = [];
+        foreach (ConfigLoader::load(...array_map(static fn(string $path) => Path::makeAbsolute(
             $path,
             $workingDir,
-        ), $configs));
+        ), $configs)) as $config) {
+            foreach ($config->schemas as $schemaConfig) {
+                $schemas[] = [$config, $schemaConfig];
+            }
+        }
 
         $exitCode = Command::SUCCESS;
 
         $io->title('GraphQL Client Code Generator');
 
-        $configCount = count($allConfigs);
+        $schemaCount = count($schemas);
 
-        if ($configCount === 0) {
-            $io->error('No configurations found');
+        if ($schemaCount === 0) {
+            $io->error('No schemas found');
 
             return Command::FAILURE;
         }
 
-        foreach ($allConfigs as $index => $configItem) {
-            if ($configCount > 1) {
-                $io->section(sprintf('Configuration %d of %d', $index + 1, $configCount));
+        foreach ($schemas as $index => [$config, $schemaConfig]) {
+            if ($schemaCount > 1) {
+                $io->section(
+                    $schemaConfig->name === null
+                        ? sprintf('Schema %d of %d', $index + 1, $schemaCount)
+                        : sprintf('Schema "%s" (%d of %d)', $schemaConfig->name, $index + 1, $schemaCount),
+                );
             }
 
             if ($updateSchema) {
-                if ($configItem->introspectionClient === null) {
+                if ($schemaConfig->introspectionClient === null) {
                     $io->error('Cannot update schema: introspectionClient is not configured');
-                } elseif (!is_string($configItem->schema)) {
+                } elseif (!is_string($schemaConfig->schema)) {
                     $io->error('Cannot update schema: schema should be a string');
                 } else {
-                    $io->write(sprintf('Updating schema for <info>%s</info>... ', $configItem->namespace));
+                    $io->write(sprintf('Updating schema for <info>%s</info>... ', $schemaConfig->namespace));
 
-                    $client = $configItem->introspectionClient;
+                    $client = $schemaConfig->introspectionClient;
 
                     if ($client instanceof Closure) {
                         $client = $client();
@@ -116,26 +125,26 @@ final class GenerateCommand
 
                     $schema = BuildClientSchema::build($response['data']);
 
-                    if ($configItem->indexByDirective) {
+                    if ($schemaConfig->indexByDirective) {
                         $schema = IndexByDirectiveSchemaExtender::extend($schema);
                     }
 
-                    if ($configItem->hooks !== []) {
+                    if ($schemaConfig->hooks !== []) {
                         $schema = HookDirectiveSchemaExtender::extend($schema);
                     }
 
-                    if ($configItem->throwWhenNullDirective) {
+                    if ($schemaConfig->throwWhenNullDirective) {
                         $schema = ThrowWhenNullDirectiveSchemaExtender::extend($schema);
                     }
 
-                    if ($configItem->operationArguments !== []) {
+                    if ($schemaConfig->operationArguments !== []) {
                         $schema = OperationArgumentDirectiveSchemaExtender::extend(
                             $schema,
-                            $configItem->operationArguments,
+                            $schemaConfig->operationArguments,
                         );
                     }
 
-                    $this->filesystem->dumpFile($configItem->schema, SchemaPrinter::doPrint($schema, [
+                    $this->filesystem->dumpFile($schemaConfig->schema, SchemaPrinter::doPrint($schema, [
                         'sortEnumValues' => true,
                         'sortFields' => true,
                         'sortTypes' => true,
@@ -150,20 +159,20 @@ final class GenerateCommand
             }
 
             if (!$ensureSync) {
-                $io->write(sprintf('Generating code for <info>%s</info>... ', $configItem->namespace));
+                $io->write(sprintf('Generating code for <info>%s</info>... ', $schemaConfig->namespace));
             }
 
             try {
                 // Planning phase - discovers types
-                $plan = new Planner($configItem)->plan();
+                $plan = new Planner($config, $schemaConfig)->plan();
 
                 // Execution phase - uses discovered types from plan
-                $executor = new PlanExecutor($configItem);
+                $executor = new PlanExecutor($schemaConfig);
                 $files = $executor->execute($plan);
 
                 if ($ensureSync) {
                     $actual = [];
-                    foreach (Finder::create()->files()->in($configItem->outputDir) as $file) {
+                    foreach (Finder::create()->files()->in($schemaConfig->outputDir) as $file) {
                         $actual[$file->getPathname()] = $file->getContents();
                     }
 
@@ -185,7 +194,7 @@ final class GenerateCommand
                     foreach ($files as $path => $content) {
                         if (isset($actual[$path]) && $content !== $actual[$path]) {
                             $errors = true;
-                            $relativePath = Path::makeRelative($path, $configItem->projectDir);
+                            $relativePath = Path::makeRelative($path, $config->projectDir);
                             $io->writeln(sprintf(
                                 '<error>%s content does not match expectations</error>',
                                 $relativePath,
@@ -195,7 +204,7 @@ final class GenerateCommand
                             $errors = true;
                             $io->writeln(sprintf('<error>%s does not exist</error>', Path::makeRelative(
                                 $path,
-                                $configItem->projectDir,
+                                $config->projectDir,
                             )));
                         }
                     }
@@ -205,7 +214,7 @@ final class GenerateCommand
                             $errors = true;
                             $io->writeln(sprintf('%s should not exist', Path::makeRelative(
                                 $path,
-                                $configItem->projectDir,
+                                $config->projectDir,
                             )));
                         }
                     }
@@ -217,7 +226,7 @@ final class GenerateCommand
                     }
 
                     $usedHookNames = $executor->hookUsageRegistry->getAllUsedHookNames();
-                    $unusedHooks = array_diff_key($configItem->hooks, $usedHookNames);
+                    $unusedHooks = array_diff_key($schemaConfig->hooks, $usedHookNames);
 
                     foreach ($unusedHooks as $hookName => $hookDefinition) {
                         $io->warning(sprintf(
@@ -255,7 +264,7 @@ final class GenerateCommand
                 }
 
                 // Clear output directory
-                $this->filesystem->remove($configItem->outputDir);
+                $this->filesystem->remove($schemaConfig->outputDir);
 
                 // Write all files to disk
                 foreach ($files as $path => $content) {

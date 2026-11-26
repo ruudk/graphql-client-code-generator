@@ -32,32 +32,15 @@ final readonly class ConfigLoader
                 ));
             }
 
-            if (!$configData instanceof Config && !is_array($configData)) {
+            if (!$configData instanceof Config) {
                 throw new ConfigException(sprintf(
-                    'Failed to load configuration from %s: expected Config object or array of Config objects',
+                    'Failed to load configuration from %s: expected a %s object',
                     $configFile,
+                    Config::class,
                 ));
             }
 
-            // Add configs to our collection
-            if ($configData instanceof Config) {
-                $allConfigs[] = $configData;
-
-                continue;
-            }
-
-            // Validate array items
-            foreach ($configData as $index => $configItem) {
-                if (!$configItem instanceof Config) {
-                    throw new ConfigException(sprintf(
-                        'Invalid configuration at index %s in %s: expected Config object',
-                        $index,
-                        $configFile,
-                    ));
-                }
-
-                $allConfigs[] = $configItem;
-            }
+            $allConfigs[] = $configData;
         }
 
         return $allConfigs;

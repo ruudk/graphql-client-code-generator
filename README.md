@@ -119,34 +119,38 @@ declare(strict_types=1);
 
 use Http\Discovery\Psr18ClientDiscovery;
 use Ruudk\GraphQLCodeGenerator\Config\Config;
+use Ruudk\GraphQLCodeGenerator\Config\SchemaConfig;
 use Ruudk\GraphQLCodeGenerator\Examples\GitHubClient;
 use Symfony\Component\Dotenv\Dotenv;
 use Webmozart\Assert\Assert;
 
-return Config::create(
-    // https://docs.github.com/public/fpt/schema.docs.graphql
-    schema: __DIR__ . '/schema.docs.graphql',
-    projectDir: __DIR__,
-    outputDir: __DIR__ . '/Generated',
-    namespace: 'Ruudk\GraphQLCodeGenerator\Examples\Generated',
-    client: GitHubClient::class,
-)
-    ->withQueriesDir(__DIR__)
-    ->withIntrospectionClient(function () {
-        $dotenv = new Dotenv();
-        $dotenv->bootEnv(__DIR__ . '/.env.local');
+return Config::create(projectDir: __DIR__)->withSchema(
+    SchemaConfig::create(
+        // https://docs.github.com/public/fpt/schema.docs.graphql
+        schema: __DIR__ . '/schema.docs.graphql',
+        outputDir: __DIR__ . '/Generated',
+        namespace: 'Ruudk\GraphQLCodeGenerator\Examples\Generated',
+        client: GitHubClient::class,
+    )
+        ->withQueriesDir(__DIR__)
+        ->withIntrospectionClient(function () {
+            $dotenv = new Dotenv();
+            $dotenv->bootEnv(__DIR__ . '/.env.local');
 
-        Assert::keyExists($_ENV, 'GITHUB_TOKEN');
-        $token = $_ENV['GITHUB_TOKEN'];
-        Assert::stringNotEmpty($token);
+            Assert::keyExists($_ENV, 'GITHUB_TOKEN');
+            $token = $_ENV['GITHUB_TOKEN'];
+            Assert::stringNotEmpty($token);
 
-        return new GitHubClient(Psr18ClientDiscovery::find(), $token);
-    })
-    ->enableDumpDefinition()
-    ->enableUseNodeNameForEdgeNodes()
-    ->enableUseConnectionNameForConnections()
-    ->enableUseEdgeNameForEdges();
+            return new GitHubClient(Psr18ClientDiscovery::find(), $token);
+        })
+        ->enableDumpDefinition()
+        ->enableUseNodeNameForEdgeNodes()
+        ->enableUseConnectionNameForConnections()
+        ->enableUseEdgeNameForEdges(),
+);
 ```
+
+`Config` describes your codebase: the project directory and the directories every schema reads. `SchemaConfig` describes one schema: where its SDL lives, where its code goes, which client runs it, and how to generate it. A config holds one or more schemas.
 
 **2. Write your GraphQL queries:**
 
@@ -968,7 +972,7 @@ hook's return type is inferred from `__invoke`.
 **Step 2 — register the hook** in your config:
 
 ```php
-Config::create(/* ... */)
+SchemaConfig::create(/* ... */)
     ->withHook(App\Hooks\FindUserByIdHook::class);
 ```
 
@@ -1074,7 +1078,7 @@ forwards it positionally to your client's `graphql()` call (right after the oper
 ```php
 use Symfony\Component\TypeInfo\Type;
 
-Config::create(/* ... */)
+SchemaConfig::create(/* ... */)
     ->withOperationArgument(
         name: 'actor',
         type: Type::object(Actor::class),

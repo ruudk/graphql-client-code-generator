@@ -37,10 +37,14 @@ final class GraphQLExtension
         $analyzerPlugins = [];
 
         if ($configs !== []) {
-            $analyzerPlugins[] = new RestrictedUsagePlugin(array_values(array_unique(array_map(
-                static fn($config) => $config->namespace,
-                ConfigLoader::load(...$configs),
-            ))));
+            $namespaces = [];
+            foreach (ConfigLoader::load(...$configs) as $config) {
+                foreach ($config->schemas as $schemaConfig) {
+                    $namespaces[] = $schemaConfig->namespace;
+                }
+            }
+
+            $analyzerPlugins[] = new RestrictedUsagePlugin(array_values(array_unique($namespaces)));
         }
 
         return new Extension(

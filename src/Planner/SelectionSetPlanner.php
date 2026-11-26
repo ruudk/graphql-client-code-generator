@@ -25,8 +25,8 @@ use GraphQL\Type\Definition\UnionType;
 use GraphQL\Type\Definition\WrappingType;
 use GraphQL\Type\Schema;
 use LogicException;
-use Ruudk\GraphQLCodeGenerator\Config\Config;
 use Ruudk\GraphQLCodeGenerator\Config\HookDefinition;
+use Ruudk\GraphQLCodeGenerator\Config\SchemaConfig;
 use Ruudk\GraphQLCodeGenerator\DirectiveProcessor;
 use Ruudk\GraphQLCodeGenerator\GraphQL\AST\InjectedTypenameFieldNode;
 use Ruudk\GraphQLCodeGenerator\GraphQL\FragmentDefinitionNodeWithSource;
@@ -82,7 +82,7 @@ final class SelectionSetPlanner
     private PossibleTypesFinder $possibleTypesFinder;
 
     public function __construct(
-        public private(set) readonly Config $config,
+        public private(set) readonly SchemaConfig $config,
         private readonly Schema $schema,
         private readonly TypeMapper $typeMapper,
         private readonly DirectiveProcessor $directiveProcessor,
@@ -289,7 +289,7 @@ final class SelectionSetPlanner
             Assert::keyExists(
                 $this->config->hooks,
                 $hookName,
-                sprintf('Hook "%s" used in selection is not registered via Config::withHook().', $hookName),
+                sprintf('Hook "%s" used in selection is not registered via SchemaConfig::withHook().', $hookName),
             );
 
             $hook = $this->config->hooks[$hookName];

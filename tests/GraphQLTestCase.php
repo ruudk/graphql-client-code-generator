@@ -11,6 +11,8 @@ use Override;
 use PHPUnit\Framework\TestCase;
 use Psr\Http\Message\RequestInterface;
 use Ruudk\GraphQLCodeGenerator\Config\Config;
+use Ruudk\GraphQLCodeGenerator\Config\ConfigException;
+use Ruudk\GraphQLCodeGenerator\Config\SchemaConfig;
 use Ruudk\GraphQLCodeGenerator\Executor\PlanExecutor;
 use Symfony\Component\Filesystem\Filesystem;
 use Symfony\Component\Finder\Finder;
@@ -20,6 +22,7 @@ abstract class GraphQLTestCase extends TestCase
 {
     private string $namespace;
     private string $directory;
+    private string $directoryName;
     private Client $client;
 
     #[Override]
@@ -31,51 +34,65 @@ abstract class GraphQLTestCase extends TestCase
         $this->namespace = implode('\\', $parts);
         $directoryName = end($parts);
         Assert::string($directoryName);
+        $this->directoryName = $directoryName;
         $this->directory = __DIR__ . '/' . $directoryName;
         $this->client = new Client();
     }
 
-    public function getConfig(): Config
+    public function getConfig(): SchemaConfig
     {
-        return Config::create(
+        return SchemaConfig::create(
             schema: $this->directory . '/Schema.graphql',
-            projectDir: dirname(__DIR__),
             outputDir: $this->directory . '/Generated',
             namespace: $this->namespace . '\\Generated',
             client: TestClient::class,
+            name: $this->directoryName,
         )->withQueriesDir($this->directory);
+    }
+
+    /**
+     * The config the test generates with. Override it to generate more than one schema.
+     *
+     * @throws ConfigException
+     */
+    public function getProjectConfig(): Config
+    {
+        return Config::create(dirname(__DIR__))->withSchema($this->getConfig());
     }
 
     protected function assertActualMatchesExpected(): void
     {
-        $config = $this->getConfig();
-        $plan = new Planner($config)->plan();
-        $actual = new PlanExecutor($config)->execute($plan);
+        $config = $this->getProjectConfig();
 
-        // Read expected files from disk
-        $expected = [];
-        foreach (Finder::create()->files()->in($this->directory . '/Generated') as $file) {
-            $expected[$file->getPathname()] = $file->getContents();
-        }
+        foreach ($config->schemas as $schemaConfig) {
+            $plan = new Planner($config, $schemaConfig)->plan();
+            $actual = new PlanExecutor($schemaConfig)->execute($plan);
 
-        $filesystem = new Filesystem();
-        foreach (array_keys($plan->operationsToInject) as $file) {
-            $expected[$file] = $filesystem->readFile($file);
-        }
-
-        // Sort both arrays by key to ensure consistent comparison
-        ksort($actual);
-        ksort($expected);
-        // Compare - first remove matching files
-        foreach ($expected as $path => $content) {
-            if (isset($actual[$path]) && $content === $actual[$path]) {
-                unset($expected[$path]);
-                unset($actual[$path]);
+            // Read expected files from disk
+            $expected = [];
+            foreach (Finder::create()->files()->in($schemaConfig->outputDir) as $file) {
+                $expected[$file->getPathname()] = $file->getContents();
             }
-        }
 
-        // Assert remaining are empty
-        self::assertSame($expected, $actual);
+            $filesystem = new Filesystem();
+            foreach (array_keys($plan->operationsToInject) as $file) {
+                $expected[$file] = $filesystem->readFile($file);
+            }
+
+            // Sort both arrays by key to ensure consistent comparison
+            ksort($actual);
+            ksort($expected);
+            // Compare - first remove matching files
+            foreach ($expected as $path => $content) {
+                if (isset($actual[$path]) && $content === $actual[$path]) {
+                    unset($expected[$path]);
+                    unset($actual[$path]);
+                }
+            }
+
+            // Assert remaining are empty
+            self::assertSame($expected, $actual);
+        }
     }
 
     /**

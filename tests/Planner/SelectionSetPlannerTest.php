@@ -8,7 +8,7 @@ use GraphQL\Language\Parser;
 use GraphQL\Utils\BuildSchema;
 use PHPUnit\Framework\TestCase;
 use ReflectionClass;
-use Ruudk\GraphQLCodeGenerator\Config\Config;
+use Ruudk\GraphQLCodeGenerator\Config\SchemaConfig;
 use Ruudk\GraphQLCodeGenerator\DirectiveProcessor;
 use Ruudk\GraphQLCodeGenerator\GraphQL\DocumentNodeWithSource;
 use Ruudk\GraphQLCodeGenerator\GraphQL\FragmentDefinitionNodeWithSource;
@@ -55,7 +55,7 @@ final class SelectionSetPlannerTest extends TestCase
         }
 
         // Create minimal config using reflection to bypass constructor
-        $configClass = new ReflectionClass(Config::class);
+        $configClass = new ReflectionClass(SchemaConfig::class);
         $configInstance = $configClass->newInstanceWithoutConstructor();
         // Set required properties using reflection
         $namespaceProperty = $configClass->getProperty('namespace');
@@ -175,7 +175,7 @@ final class SelectionSetPlannerTest extends TestCase
         }
 
         // Create minimal config using reflection to bypass constructor
-        $configClass = new ReflectionClass(Config::class);
+        $configClass = new ReflectionClass(SchemaConfig::class);
         $configInstance = $configClass->newInstanceWithoutConstructor();
         // Set required properties using reflection
         $namespaceProperty = $configClass->getProperty('namespace');

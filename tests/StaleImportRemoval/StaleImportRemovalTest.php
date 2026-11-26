@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Ruudk\GraphQLCodeGenerator\StaleImportRemoval;
 
 use Override;
-use Ruudk\GraphQLCodeGenerator\Config\Config;
+use Ruudk\GraphQLCodeGenerator\Config\SchemaConfig;
 use Ruudk\GraphQLCodeGenerator\Executor\PlanExecutor;
 use Ruudk\GraphQLCodeGenerator\GraphQLTestCase;
 use Ruudk\GraphQLCodeGenerator\Planner;
@@ -13,7 +13,7 @@ use Ruudk\GraphQLCodeGenerator\Planner;
 final class StaleImportRemovalTest extends GraphQLTestCase
 {
     #[Override]
-    public function getConfig(): Config
+    public function getConfig(): SchemaConfig
     {
         return parent::getConfig()->withInlineProcessingDirectory(__DIR__);
     }
@@ -57,9 +57,10 @@ final class StaleImportRemovalTest extends GraphQLTestCase
             file_put_contents($controllerPath, $staleContent);
 
             // Run the generator
-            $config = $this->getConfig();
-            $plan = new Planner($config)->plan();
-            $files = new PlanExecutor($config)->execute($plan);
+            $config = $this->getProjectConfig();
+            [$schemaConfig] = $config->schemas;
+            $plan = new Planner($config, $schemaConfig)->plan();
+            $files = new PlanExecutor($schemaConfig)->execute($plan);
 
             // Check the output
             self::assertArrayHasKey($controllerPath, $files, 'Controller file should be in output');

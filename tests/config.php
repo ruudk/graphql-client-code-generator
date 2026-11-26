@@ -3,11 +3,17 @@
 declare(strict_types=1);
 
 include __DIR__ . '/../vendor/autoload.php';
+use Ruudk\GraphQLCodeGenerator\Config\Config;
 use Ruudk\GraphQLCodeGenerator\GraphQLTestCase;
 use Symfony\Component\Finder\Finder;
 
-$config = [];
-foreach (Finder::create()->files()->depth(1)->in(__DIR__)->name('*Test.php') as $file) {
+$config = Config::create(dirname(__DIR__));
+foreach (Finder::create()
+    ->files()
+    ->depth(1)
+    ->in(__DIR__)
+    ->name('*Test.php')
+    ->sortByName() as $file) {
     $class = 'Ruudk\\GraphQLCodeGenerator\\' . $file->getRelativePath() . '\\' . $file->getFilenameWithoutExtension();
 
     if (!class_exists($class)) {
@@ -27,7 +33,18 @@ foreach (Finder::create()->files()->depth(1)->in(__DIR__)->name('*Test.php') as 
     $test = new $class($name);
     $reflector = new ReflectionClass($test);
     $reflector->getMethod('setUp')->invoke($test);
-    $config[] = $test->getConfig();
+    $projectConfig = $test->getProjectConfig();
+
+    if ($projectConfig->inlineProcessingDirectories !== [] || $projectConfig->twigProcessingDirectories !== []) {
+        throw new LogicException(sprintf(
+            '%s reads directories for every schema, which this file cannot merge. Give the directories to the schemas instead.',
+            $class,
+        ));
+    }
+
+    foreach ($projectConfig->schemas as $schemaConfig) {
+        $config = $config->withSchema($schemaConfig);
+    }
 }
 
 return $config;

@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Ruudk\GraphQLCodeGenerator\Generator;
 
 use PHPUnit\Framework\TestCase;
-use Ruudk\GraphQLCodeGenerator\Config\Config;
+use Ruudk\GraphQLCodeGenerator\Config\SchemaConfig;
 use Ruudk\GraphQLCodeGenerator\Type\ScalarType;
 use Symfony\Component\TypeInfo\Type as SymfonyType;
 
@@ -13,9 +13,8 @@ final class AbstractGeneratorTest extends TestCase
 {
     public function testNullableCustomScalarUsesExplicitNullUnionInsteadOfNullableShorthand(): void
     {
-        $generator = new class(Config::create(
+        $generator = new class(SchemaConfig::create(
             schema: '',
-            projectDir: '',
             outputDir: '',
             namespace: 'Test\\Generated',
             client: 'Test\\Client',

@@ -3,11 +3,11 @@
 declare(strict_types=1);
 
 use Ruudk\GraphQLCodeGenerator\Config\Config;
+use Ruudk\GraphQLCodeGenerator\Config\SchemaConfig;
 
-return Config::create(
+return Config::create(projectDir: __DIR__)->withSchema(SchemaConfig::create(
     schema: __DIR__ . '/schema.docs.graphql',
-    projectDir: __DIR__,
     outputDir: __DIR__ . '/Generated',
     namespace: 'Ruudk\GraphQLCodeGenerator\PHPStan\Generated',
     client: 'DoesnotMatter',
-)->withQueriesDir(__DIR__);
+)->withQueriesDir(__DIR__));
