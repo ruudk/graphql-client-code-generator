@@ -17,12 +17,12 @@ final readonly class UsedFragmentsVisitor
      * @throws Exception
      * @return list<string>
      */
-    public static function getUsedFragments(Node $node) : array
+    public static function getUsedFragments(Node $node): array
     {
         $usedFragments = [];
 
         Visitor::visit($node, [
-            NodeKind::FRAGMENT_SPREAD => function (Node $node) use (&$usedFragments) {
+            NodeKind::FRAGMENT_SPREAD => static function (Node $node) use (&$usedFragments) {
                 Assert::isInstanceOf($node, FragmentSpreadNode::class);
 
                 if (in_array($node->name->value, $usedFragments, true)) {

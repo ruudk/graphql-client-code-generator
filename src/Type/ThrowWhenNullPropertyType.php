@@ -26,19 +26,19 @@ final class ThrowWhenNullPropertyType extends SymfonyType implements WrappingTyp
     ) {}
 
     #[Override]
-    public function getWrappedType() : SymfonyType
+    public function getWrappedType(): SymfonyType
     {
         return $this->wrappedType;
     }
 
     #[Override]
-    public function wrappedTypeIsSatisfiedBy(callable $specification) : bool
+    public function wrappedTypeIsSatisfiedBy(callable $specification): bool
     {
         return $specification($this->wrappedType);
     }
 
     #[Override]
-    public function __toString() : string
+    public function __toString(): string
     {
         return (string) $this->wrappedType;
     }

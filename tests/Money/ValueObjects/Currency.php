@@ -19,34 +19,34 @@ final readonly class Currency implements JsonSerializable, Stringable
         }
     }
 
-    public static function EUR() : self
+    public static function EUR(): self
     {
         return new self('EUR');
     }
 
-    public static function USD() : self
+    public static function USD(): self
     {
         return new self('USD');
     }
 
-    public static function GBP() : self
+    public static function GBP(): self
     {
         return new self('GBP');
     }
 
-    public function equals(self $other) : bool
+    public function equals(self $other): bool
     {
         return $this->code === $other->code;
     }
 
     #[Override]
-    public function jsonSerialize() : string
+    public function jsonSerialize(): string
     {
         return $this->code;
     }
 
     #[Override]
-    public function __toString() : string
+    public function __toString(): string
     {
         return $this->code;
     }

@@ -12,7 +12,7 @@ use Ruudk\GraphQLCodeGenerator\GraphQLTestCase;
 final class ConnectionNamesTest extends GraphQLTestCase
 {
     #[Override]
-    public function getConfig() : Config
+    public function getConfig(): Config
     {
         return parent::getConfig()
             ->enableUseNodeNameForEdgeNodes()
@@ -20,12 +20,12 @@ final class ConnectionNamesTest extends GraphQLTestCase
             ->enableUseEdgeNameForEdges();
     }
 
-    public function testGenerate() : void
+    public function testGenerate(): void
     {
         $this->assertActualMatchesExpected();
     }
 
-    public function testConnectionNaming() : void
+    public function testConnectionNaming(): void
     {
         $result = new TestQuery($this->getClient([
             'data' => [

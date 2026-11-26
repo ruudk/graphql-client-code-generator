@@ -23,7 +23,7 @@ final readonly class OperationClassPlan
         public string $operationType,
         public string $operationDefinition,
         public array $variables,
-        public GraphQLFileSource | InlineSource $source,
+        public GraphQLFileSource|InlineSource $source,
         public array $extraParameters = [],
     ) {}
 }

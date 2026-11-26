@@ -54,10 +54,8 @@ final readonly class PayloadShapeBuilder
      * @throws \Webmozart\Assert\InvalidArgumentException
      * @throws \GraphQL\Error\InvariantViolation
      */
-    public function buildPayloadShape(
-        SelectionSetNode $selectionSet,
-        Type $parentType,
-    ) : PayloadShape {
+    public function buildPayloadShape(SelectionSetNode $selectionSet, Type $parentType): PayloadShape
+    {
         $shape = new PayloadShape();
         $nakedParentType = $this->unwrapType($parentType);
         Assert::isInstanceOf($nakedParentType, NamedType::class);
@@ -78,7 +76,7 @@ final readonly class PayloadShapeBuilder
         NamedType $parentType,
         PayloadShape $shape,
         array $visitedFragments = [],
-    ) : void {
+    ): void {
         // First, collect all field selections including from same-type fragments
         $fieldGroups = $this->collectAllFieldSelections($selectionSet, $parentType, $visitedFragments);
 
@@ -101,13 +99,13 @@ final readonly class PayloadShapeBuilder
         // into the operation — so its `requires` selection must be part of the
         // payload the server returns.
         foreach ($selectionSet->selections as $selection) {
-            if ( ! $selection instanceof FieldNode) {
+            if (!$selection instanceof FieldNode) {
                 continue;
             }
 
             $hookName = $this->hookName($selection);
 
-            if ($hookName === null || ! isset($this->hooks[$hookName])) {
+            if ($hookName === null || !isset($this->hooks[$hookName])) {
                 continue;
             }
 
@@ -127,13 +125,13 @@ final readonly class PayloadShapeBuilder
                 continue;
             }
 
-            if ( ! $selection instanceof FragmentSpreadNode) {
+            if (!$selection instanceof FragmentSpreadNode) {
                 continue;
             }
 
             $fragmentName = $selection->name->value;
 
-            if ( ! isset($this->fragmentDefinitions[$fragmentName])) {
+            if (!isset($this->fragmentDefinitions[$fragmentName])) {
                 continue;
             }
 
@@ -145,7 +143,7 @@ final readonly class PayloadShapeBuilder
             $isUnionOrInterface = $parentType instanceof UnionType || $parentType instanceof InterfaceType;
 
             // Process separately if: different type, has directives, or is union/interface
-            if ( ! $isSameType || $hasDirective || $isUnionOrInterface) {
+            if (!$isSameType || $hasDirective || $isUnionOrInterface) {
                 $this->processFragmentSpread($selection, $shape, $parentType, $visitedFragments);
             }
         }
@@ -160,7 +158,7 @@ final readonly class PayloadShapeBuilder
         SelectionSetNode $selectionSet,
         NamedType $parentType,
         array $visitedFragments,
-    ) : array {
+    ): array {
         $fieldGroups = [];
         $fragmentSpreads = [];
 
@@ -194,7 +192,7 @@ final readonly class PayloadShapeBuilder
             }
 
             // Skip if undefined
-            if ( ! isset($this->fragmentDefinitions[$fragmentName])) {
+            if (!isset($this->fragmentDefinitions[$fragmentName])) {
                 continue;
             }
 
@@ -241,10 +239,8 @@ final readonly class PayloadShapeBuilder
      * @throws \Webmozart\Assert\InvalidArgumentException
      * @throws \GraphQL\Error\InvariantViolation
      */
-    private function buildFieldPayloadShape(
-        array $selections,
-        Type $fieldType,
-    ) : SymfonyType {
+    private function buildFieldPayloadShape(array $selections, Type $fieldType): SymfonyType
+    {
         $nakedFieldType = $this->unwrapType($fieldType);
 
         // Handle scalar/enum types (including __typename which is String!)
@@ -289,7 +285,7 @@ final readonly class PayloadShapeBuilder
      * Merge selection sets from multiple field selections
      * @param list<FieldNode> $selections
      */
-    private function mergeSelectionSets(array $selections) : SelectionSetNode
+    private function mergeSelectionSets(array $selections): SelectionSetNode
     {
         $mergedSelections = [];
         foreach ($selections as $selection) {
@@ -308,14 +304,14 @@ final readonly class PayloadShapeBuilder
     /**
      * Apply wrapping (list/nullable) to a type
      */
-    private function applyFieldWrapping(Type $fieldType, SymfonyType $shape) : SymfonyType
+    private function applyFieldWrapping(Type $fieldType, SymfonyType $shape): SymfonyType
     {
         // Special handling for ListOfType to check if items are nullable
         if ($fieldType instanceof ListOfType) {
             $innerType = $fieldType->getWrappedType();
 
             // If the inner type is not NonNull, items are nullable
-            if ( ! ($innerType instanceof NonNull)) {
+            if (!$innerType instanceof NonNull) {
                 $shape = SymfonyType::nullable($shape);
             }
 
@@ -331,7 +327,7 @@ final readonly class PayloadShapeBuilder
                 $listItemType = $innerType->getWrappedType();
 
                 // If list items are not NonNull, they are nullable
-                if ( ! ($listItemType instanceof NonNull)) {
+                if (!$listItemType instanceof NonNull) {
                     $shape = SymfonyType::nullable($shape);
                 }
 
@@ -358,7 +354,7 @@ final readonly class PayloadShapeBuilder
         PayloadShape $shape,
         NamedType $parentType,
         array $visitedFragments,
-    ) : void {
+    ): void {
         if ($fragment->typeCondition === null) {
             // Fragment without type condition applies to parent type
             $this->processSelections($fragment->selectionSet, $parentType, $shape, $visitedFragments);
@@ -392,7 +388,7 @@ final readonly class PayloadShapeBuilder
         PayloadShape $shape,
         NamedType $parentType,
         array $visitedFragments,
-    ) : void {
+    ): void {
         $fragmentName = $spread->name->value;
 
         // Skip if already visited
@@ -413,7 +409,11 @@ final readonly class PayloadShapeBuilder
 
         // For same-type interface/union fragments without directives,
         // merge directly to preserve field requiredness
-        if ($isSameType && ! $hasDirective && ($parentType instanceof UnionType || $parentType instanceof InterfaceType)) {
+        if (
+            $isSameType
+            && !$hasDirective
+            && ($parentType instanceof UnionType || $parentType instanceof InterfaceType)
+        ) {
             $this->processSelections($fragmentDef->selectionSet, $fragmentType, $shape, $newVisited);
 
             return;
@@ -427,11 +427,8 @@ final readonly class PayloadShapeBuilder
         $shape->merge($fragmentShape, $isOptional);
     }
 
-    private function shouldFieldsBeOptional(
-        NamedType $parentType,
-        NamedType $fragmentType,
-        bool $hasDirective,
-    ) : bool {
+    private function shouldFieldsBeOptional(NamedType $parentType, NamedType $fragmentType, bool $hasDirective): bool
+    {
         if ($hasDirective) {
             return true;
         }
@@ -452,7 +449,7 @@ final readonly class PayloadShapeBuilder
      * @throws \Webmozart\Assert\InvalidArgumentException
      * @throws \GraphQL\Error\InvariantViolation
      */
-    private function getFieldType(FieldNode $field, NamedType $parentType) : Type
+    private function getFieldType(FieldNode $field, NamedType $parentType): Type
     {
         if ($field->name->value === '__typename') {
             return Type::nonNull(Type::string());
@@ -466,7 +463,7 @@ final readonly class PayloadShapeBuilder
     /**
      * Unwrap a type to get the underlying named type
      */
-    private function unwrapType(Type $type) : Type
+    private function unwrapType(Type $type): Type
     {
         if ($type instanceof WrappingType) {
             return $this->unwrapType($type->getInnermostType());
@@ -478,7 +475,7 @@ final readonly class PayloadShapeBuilder
     /**
      * Check if a node has @include or @skip directive
      */
-    private function hasConditionalDirectives(FieldNode | FragmentSpreadNode $node) : bool
+    private function hasConditionalDirectives(FieldNode|FragmentSpreadNode $node): bool
     {
         foreach ($node->directives as $directive) {
             $name = $directive->name->value;
@@ -491,7 +488,7 @@ final readonly class PayloadShapeBuilder
         return false;
     }
 
-    private function hasHookDirective(FieldNode $node) : bool
+    private function hasHookDirective(FieldNode $node): bool
     {
         return $this->hookName($node) !== null;
     }
@@ -499,7 +496,7 @@ final readonly class PayloadShapeBuilder
     /**
      * The `name` of a field's `@hook` directive, or null when it has none.
      */
-    private function hookName(FieldNode $node) : ?string
+    private function hookName(FieldNode $node): ?string
     {
         foreach ($node->directives as $directive) {
             if ($directive->name->value !== 'hook') {

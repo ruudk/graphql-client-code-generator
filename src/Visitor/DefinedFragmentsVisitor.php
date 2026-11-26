@@ -17,12 +17,12 @@ final readonly class DefinedFragmentsVisitor
      * @throws Exception
      * @return array<string, FragmentDefinitionNode>
      */
-    public static function getDefinedFragments(Node $node) : array
+    public static function getDefinedFragments(Node $node): array
     {
         $fragments = [];
 
         Visitor::visit($node, [
-            NodeKind::FRAGMENT_DEFINITION => function (Node $node) use (&$fragments) {
+            NodeKind::FRAGMENT_DEFINITION => static function (Node $node) use (&$fragments) {
                 Assert::isInstanceOf($node, FragmentDefinitionNode::class);
 
                 Assert::keyNotExists($fragments, $node->name->value, 'Fragment name "%s" is already defined.');

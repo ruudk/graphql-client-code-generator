@@ -11,7 +11,7 @@ use Ruudk\GraphQLCodeGenerator\QueryObjectTypename\Generated\Query\Test\Data\Sup
 
 final class QueryObjectTypenameTest extends GraphQLTestCase
 {
-    public function testGenerate() : void
+    public function testGenerate(): void
     {
         $this->assertActualMatchesExpected();
     }
@@ -22,7 +22,7 @@ final class QueryObjectTypenameTest extends GraphQLTestCase
      * reading any data back, so the generated __typename property is tagged
      * @api to keep dead-code analysis from flagging it.
      */
-    public function testSoleTypenameOnQueryObjectFieldIsApi() : void
+    public function testSoleTypenameOnQueryObjectFieldIsApi(): void
     {
         $docComment = new ReflectionClass(Error::class)
             ->getProperty('__typename')
@@ -37,7 +37,7 @@ final class QueryObjectTypenameTest extends GraphQLTestCase
      * is generated via the regular field path; it is also never read back,
      * so it is tagged @api too.
      */
-    public function testSoleTypenameOnNestedObjectFieldInsideInlineFragmentIsApi() : void
+    public function testSoleTypenameOnNestedObjectFieldInsideInlineFragmentIsApi(): void
     {
         $docComment = new ReflectionClass(FxFee::class)
             ->getProperty('__typename')

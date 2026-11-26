@@ -11,7 +11,7 @@ use Override;
 final class Printer extends \GraphQL\Language\Printer
 {
     #[Override]
-    protected static function p(?Node $node) : string
+    protected static function p(?Node $node): string
     {
         if ($node instanceof OperationDefinitionNode) {
             $value = parent::p($node);

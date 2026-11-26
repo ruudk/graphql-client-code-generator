@@ -11,10 +11,11 @@ final class TypeDumper
 {
     /**
      * @param callable(string): string $importer
+     * @param non-negative-int $indentation
      */
-    public static function dump(Type $type, ?callable $importer = null, int $indentation = 0) : string
+    public static function dump(Type $type, ?callable $importer = null, int $indentation = 0): string
     {
-        $importer ??= fn(string $class) => $class;
+        $importer ??= static fn(string $class) => $class;
 
         if ($type instanceof Type\NullableType) {
             return sprintf('null|%s', self::dump($type->getWrappedType(), $importer, $indentation));
@@ -33,14 +34,17 @@ final class TypeDumper
                 $items[] = sprintf('%s: %s', $itemKey, self::dump($itemType, $importer, $indentation + 1));
             }
 
-            if ( ! $type->isSealed()) {
+            if (!$type->isSealed()) {
                 $extraKey = $type->getExtraKeyType();
                 $extraValue = $type->getExtraValueType();
 
-                $isDefaultExtras = ($extraKey === null || (
-                    $extraKey->isIdentifiedBy(TypeIdentifier::INT)
-                    && $extraKey->isIdentifiedBy(TypeIdentifier::STRING)
-                )) && ($extraValue === null || $extraValue->isIdentifiedBy(TypeIdentifier::MIXED));
+                $isDefaultExtras =
+                    (
+                        $extraKey === null
+                        || $extraKey->isIdentifiedBy(TypeIdentifier::INT)
+                        && $extraKey->isIdentifiedBy(TypeIdentifier::STRING)
+                    )
+                    && ($extraValue === null || $extraValue->isIdentifiedBy(TypeIdentifier::MIXED));
 
                 if ($isDefaultExtras) {
                     $items[] = '...';
@@ -59,12 +63,7 @@ final class TypeDumper
 
             $pad = $indentation === 0 ? '' : str_repeat(' ', $indentation * 4);
 
-            return sprintf(
-                "array{\n%s    %s,\n%s}",
-                $pad,
-                implode(sprintf(",\n%s    ", $pad), $items),
-                $pad,
-            );
+            return sprintf("array{\n%s    %s,\n%s}", $pad, implode(sprintf(",\n%s    ", $pad), $items), $pad);
         }
 
         if ($type instanceof Type\CollectionType) {
@@ -82,12 +81,11 @@ final class TypeDumper
         if ($type instanceof Type\UnionType) {
             return implode(
                 '|',
-                array_unique(
-                    array_map(
-                        fn(Type $type) => self::dump($type, $importer, $indentation),
-                        $type->getTypes(),
-                    ),
-                ),
+                array_unique(array_map(static fn(Type $type) => self::dump(
+                    $type,
+                    $importer,
+                    $indentation,
+                ), $type->getTypes())),
             );
         }
 

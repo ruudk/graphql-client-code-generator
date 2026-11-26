@@ -12,18 +12,17 @@ use Ruudk\GraphQLCodeGenerator\HooksInUnionVariant\Generated\Query\Test\TestQuer
 final class HooksInUnionVariantTest extends GraphQLTestCase
 {
     #[Override]
-    public function getConfig() : Config
+    public function getConfig(): Config
     {
-        return parent::getConfig()
-            ->withHook(FindUserByIdHook::class);
+        return parent::getConfig()->withHook(FindUserByIdHook::class);
     }
 
-    public function testGenerate() : void
+    public function testGenerate(): void
     {
         $this->assertActualMatchesExpected();
     }
 
-    public function testHookFieldIsNotUsedAsVariantDiscriminator() : void
+    public function testHookFieldIsNotUsedAsVariantDiscriminator(): void
     {
         $findUserById = new FindUserByIdHook([
             'thing-a' => new User('thing-a', 'https://example.com/avatars/a.png'),

@@ -30,7 +30,7 @@ final class ComputeAccessHook
      * @param array<int, RepositoryAccessFields> $inputs
      * @return iterable<int, Access>
      */
-    public function __invoke(array $inputs) : iterable
+    public function __invoke(array $inputs): iterable
     {
         $this->batches[] = $inputs;
 

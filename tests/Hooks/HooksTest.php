@@ -12,18 +12,17 @@ use Ruudk\GraphQLCodeGenerator\Hooks\Generated\Query\Test\TestQuery;
 final class HooksTest extends GraphQLTestCase
 {
     #[Override]
-    public function getConfig() : Config
+    public function getConfig(): Config
     {
-        return parent::getConfig()
-            ->withHook(FindUserByIdHook::class);
+        return parent::getConfig()->withHook(FindUserByIdHook::class);
     }
 
-    public function testGenerate() : void
+    public function testGenerate(): void
     {
         $this->assertActualMatchesExpected();
     }
 
-    public function testQuery() : void
+    public function testQuery(): void
     {
         $findUserById = new FindUserByIdHook([
             'user-123' => new User('user-123', 'https://example.com/avatars/123.png'),

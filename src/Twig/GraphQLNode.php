@@ -13,17 +13,19 @@ use Twig\Node\NodeCaptureInterface;
 #[YieldReady]
 final class GraphQLNode extends Node implements NodeCaptureInterface
 {
-    public function __construct(
-        Node $body,
-        int $lineno,
-    ) {
-        parent::__construct([
-            'body' => $body,
-        ], [], $lineno);
+    public function __construct(Node $body, int $lineno)
+    {
+        parent::__construct(
+            [
+                'body' => $body,
+            ],
+            [],
+            $lineno,
+        );
     }
 
     #[Override]
-    public function compile(Compiler $compiler) : void
+    public function compile(Compiler $compiler): void
     {
         $compiler->addDebugInfo($this);
     }

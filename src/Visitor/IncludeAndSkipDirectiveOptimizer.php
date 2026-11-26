@@ -25,11 +25,11 @@ final readonly class IncludeAndSkipDirectiveOptimizer
      * @throws Exception
      * @return T
      */
-    public function __invoke(Node $node, array $fragmentDefinitions) : Node
+    public function __invoke(Node $node, array $fragmentDefinitions): Node
     {
-        $new = Visitor::visit($node, [
+        return VisitedNode::of($node, Visitor::visit($node, [
             NodeKind::FIELD => [
-                'enter' => function (Node $node) {
+                'enter' => static function (Node $node) {
                     Assert::isInstanceOf($node, FieldNode::class);
 
                     if ($node->directives->count() === 0) {
@@ -38,7 +38,7 @@ final readonly class IncludeAndSkipDirectiveOptimizer
 
                     $changed = false;
                     foreach ($node->directives as $index => $directive) {
-                        if ( ! in_array($directive->name->value, ['include', 'skip'], true)) {
+                        if (!in_array($directive->name->value, ['include', 'skip'], true)) {
                             continue;
                         }
 
@@ -54,7 +54,7 @@ final readonly class IncludeAndSkipDirectiveOptimizer
                             continue;
                         }
 
-                        if ( ! $argument->value instanceof BooleanValueNode) {
+                        if (!$argument->value instanceof BooleanValueNode) {
                             continue;
                         }
 
@@ -69,18 +69,13 @@ final readonly class IncludeAndSkipDirectiveOptimizer
                         return Visitor::removeNode();
                     }
 
-                    if ( ! $changed) {
+                    if (!$changed) {
                         return null;
                     }
 
                     return $node;
                 },
             ],
-        ]);
-
-        Assert::isInstanceOf($new, Node::class);
-        Assert::isAOf($new, $node::class);
-
-        return $new;
+        ]));
     }
 }

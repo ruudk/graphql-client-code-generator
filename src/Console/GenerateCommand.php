@@ -32,10 +32,7 @@ use Throwable;
 use Webmozart\Assert\Assert;
 use Webmozart\Assert\InvalidArgumentException;
 
-#[AsCommand(
-    name: 'generate',
-    description: 'Generate GraphQL client code',
-)]
+#[AsCommand(name: 'generate', description: 'Generate GraphQL client code')]
 final class GenerateCommand
 {
     public function __construct(
@@ -55,11 +52,14 @@ final class GenerateCommand
         array $configs = ['graphql-client-code-generator.php'],
         #[Option(description: 'Working directory', name: 'working-dir', shortcut: 'w')]
         ?string $workingDir = null,
-        #[Option(description: 'Update the schema by doing an introspection query to the backend.', name: 'update-schema')]
+        #[Option(
+            description: 'Update the schema by doing an introspection query to the backend.',
+            name: 'update-schema',
+        )]
         bool $updateSchema = false,
         #[Option(description: 'Guard that the generated files are in sync.', name: 'ensure-sync')]
         bool $ensureSync = false,
-    ) : int {
+    ): int {
         $workingDir ??= getcwd();
 
         if ($workingDir === false || $workingDir === '') {
@@ -68,10 +68,10 @@ final class GenerateCommand
             return Command::FAILURE;
         }
 
-        $allConfigs = ConfigLoader::load(...array_map(
-            fn(string $path) => Path::makeAbsolute($path, $workingDir),
-            $configs,
-        ));
+        $allConfigs = ConfigLoader::load(...array_map(static fn(string $path) => Path::makeAbsolute(
+            $path,
+            $workingDir,
+        ), $configs));
 
         $exitCode = Command::SUCCESS;
 
@@ -93,7 +93,7 @@ final class GenerateCommand
             if ($updateSchema) {
                 if ($configItem->introspectionClient === null) {
                     $io->error('Cannot update schema: introspectionClient is not configured');
-                } elseif ( ! is_string($configItem->schema)) {
+                } elseif (!is_string($configItem->schema)) {
                     $io->error('Cannot update schema: schema should be a string');
                 } else {
                     $io->write(sprintf('Updating schema for <info>%s</info>... ', $configItem->namespace));
@@ -104,16 +104,16 @@ final class GenerateCommand
                         $client = $client();
                     }
 
-                    Assert::object($client);
-                    Assert::methodExists($client, 'graphql');
+                    $graphql = [$client, 'graphql'];
 
-                    $response = $client->graphql(Introspection::getIntrospectionQuery());
+                    Assert::isCallable($graphql, 'The introspection client must have a graphql() method');
+
+                    $response = $graphql(Introspection::getIntrospectionQuery());
 
                     Assert::isArray($response);
                     Assert::keyExists($response, 'data');
-                    Assert::isArray($response['data']);
+                    Assert::isMap($response['data']);
 
-                    // @phpstan-ignore argument.type (expects array<string, mixed>, array<mixed, mixed> given)
                     $schema = BuildClientSchema::build($response['data']);
 
                     if ($configItem->indexByDirective) {
@@ -129,30 +129,27 @@ final class GenerateCommand
                     }
 
                     if ($configItem->operationArguments !== []) {
-                        $schema = OperationArgumentDirectiveSchemaExtender::extend($schema, $configItem->operationArguments);
+                        $schema = OperationArgumentDirectiveSchemaExtender::extend(
+                            $schema,
+                            $configItem->operationArguments,
+                        );
                     }
 
-                    $this->filesystem->dumpFile(
-                        $configItem->schema,
-                        SchemaPrinter::doPrint(
-                            $schema,
-                            [
-                                'sortEnumValues' => true,
-                                'sortFields' => true,
-                                'sortTypes' => true,
+                    $this->filesystem->dumpFile($configItem->schema, SchemaPrinter::doPrint($schema, [
+                        'sortEnumValues' => true,
+                        'sortFields' => true,
+                        'sortTypes' => true,
 
-                                // We might want to do this at some point automatically
-                                'sortArguments' => false,
-                                'sortInputFields' => false,
-                            ],
-                        ),
-                    );
+                        // We might want to do this at some point automatically
+                        'sortArguments' => false,
+                        'sortInputFields' => false,
+                    ]));
 
                     $io->writeln('✅');
                 }
             }
 
-            if ( ! $ensureSync) {
+            if (!$ensureSync) {
                 $io->write(sprintf('Generating code for <info>%s</info>... ', $configItem->namespace));
             }
 
@@ -189,18 +186,27 @@ final class GenerateCommand
                         if (isset($actual[$path]) && $content !== $actual[$path]) {
                             $errors = true;
                             $relativePath = Path::makeRelative($path, $configItem->projectDir);
-                            $io->writeln(sprintf('<error>%s content does not match expectations</error>', $relativePath));
+                            $io->writeln(sprintf(
+                                '<error>%s content does not match expectations</error>',
+                                $relativePath,
+                            ));
                             $io->writeln($this->formatDiff($differ->diff($actual[$path], $content)));
-                        } elseif ( ! isset($actual[$path])) {
+                        } elseif (!isset($actual[$path])) {
                             $errors = true;
-                            $io->writeln(sprintf('<error>%s does not exist</error>', Path::makeRelative($path, $configItem->projectDir)));
+                            $io->writeln(sprintf('<error>%s does not exist</error>', Path::makeRelative(
+                                $path,
+                                $configItem->projectDir,
+                            )));
                         }
                     }
 
                     foreach (array_keys($actual) as $path) {
-                        if ( ! isset($files[$path])) {
+                        if (!isset($files[$path])) {
                             $errors = true;
-                            $io->writeln(sprintf('%s should not exist', Path::makeRelative($path, $configItem->projectDir)));
+                            $io->writeln(sprintf('%s should not exist', Path::makeRelative(
+                                $path,
+                                $configItem->projectDir,
+                            )));
                         }
                     }
 
@@ -264,10 +270,10 @@ final class GenerateCommand
                         $lines[] = sprintf('"%s" defined in %s', $fragmentName, $location);
                     }
 
-                    $io->warning(sprintf(
-                        "The following fragments are never used (never spread). Consider removing them:\n  - %s",
-                        implode("\n  - ", $lines),
-                    ));
+                    $io->warning(sprintf("The following fragments are never used (never spread). Consider removing them:\n  - %s", implode(
+                        "\n  - ",
+                        $lines,
+                    )));
                 }
             } catch (Throwable $error) {
                 $io->writeln('❌');
@@ -284,7 +290,7 @@ final class GenerateCommand
         return $exitCode;
     }
 
-    private function formatDiff(string $diff) : string
+    private function formatDiff(string $diff): string
     {
         $lines = explode("\n", $diff);
 

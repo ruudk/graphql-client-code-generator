@@ -18,7 +18,7 @@ final readonly class RecursiveTypeFinder
      * @throws InvalidArgumentException
      * @throws InvariantViolation
      */
-    public static function find(Type $parent, array $indexBy) : Type
+    public static function find(Type $parent, array $indexBy): Type
     {
         Assert::isInstanceOf($parent, HasFieldsType::class);
 
@@ -27,10 +27,7 @@ final readonly class RecursiveTypeFinder
         $type = $parent->getField($field)->getType();
 
         if ($indexBy !== []) {
-            return self::find(
-                Type::getNamedType($type),
-                $indexBy,
-            );
+            return self::find(Type::getNamedType($type), $indexBy);
         }
 
         return $type;

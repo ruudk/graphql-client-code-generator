@@ -15,7 +15,7 @@ use WeakMap;
  */
 final class HookLoaderGenerator extends AbstractGenerator
 {
-    public function generate() : string
+    public function generate(): string
     {
         $generator = new CodeGenerator($this->config->namespace);
 
@@ -23,7 +23,7 @@ final class HookLoaderGenerator extends AbstractGenerator
             yield $this->dumpHeader();
             yield '';
 
-            yield from $generator->docComment(function () {
+            yield from $generator->docComment(static function () {
                 yield 'Batches a `@hook` so the user-supplied hook runs exactly once per';
                 yield 'operation. The first access of any hooked property triggers a single';
                 yield 'walk of the typed object graph (via the generated collect* methods).';
@@ -37,7 +37,7 @@ final class HookLoaderGenerator extends AbstractGenerator
             });
             yield 'final class HookLoader';
             yield '{';
-            yield $generator->indent(function () use ($generator) {
+            yield $generator->indent(static function () use ($generator) {
                 yield 'private bool $loaded = false;';
                 yield '';
                 yield from $generator->docComment('@var array<int, TResult>');
@@ -46,7 +46,7 @@ final class HookLoaderGenerator extends AbstractGenerator
                 yield from $generator->docComment(sprintf('@var %s<object, int>', $generator->import(WeakMap::class)));
                 yield sprintf('private %s $index;', $generator->import(WeakMap::class));
                 yield '';
-                yield from $generator->docComment(function () use ($generator) {
+                yield from $generator->docComment(static function () use ($generator) {
                     yield sprintf(
                         '@param %s(): iterable<array{object, TInput}> $collect',
                         $generator->import(Closure::class),
@@ -57,7 +57,7 @@ final class HookLoaderGenerator extends AbstractGenerator
                     );
                 });
                 yield 'public function __construct(';
-                yield $generator->indent(function () use ($generator) {
+                yield $generator->indent(static function () use ($generator) {
                     yield sprintf('private readonly %s $collect,', $generator->import(Closure::class));
                     yield sprintf('private readonly %s $hook,', $generator->import(Closure::class));
                 });
@@ -68,7 +68,7 @@ final class HookLoaderGenerator extends AbstractGenerator
                 yield from $generator->docComment('@return TResult');
                 yield 'public function resolve(object $owner) : mixed';
                 yield '{';
-                yield $generator->indent(function () use ($generator) {
+                yield $generator->indent(static function () use ($generator) {
                     yield 'if ( ! $this->loaded) {';
                     yield $generator->indent('$this->load();');
                     yield '}';
@@ -79,18 +79,18 @@ final class HookLoaderGenerator extends AbstractGenerator
                 yield '';
                 yield 'private function load() : void';
                 yield '{';
-                yield $generator->indent(function () use ($generator) {
+                yield $generator->indent(static function () use ($generator) {
                     yield '$this->loaded = true;';
                     yield '';
                     yield '$inputs = [];';
                     yield '$keys = [];';
                     yield '';
                     yield 'foreach (($this->collect)() as [$owner, $input]) {';
-                    yield $generator->indent(function () use ($generator) {
+                    yield $generator->indent(static function () use ($generator) {
                         yield '$hash = serialize($input);';
                         yield '';
                         yield 'if ( ! isset($keys[$hash])) {';
-                        yield $generator->indent(function () {
+                        yield $generator->indent(static function () {
                             yield '$keys[$hash] = count($inputs);';
                             yield '$inputs[$keys[$hash]] = $input;';
                         });

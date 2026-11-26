@@ -37,10 +37,10 @@ final class ClassHookUsageRegistry
      * True when the class carries at least one legacy (non-batched) hook and
      * therefore needs the `$hooks` constructor argument.
      */
-    public function usesLegacyHooks(string $fqcn) : bool
+    public function usesLegacyHooks(string $fqcn): bool
     {
         foreach (array_keys($this->getHooksForClass($fqcn)) as $name) {
-            if ( ! ($this->hookDefinitions[$name]->batched ?? false)) {
+            if (!($this->hookDefinitions[$name]->batched ?? false)) {
                 return true;
             }
         }
@@ -52,7 +52,7 @@ final class ClassHookUsageRegistry
      * True when the class carries at least one batched hook and therefore needs
      * the `$loaders` constructor argument.
      */
-    public function usesBatchedHooks(string $fqcn) : bool
+    public function usesBatchedHooks(string $fqcn): bool
     {
         foreach (array_keys($this->getHooksForClass($fqcn)) as $name) {
             if ($this->hookDefinitions[$name]->batched ?? false) {
@@ -66,7 +66,7 @@ final class ClassHookUsageRegistry
     /**
      * @return array<string, true>
      */
-    public function getHooksForClass(string $fqcn) : array
+    public function getHooksForClass(string $fqcn): array
     {
         return $this->classHooks[$fqcn] ?? [];
     }
@@ -76,7 +76,7 @@ final class ClassHookUsageRegistry
      *
      * @return array<string, true>
      */
-    public function getAllUsedHookNames() : array
+    public function getAllUsedHookNames(): array
     {
         $names = [];
 

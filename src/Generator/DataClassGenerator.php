@@ -24,8 +24,8 @@ use Ruudk\GraphQLCodeGenerator\Type\StringLiteralType;
 use Ruudk\GraphQLCodeGenerator\Type\ThrowWhenNullPropertyType;
 use Ruudk\GraphQLCodeGenerator\Type\TypeDumper;
 use Ruudk\GraphQLCodeGenerator\TypeInitializer\DelegatingTypeInitializer;
-use Symfony\Component\TypeInfo\Type\ArrayShapeType;
 use Symfony\Component\TypeInfo\Type as SymfonyType;
+use Symfony\Component\TypeInfo\Type\ArrayShapeType;
 use Webmozart\Assert\Assert;
 use Webmozart\Assert\InvalidArgumentException;
 
@@ -45,7 +45,7 @@ final class DataClassGenerator extends AbstractGenerator
      *
      * @throws InvalidArgumentException
      */
-    private function initializeFragmentObject(FragmentObjectType $type, CodeGenerator $generator) : string
+    private function initializeFragmentObject(FragmentObjectType $type, CodeGenerator $generator): string
     {
         $result = $this->typeInitializer->__invoke($type, $generator, '$this->data');
         Assert::string($result);
@@ -57,17 +57,14 @@ final class DataClassGenerator extends AbstractGenerator
      * @param array<string, DataClassPlan> $plansByFqcn
      * @throws InvalidArgumentException
      */
-    private function dumpPossibleTypesList(array $plansByFqcn, string $fqcn) : string
+    private function dumpPossibleTypesList(array $plansByFqcn, string $fqcn): string
     {
         Assert::keyExists($plansByFqcn, $fqcn);
 
-        return implode(
-            ', ',
-            array_map(
-                fn(string $type) => var_export($type, true),
-                $plansByFqcn[$fqcn]->possibleTypes,
-            ),
-        );
+        return implode(', ', array_map(static fn(string $type) => var_export(
+            $type,
+            true,
+        ), $plansByFqcn[$fqcn]->possibleTypes));
     }
 
     /**
@@ -75,7 +72,7 @@ final class DataClassGenerator extends AbstractGenerator
      * a batched hook's data objects. Hook names are validated as PHP identifiers
      * by `Config::withHook()`.
      */
-    private function collectMethodName(string $hookName) : string
+    private function collectMethodName(string $hookName): string
     {
         return 'collectHook' . ucfirst($hookName) . 'Inputs';
     }
@@ -84,7 +81,7 @@ final class DataClassGenerator extends AbstractGenerator
      * Name of the generated method that builds a hook's `requires` data object
      * from `$this->data`.
      */
-    private function buildMethodName(HookPropertyType $hook) : string
+    private function buildMethodName(HookPropertyType $hook): string
     {
         return 'build' . $hook->requiresClassName;
     }
@@ -96,7 +93,7 @@ final class DataClassGenerator extends AbstractGenerator
      *
      * @param array<string, true> $batchedHooks
      */
-    private function dumpLoadersShape(array $batchedHooks, CodeGenerator $generator) : string
+    private function dumpLoadersShape(array $batchedHooks, CodeGenerator $generator): string
     {
         $hookLoader = $generator->import($this->fullyQualified('HookLoader'));
         $entries = [];
@@ -126,15 +123,18 @@ final class DataClassGenerator extends AbstractGenerator
      * type is its field type made nullable when the payload is nullable or the
      * field is optional. Used to emit correctly null-guarded collect traversals.
      */
-    private function effectivePropertyType(SymfonyType $fieldType, ?SymfonyType $payloadType, bool $optional) : SymfonyType
-    {
+    private function effectivePropertyType(
+        SymfonyType $fieldType,
+        ?SymfonyType $payloadType,
+        bool $optional,
+    ): SymfonyType {
         $propertyType = $fieldType;
 
-        if ($payloadType instanceof SymfonyType\NullableType && ! ($fieldType instanceof SymfonyType\NullableType)) {
+        if ($payloadType instanceof SymfonyType\NullableType && !$fieldType instanceof SymfonyType\NullableType) {
             $propertyType = SymfonyType::nullable($fieldType);
         }
 
-        if ($optional && ! ($propertyType instanceof SymfonyType\NullableType)) {
+        if ($optional && !$propertyType instanceof SymfonyType\NullableType) {
             $propertyType = SymfonyType::nullable($propertyType);
         }
 
@@ -146,7 +146,7 @@ final class DataClassGenerator extends AbstractGenerator
      * nested ObjectType if that is what remains. Mirrors `Planner::unwrapToObjectType`
      * so the collect traversal reaches exactly the classes hook propagation marked.
      */
-    private function unwrapToObjectClassName(SymfonyType $type) : ?string
+    private function unwrapToObjectClassName(SymfonyType $type): ?string
     {
         while (true) {
             if ($type instanceof ThrowWhenNullPropertyType) {
@@ -182,18 +182,49 @@ final class DataClassGenerator extends AbstractGenerator
      * @throws InvalidArgumentException
      * @return iterable<string|Group>
      */
-    private function emitCollectDescent(string $accessor, SymfonyType $type, DataClassPlan $childPlan, string $hookName, array $plansByFqcn, CodeGenerator $generator, int $depth) : iterable
-    {
+    private function emitCollectDescent(
+        string $accessor,
+        SymfonyType $type,
+        DataClassPlan $childPlan,
+        string $hookName,
+        array $plansByFqcn,
+        CodeGenerator $generator,
+        int $depth,
+    ): iterable {
         if ($type instanceof ThrowWhenNullPropertyType) {
-            yield from $this->emitCollectDescent($accessor, $type->getWrappedType(), $childPlan, $hookName, $plansByFqcn, $generator, $depth);
+            yield from $this->emitCollectDescent(
+                $accessor,
+                $type->getWrappedType(),
+                $childPlan,
+                $hookName,
+                $plansByFqcn,
+                $generator,
+                $depth,
+            );
 
             return;
         }
 
         if ($type instanceof SymfonyType\NullableType) {
             yield sprintf('if (%s !== null) {', $accessor);
-            yield $generator->indent(function () use ($accessor, $type, $childPlan, $hookName, $plansByFqcn, $generator, $depth) {
-                yield from $this->emitCollectDescent($accessor, $type->getWrappedType(), $childPlan, $hookName, $plansByFqcn, $generator, $depth);
+            yield $generator->indent(function () use (
+                $accessor,
+                $type,
+                $childPlan,
+                $hookName,
+                $plansByFqcn,
+                $generator,
+                $depth,
+            ) {
+                yield from $this->emitCollectDescent(
+                    $accessor,
+                    $type->getWrappedType(),
+                    $childPlan,
+                    $hookName,
+                    $plansByFqcn,
+                    $generator,
+                    $depth,
+                );
             });
             yield '}';
 
@@ -203,8 +234,24 @@ final class DataClassGenerator extends AbstractGenerator
         if ($type instanceof SymfonyType\CollectionType) {
             $item = '$item' . ($depth > 0 ? (string) $depth : '');
             yield sprintf('foreach (%s as %s) {', $accessor, $item);
-            yield $generator->indent(function () use ($item, $type, $childPlan, $hookName, $plansByFqcn, $generator, $depth) {
-                yield from $this->emitCollectDescent($item, $type->getCollectionValueType(), $childPlan, $hookName, $plansByFqcn, $generator, $depth + 1);
+            yield $generator->indent(function () use (
+                $item,
+                $type,
+                $childPlan,
+                $hookName,
+                $plansByFqcn,
+                $generator,
+                $depth,
+            ) {
+                yield from $this->emitCollectDescent(
+                    $item,
+                    $type->getCollectionValueType(),
+                    $childPlan,
+                    $hookName,
+                    $plansByFqcn,
+                    $generator,
+                    $depth + 1,
+                );
             });
             yield '}';
 
@@ -226,15 +273,21 @@ final class DataClassGenerator extends AbstractGenerator
      * @throws InvalidArgumentException
      * @return iterable<string|Group>
      */
-    private function emitCollectClassBody(string $accessor, DataClassPlan $plan, string $hookName, array $plansByFqcn, CodeGenerator $generator, int $depth) : iterable
-    {
+    private function emitCollectClassBody(
+        string $accessor,
+        DataClassPlan $plan,
+        string $hookName,
+        array $plansByFqcn,
+        CodeGenerator $generator,
+        int $depth,
+    ): iterable {
         $fields = $plan->fields;
 
         if ($fields instanceof SymfonyType\NullableType) {
             $fields = $fields->getWrappedType();
         }
 
-        if ( ! $fields instanceof ArrayShapeType) {
+        if (!$fields instanceof ArrayShapeType) {
             return;
         }
 
@@ -263,12 +316,7 @@ final class DataClassGenerator extends AbstractGenerator
 
             if ($fieldType instanceof HookPropertyType) {
                 if ($fieldType->hookName === $hookName) {
-                    yield sprintf(
-                        'yield [%s, %s->%s()];',
-                        $accessor,
-                        $accessor,
-                        $this->buildMethodName($fieldType),
-                    );
+                    yield sprintf('yield [%s, %s->%s()];', $accessor, $accessor, $this->buildMethodName($fieldType));
                 }
 
                 continue;
@@ -287,9 +335,10 @@ final class DataClassGenerator extends AbstractGenerator
 
             $leafFqcn = $this->unwrapToObjectClassName($propertyType);
 
-            if ($leafFqcn === null
-                || ! isset($plansByFqcn[$leafFqcn])
-                || ! isset($plansByFqcn[$leafFqcn]->usedHooks[$hookName])
+            if (
+                $leafFqcn === null
+                || !isset($plansByFqcn[$leafFqcn])
+                || !isset($plansByFqcn[$leafFqcn]->usedHooks[$hookName])
             ) {
                 continue;
             }
@@ -317,14 +366,14 @@ final class DataClassGenerator extends AbstractGenerator
      * @throws InvalidArgumentException
      * @return iterable<string|Group>
      */
-    private function dumpCollectMethods(DataClassPlan $plan, array $plansByFqcn, CodeGenerator $generator) : iterable
+    private function dumpCollectMethods(DataClassPlan $plan, array $plansByFqcn, CodeGenerator $generator): iterable
     {
-        if ( ! $plan->isData) {
+        if (!$plan->isData) {
             return;
         }
 
         foreach (array_keys($plan->usedHooks) as $hookName) {
-            if ( ! $this->config->hooks[$hookName]->batched) {
+            if (!$this->config->hooks[$hookName]->batched) {
                 continue;
             }
 
@@ -349,7 +398,7 @@ final class DataClassGenerator extends AbstractGenerator
      *
      * @return iterable<string|Group>
      */
-    private function dumpHookBuildMethods(DataClassPlan $plan, CodeGenerator $generator) : iterable
+    private function dumpHookBuildMethods(DataClassPlan $plan, CodeGenerator $generator): iterable
     {
         $fields = $plan->fields;
 
@@ -357,7 +406,7 @@ final class DataClassGenerator extends AbstractGenerator
             $fields = $fields->getWrappedType();
         }
 
-        if ( ! $fields instanceof ArrayShapeType) {
+        if (!$fields instanceof ArrayShapeType) {
             return;
         }
 
@@ -366,7 +415,7 @@ final class DataClassGenerator extends AbstractGenerator
         foreach ($fields->getShape() as $fieldValue) {
             $fieldType = $fieldValue['type'];
 
-            if ( ! $fieldType instanceof HookPropertyType || isset($emitted[$fieldType->requiresClassName])) {
+            if (!$fieldType instanceof HookPropertyType || isset($emitted[$fieldType->requiresClassName])) {
                 continue;
             }
 
@@ -385,7 +434,7 @@ final class DataClassGenerator extends AbstractGenerator
     /**
      * @param array<string, DataClassPlan> $plansByFqcn
      */
-    public function generate(DataClassPlan $plan, array $plansByFqcn = []) : string
+    public function generate(DataClassPlan $plan, array $plansByFqcn = []): string
     {
         $parentType = $plan->parentType;
         $fields = $plan->fields;
@@ -401,13 +450,9 @@ final class DataClassGenerator extends AbstractGenerator
         // side effect of execute()/executeOrThrow(), regardless of whether
         // the caller reads them. Tag them @api so dead-code analysis does
         // not flag the properties as unused.
-        $isMutationData = $isData
-            && $definitionNode instanceof OperationDefinitionNode
-            && $definitionNode->operation === 'mutation';
+        $isMutationData =
+            $isData && $definitionNode instanceof OperationDefinitionNode && $definitionNode->operation === 'mutation';
 
-        /**
-         * @var array<string, list<string>>
-         */
         $inlineFragmentRequiredFields = $plan->inlineFragmentRequiredFields;
 
         if ($fields instanceof SymfonyType\NullableType) {
@@ -435,7 +480,20 @@ final class DataClassGenerator extends AbstractGenerator
 
         $generator = new CodeGenerator($namespace);
 
-        return $generator->dumpFile(function () use ($plan, $definitionNode, $parentType, $nodesType, $fqcn, $payloadShape, $isData, $isMutationData, $fields, $generator, $inlineFragmentRequiredFields, $plansByFqcn) {
+        return $generator->dumpFile(function () use (
+            $plan,
+            $definitionNode,
+            $parentType,
+            $nodesType,
+            $fqcn,
+            $payloadShape,
+            $isData,
+            $isMutationData,
+            $fields,
+            $generator,
+            $inlineFragmentRequiredFields,
+            $plansByFqcn,
+        ) {
             yield $this->dumpHeader();
             yield '';
 
@@ -450,7 +508,7 @@ final class DataClassGenerator extends AbstractGenerator
             }
 
             if ($this->config->addGeneratedAttribute) {
-                yield from $generator->dumpAttribute(Generated::class, function () use ($generator, $plan) {
+                yield from $generator->dumpAttribute(Generated::class, static function () use ($generator, $plan) {
                     if ($plan->source instanceof GraphQLFileSource) {
                         yield sprintf('source: %s', var_export($plan->source->relativeFilePath, true));
 
@@ -482,588 +540,627 @@ final class DataClassGenerator extends AbstractGenerator
 
             $requiredFieldsMap = $inlineFragmentRequiredFields;
 
-            yield $generator->indent(
-                function () use ($plan, $parentType, $nodesType, $fields, $isData, $isMutationData, $payloadShape, $generator, $requiredFieldsMap, $plansByFqcn) {
-                    // Get optional flags and actual types from payloadShape
-                    $optionalFields = [];
-                    $payloadFieldTypes = [];
+            yield $generator->indent(function () use (
+                $plan,
+                $parentType,
+                $nodesType,
+                $fields,
+                $isData,
+                $isMutationData,
+                $payloadShape,
+                $generator,
+                $requiredFieldsMap,
+                $plansByFqcn,
+            ) {
+                // Get optional flags and actual types from payloadShape
+                $optionalFields = [];
+                $payloadFieldTypes = [];
 
-                    if ($payloadShape instanceof ArrayShapeType) {
-                        foreach ($payloadShape->getShape() as $fieldName => $fieldValue) {
-                            // ArrayShapeType always returns array format
-                            if ($fieldValue['optional']) {
-                                $optionalFields[$fieldName] = true;
-                            }
-
-                            $payloadFieldTypes[$fieldName] = $fieldValue['type'];
+                if ($payloadShape instanceof ArrayShapeType) {
+                    foreach ($payloadShape->getShape() as $fieldName => $fieldValue) {
+                        // ArrayShapeType always returns array format
+                        if ($fieldValue['optional']) {
+                            $optionalFields[$fieldName] = true;
                         }
+
+                        $payloadFieldTypes[$fieldName] = $fieldValue['type'];
                     }
+                }
 
-                    if ($fields instanceof ArrayShapeType) {
-                        $shape = $fields->getShape();
+                if ($fields instanceof ArrayShapeType) {
+                    $shape = $fields->getShape();
 
-                        foreach ($shape as $fieldName => $fieldValue) {
-                            Assert::string($fieldName);
+                    foreach ($shape as $fieldName => $fieldValue) {
+                        Assert::string($fieldName);
 
-                            // ArrayShapeType always returns arrays with type and optional
-                            $fieldType = $fieldValue['type'];
-                            $optional = $fieldValue['optional'];
+                        // ArrayShapeType always returns arrays with type and optional
+                        $fieldType = $fieldValue['type'];
+                        $optional = $fieldValue['optional'];
 
-                            // Check if field is optional in payloadShape
-                            $optional = $optional || isset($optionalFields[$fieldName]);
+                        // Check if field is optional in payloadShape
+                        $optional = $optional || isset($optionalFields[$fieldName]);
 
-                            $nakedFieldType = $this->getNakedType($fieldType);
+                        $nakedFieldType = $this->getNakedType($fieldType);
 
-                            yield '';
+                        yield '';
 
-                            // Hook-backed synthetic property: not stored in $this->data, resolved
-                            // at access time by invoking the user-supplied hook with the typed
-                            // data object built from the hook's `requires` fragment.
-                            if ($fieldType instanceof HookPropertyType) {
-                                $wrappedReturnType = $fieldType->getWrappedType();
+                        // Hook-backed synthetic property: not stored in $this->data, resolved
+                        // at access time by invoking the user-supplied hook with the typed
+                        // data object built from the hook's `requires` fragment.
+                        if ($fieldType instanceof HookPropertyType) {
+                            $wrappedReturnType = $fieldType->getWrappedType();
 
-                                yield from $generator->docComment(function () use ($wrappedReturnType, $isMutationData, $generator) {
-                                    if ($isMutationData) {
-                                        yield '@api';
-                                    }
-
-                                    if ($this->getNakedType($wrappedReturnType) instanceof SymfonyType\CollectionType) {
-                                        yield sprintf(
-                                            '@var %s',
-                                            TypeDumper::dump($wrappedReturnType, $generator->import(...)),
-                                        );
-                                    }
-                                });
-                                yield sprintf(
-                                    'public %s $%s {',
-                                    $this->dumpPHPType($fieldType, $generator->import(...)),
-                                    $fieldName,
-                                );
-                                yield $generator->indent(function () use ($fieldType, $fieldName) {
-                                    // Batched hook: delegate to the per-operation HookLoader,
-                                    // which resolves the whole batch once and looks this
-                                    // instance up by object identity.
-                                    if ($fieldType->batched) {
-                                        yield sprintf(
-                                            'get => $this->%s ??= $this->loaders[%s]->resolve($this);',
-                                            $fieldName,
-                                            var_export($fieldType->hookName, true),
-                                        );
-
-                                        return;
-                                    }
-
-                                    yield sprintf(
-                                        'get => $this->%s ??= $this->hooks[%s]->__invoke($this->%s());',
-                                        $fieldName,
-                                        var_export($fieldType->hookName, true),
-                                        $this->buildMethodName($fieldType),
-                                    );
-                                });
-                                yield '}';
-
-                                continue;
-                            }
-
-                            if ($fieldType instanceof ThrowWhenNullPropertyType) {
-                                $wrappedType = $fieldType->getWrappedType();
-
-                                yield from $generator->docComment(function () use ($wrappedType, $isMutationData, $generator) {
-                                    if ($isMutationData) {
-                                        yield '@api';
-                                    }
-
-                                    if ($this->getNakedType($wrappedType) instanceof SymfonyType\CollectionType) {
-                                        yield sprintf(
-                                            '@var %s',
-                                            TypeDumper::dump($wrappedType, $generator->import(...)),
-                                        );
-                                    }
-                                });
-                                yield sprintf(
-                                    'public %s $%s {',
-                                    $this->dumpPHPType($wrappedType, $generator->import(...)),
-                                    $fieldName,
-                                );
-                                yield $generator->indent(function () use ($wrappedType, $fieldName, $generator, $parentType) {
-                                    yield from $generator->docComment(function () use ($generator) {
-                                        yield sprintf('@throws %s', $generator->import($this->fullyQualified('NodeNotFoundException')));
-                                    });
-                                    yield from $generator->wrap(
-                                        sprintf(
-                                            'get => $this->%s ??= $this->data[%s] !== null ? ',
-                                            $fieldName,
-                                            var_export($fieldName, true),
-                                        ),
-                                        $this->typeInitializer->__invoke(
-                                            $wrappedType,
-                                            $generator,
-                                            sprintf('$this->data[%s]', var_export($fieldName, true)),
-                                        ),
-                                        sprintf(
-                                            ' : throw %s::create(%s, %s);',
-                                            $generator->import($this->fullyQualified('NodeNotFoundException')),
-                                            var_export($parentType->name(), true),
-                                            var_export($fieldName, true),
-                                        ),
-                                    );
-                                });
-                                yield '}';
-
-                                continue;
-                            }
-
-                            // Check the payload shape to properly handle nullability
-                            $payloadType = $payloadFieldTypes[$fieldName] ?? null;
-
-                            // Use field type as the base, but incorporate nullability from payload if needed
-                            $propertyType = $fieldType;
-
-                            // If payload type is nullable but field type isn't, make property nullable
-                            if ($payloadType instanceof SymfonyType\NullableType && ! ($fieldType instanceof SymfonyType\NullableType)) {
-                                $propertyType = SymfonyType::nullable($fieldType);
-                            }
-
-                            // For optional fields, the property must be nullable (since field might not exist)
-                            if ($optional && ! ($propertyType instanceof SymfonyType\NullableType)) {
-                                $propertyType = SymfonyType::nullable($propertyType);
-                            }
-
-                            yield from $generator->docComment(function () use ($plan, $fieldName, $propertyType, $isMutationData, $generator) {
-                                if ($isMutationData || ($fieldName === '__typename' && $plan->markTypenameAsApi)) {
+                            yield from $generator->docComment(function () use (
+                                $wrappedReturnType,
+                                $isMutationData,
+                                $generator,
+                            ) {
+                                if ($isMutationData) {
                                     yield '@api';
                                 }
 
-                                if ($this->getNakedType($propertyType) instanceof SymfonyType\CollectionType) {
-                                    yield sprintf(
-                                        '@var %s',
-                                        TypeDumper::dump($propertyType, $generator->import(...)),
-                                    );
+                                if ($this->getNakedType($wrappedReturnType) instanceof SymfonyType\CollectionType) {
+                                    yield sprintf('@var %s', TypeDumper::dump(
+                                        $wrappedReturnType,
+                                        $generator->import(...),
+                                    ));
                                 }
                             });
                             yield sprintf(
                                 'public %s $%s {',
-                                $this->dumpPHPType($propertyType, $generator->import(...)),
+                                $this->dumpPHPType($fieldType, $generator->import(...)),
                                 $fieldName,
                             );
-                            yield $generator->indent(function () use ($parentType, $nakedFieldType, $fieldType, $generator, $fieldName, $requiredFieldsMap, $optional, $payloadFieldTypes, $propertyType, $plansByFqcn) {
-                                if ($nakedFieldType instanceof FragmentObjectType) {
-                                    // For interface/union parent types, we need special handling
-                                    if ( ! $parentType instanceof ObjectType) {
-                                        // Check if we have required fields for this fragment
-                                        $fragmentClassName = $nakedFieldType->getClassName();
-                                        /**
-                                         * @var list<string> $requiredFields
-                                         */
-                                        $requiredFields = $requiredFieldsMap[$fragmentClassName] ?? [];
-
-                                        $construct = $this->initializeFragmentObject($nakedFieldType, $generator);
-
-                                        // For fragments on interface/union types themselves
-                                        if ($nakedFieldType->fragmentType instanceof InterfaceType || $nakedFieldType->fragmentType instanceof UnionType) {
-                                            yield sprintf(
-                                                'get => $this->%s ??= in_array($this->data[\'__typename\'], [%s], true) ? %s : null;',
-                                                $fieldName,
-                                                $this->dumpPossibleTypesList($plansByFqcn, $nakedFieldType->getClassName()),
-                                                $construct,
-                                            );
-
-                                            return;
-                                        }
-
-                                        // For fragments on concrete types when parent is interface/union
-                                        // We need to check both typename and required fields
-                                        if ($requiredFields === []) {
-                                            // No required fields to check, only typename
-                                            yield sprintf(
-                                                'get => $this->%s ??= $this->data[\'__typename\'] === %s ? %s : null;',
-                                                $fieldName,
-                                                var_export($nakedFieldType->fragmentType->name(), true),
-                                                $construct,
-                                            );
-                                        } else {
-                                            // Generate verbose getter with field checks for PHPStan type safety
-                                            yield 'get {';
-                                            yield $generator->indent(function () use ($fieldName, $nakedFieldType, $requiredFields, $construct) {
-                                                yield sprintf('if (isset($this->%s)) {', $fieldName);
-                                                yield '    return $this->' . $fieldName . ';';
-                                                yield '}';
-                                                yield '';
-                                                yield sprintf(
-                                                    'if ($this->data[\'__typename\'] !== %s) {',
-                                                    var_export($nakedFieldType->fragmentType->name(), true),
-                                                );
-                                                yield '    return $this->' . $fieldName . ' = null;';
-                                                yield '}';
-
-                                                // Check all required fields exist
-                                                foreach ($requiredFields as $requiredField) {
-                                                    yield '';
-                                                    yield sprintf(
-                                                        'if (! array_key_exists(%s, $this->data)) {',
-                                                        var_export($requiredField, true),
-                                                    );
-                                                    yield '    return $this->' . $fieldName . ' = null;';
-                                                    yield '}';
-                                                }
-
-                                                yield '';
-                                                yield sprintf(
-                                                    'return $this->%s = %s;',
-                                                    $fieldName,
-                                                    $construct,
-                                                );
-                                            });
-                                            yield '}';
-                                        }
-
-                                        return;
-                                    }
-
-                                    // For ObjectType parents, fragments don't need field checking
+                            yield $generator->indent(function () use ($fieldType, $fieldName) {
+                                // Batched hook: delegate to the per-operation HookLoader,
+                                // which resolves the whole batch once and looks this
+                                // instance up by object identity.
+                                if ($fieldType->batched) {
                                     yield sprintf(
-                                        'get => $this->%s ??= %s;',
+                                        'get => $this->%s ??= $this->loaders[%s]->resolve($this);',
                                         $fieldName,
-                                        $this->initializeFragmentObject($nakedFieldType, $generator),
+                                        var_export($fieldType->hookName, true),
                                     );
 
                                     return;
                                 }
 
-                                // Handle optional fields (from @include/@skip directives)
-                                if ($optional) {
-                                    // Optional field - need array_key_exists check
-
-                                    // Check the payload shape to determine if field is nullable
-                                    $payloadType = $payloadFieldTypes[$fieldName] ?? null;
-                                    $isPayloadNullable = $payloadType instanceof SymfonyType\NullableType;
-
-                                    yield 'get {';
-                                    yield $generator->indent(function () use ($fieldName, $fieldType, $generator, $isPayloadNullable) {
-                                        yield sprintf('if (isset($this->%s)) {', $fieldName);
-                                        yield '    return $this->' . $fieldName . ';';
-                                        yield '}';
-                                        yield '';
-                                        yield sprintf(
-                                            'if (! array_key_exists(%s, $this->data)) {',
-                                            var_export($fieldName, true),
-                                        );
-                                        yield '    return $this->' . $fieldName . ' = null;';
-                                        yield '}';
-
-                                        // Only check for null if the payload field is nullable
-                                        if ($isPayloadNullable) {
-                                            yield '';
-                                            yield sprintf(
-                                                'if ($this->data[%s] === null) {',
-                                                var_export($fieldName, true),
-                                            );
-                                            yield '    return $this->' . $fieldName . ' = null;';
-                                            yield '}';
-                                        }
-
-                                        yield '';
-                                        // Always use the non-nullable type for initialization
-                                        // since we've already handled the null case if needed
-                                        $typeForInit = $isPayloadNullable && $fieldType instanceof SymfonyType\NullableType
-                                            ? $fieldType->getWrappedType()
-                                            : $fieldType;
-
-                                        yield from $generator->wrap(
-                                            sprintf('return $this->%s = ', $fieldName),
-                                            $this->typeInitializer->__invoke(
-                                                $typeForInit,
-                                                $generator,
-                                                sprintf('$this->data[%s]', var_export($fieldName, true)),
-                                            ),
-                                            ';',
-                                        );
-                                    });
-                                    yield '}';
-
-                                    return;
-                                }
-
-                                // Check if this is a multi-field IndexByCollectionType
-                                $isMultiFieldIndexBy = false;
-
-                                if ($propertyType instanceof IndexByCollectionType) {
-                                    $isMultiFieldIndexBy = $propertyType->value instanceof IndexByCollectionType;
-                                }
-
-                                if ($isMultiFieldIndexBy) {
-                                    yield from $generator->wrap(
-                                        sprintf(
-                                            'get => $this->%s ??= ',
-                                            $fieldName,
-                                        ),
-                                        $this->typeInitializer->__invoke(
-                                            $propertyType,
-                                            $generator,
-                                            sprintf('$this->data[%s]', var_export($fieldName, true)),
-                                        ),
-                                        ';',
-                                    );
-                                } else {
-                                    yield from $generator->wrap(
-                                        sprintf(
-                                            'get => $this->%s ??= ',
-                                            $fieldName,
-                                        ),
-                                        $this->typeInitializer->__invoke(
-                                            $propertyType,
-                                            $generator,
-                                            sprintf('$this->data[%s]', var_export($fieldName, true)),
-                                        ),
-                                        ';',
-                                    );
-                                }
+                                yield sprintf(
+                                    'get => $this->%s ??= $this->hooks[%s]->__invoke($this->%s());',
+                                    $fieldName,
+                                    var_export($fieldType->hookName, true),
+                                    $this->buildMethodName($fieldType),
+                                );
                             });
                             yield '}';
 
-                            if ($nakedFieldType instanceof FragmentObjectType && $fieldType instanceof SymfonyType\NullableType) {
-                                yield '';
-                                yield from $generator->docComment(function () use ($fieldName) {
+                            continue;
+                        }
+
+                        if ($fieldType instanceof ThrowWhenNullPropertyType) {
+                            $wrappedType = $fieldType->getWrappedType();
+
+                            yield from $generator->docComment(function () use (
+                                $wrappedType,
+                                $isMutationData,
+                                $generator,
+                            ) {
+                                if ($isMutationData) {
                                     yield '@api';
-                                    yield sprintf('@phpstan-assert-if-true !null $this->%s', $fieldName);
+                                }
+
+                                if ($this->getNakedType($wrappedType) instanceof SymfonyType\CollectionType) {
+                                    yield sprintf('@var %s', TypeDumper::dump($wrappedType, $generator->import(...)));
+                                }
+                            });
+                            yield sprintf(
+                                'public %s $%s {',
+                                $this->dumpPHPType($wrappedType, $generator->import(...)),
+                                $fieldName,
+                            );
+                            yield $generator->indent(function () use (
+                                $wrappedType,
+                                $fieldName,
+                                $generator,
+                                $parentType,
+                            ) {
+                                yield from $generator->docComment(function () use ($generator) {
+                                    yield sprintf(
+                                        '@throws %s',
+                                        $generator->import($this->fullyQualified('NodeNotFoundException')),
+                                    );
                                 });
-                                yield sprintf(
-                                    'public bool $is%s {',
-                                    $nakedFieldType->fragmentName,
+                                yield from $generator->wrap(
+                                    sprintf(
+                                        'get => $this->%s ??= $this->data[%s] !== null ? ',
+                                        $fieldName,
+                                        var_export($fieldName, true),
+                                    ),
+                                    $this->typeInitializer->__invoke(
+                                        $wrappedType,
+                                        $generator,
+                                        sprintf('$this->data[%s]', var_export($fieldName, true)),
+                                    ),
+                                    sprintf(
+                                        ' : throw %s::create(%s, %s);',
+                                        $generator->import($this->fullyQualified('NodeNotFoundException')),
+                                        var_export($parentType->name(), true),
+                                        var_export($fieldName, true),
+                                    ),
                                 );
-                                yield $generator->indent(function () use ($nakedFieldType, $plansByFqcn) {
-                                    if ($nakedFieldType->fragmentType instanceof ObjectType) {
+                            });
+                            yield '}';
+
+                            continue;
+                        }
+
+                        // Check the payload shape to properly handle nullability
+                        $payloadType = $payloadFieldTypes[$fieldName] ?? null;
+
+                        // Use field type as the base, but incorporate nullability from payload if needed
+                        $propertyType = $fieldType;
+
+                        // If payload type is nullable but field type isn't, make property nullable
+                        if (
+                            $payloadType instanceof SymfonyType\NullableType
+                            && !$fieldType instanceof SymfonyType\NullableType
+                        ) {
+                            $propertyType = SymfonyType::nullable($fieldType);
+                        }
+
+                        // For optional fields, the property must be nullable (since field might not exist)
+                        if ($optional && !$propertyType instanceof SymfonyType\NullableType) {
+                            $propertyType = SymfonyType::nullable($propertyType);
+                        }
+
+                        yield from $generator->docComment(function () use (
+                            $plan,
+                            $fieldName,
+                            $propertyType,
+                            $isMutationData,
+                            $generator,
+                        ) {
+                            if ($isMutationData || $fieldName === '__typename' && $plan->markTypenameAsApi) {
+                                yield '@api';
+                            }
+
+                            if ($this->getNakedType($propertyType) instanceof SymfonyType\CollectionType) {
+                                yield sprintf('@var %s', TypeDumper::dump($propertyType, $generator->import(...)));
+                            }
+                        });
+                        yield sprintf(
+                            'public %s $%s {',
+                            $this->dumpPHPType($propertyType, $generator->import(...)),
+                            $fieldName,
+                        );
+                        yield $generator->indent(function () use (
+                            $parentType,
+                            $nakedFieldType,
+                            $fieldType,
+                            $generator,
+                            $fieldName,
+                            $requiredFieldsMap,
+                            $optional,
+                            $payloadFieldTypes,
+                            $propertyType,
+                            $plansByFqcn,
+                        ) {
+                            if ($nakedFieldType instanceof FragmentObjectType) {
+                                // For interface/union parent types, we need special handling
+                                if (!$parentType instanceof ObjectType) {
+                                    // Check if we have required fields for this fragment
+                                    $fragmentClassName = $nakedFieldType->getClassName();
+                                    $requiredFields = $requiredFieldsMap[$fragmentClassName] ?? [];
+
+                                    $construct = $this->initializeFragmentObject($nakedFieldType, $generator);
+
+                                    // For fragments on interface/union types themselves
+                                    if (
+                                        $nakedFieldType->fragmentType instanceof InterfaceType
+                                        || $nakedFieldType->fragmentType instanceof UnionType
+                                    ) {
                                         yield sprintf(
-                                            'get => $this->is%s ??= $this->data[\'__typename\'] === %s;',
-                                            $nakedFieldType->fragmentName,
-                                            var_export($nakedFieldType->fragmentType->name(), true),
+                                            'get => $this->%s ??= in_array($this->data[\'__typename\'], [%s], true) ? %s : null;',
+                                            $fieldName,
+                                            $this->dumpPossibleTypesList($plansByFqcn, $nakedFieldType->getClassName()),
+                                            $construct,
                                         );
 
                                         return;
                                     }
 
-                                    yield sprintf(
-                                        'get => $this->is%s ??= in_array($this->data[\'__typename\'], [%s], true);',
-                                        $nakedFieldType->fragmentName,
-                                        $this->dumpPossibleTypesList($plansByFqcn, $nakedFieldType->getClassName()),
-                                    );
-                                });
-                                yield '}';
-                            }
-
-                            if ($this->config->dumpOrThrowProperties && $propertyType instanceof SymfonyType\NullableType) {
-                                $unwrappedType = $propertyType->getWrappedType();
-
-                                yield '';
-                                yield from $generator->docComment(function () use ($unwrappedType, $generator) {
-                                    if ($this->getNakedType($unwrappedType) instanceof SymfonyType\CollectionType) {
+                                    // For fragments on concrete types when parent is interface/union
+                                    // We need to check both typename and required fields
+                                    if ($requiredFields === []) {
+                                        // No required fields to check, only typename
                                         yield sprintf(
-                                            '@var %s',
-                                            TypeDumper::dump($unwrappedType, $generator->import(...)),
+                                            'get => $this->%s ??= $this->data[\'__typename\'] === %s ? %s : null;',
+                                            $fieldName,
+                                            var_export($nakedFieldType->fragmentType->name(), true),
+                                            $construct,
                                         );
-                                    }
+                                    } else {
+                                        // Generate verbose getter with field checks for PHPStan type safety
+                                        yield 'get {';
+                                        yield $generator->indent(static function () use (
+                                            $fieldName,
+                                            $nakedFieldType,
+                                            $requiredFields,
+                                            $construct,
+                                        ) {
+                                            yield sprintf('if (isset($this->%s)) {', $fieldName);
+                                            yield '    return $this->' . $fieldName . ';';
+                                            yield '}';
+                                            yield '';
+                                            yield sprintf('if ($this->data[\'__typename\'] !== %s) {', var_export(
+                                                $nakedFieldType->fragmentType->name(),
+                                                true,
+                                            ));
+                                            yield '    return $this->' . $fieldName . ' = null;';
+                                            yield '}';
 
-                                    yield sprintf('@throws %s', $generator->import($this->fullyQualified('NodeNotFoundException')));
-                                });
-                                yield sprintf(
-                                    'public %s $%sOrThrow {',
-                                    $this->dumpPHPType($unwrappedType, $generator->import(...)),
-                                    $fieldName,
-                                );
-                                yield $generator->indent(function () use ($parentType, $generator, $fieldName) {
-                                    yield sprintf(
-                                        'get => $this->%s ?? throw %s::create(%s, %s);',
-                                        $fieldName,
-                                        $generator->import($this->fullyQualified('NodeNotFoundException')),
-                                        var_export($parentType->name(), true),
-                                        var_export($fieldName, true),
-                                    );
-                                });
-                                yield '}';
-                            }
-                        }
-                    }
+                                            // Check all required fields exist
+                                            foreach ($requiredFields as $requiredField) {
+                                                yield '';
+                                                yield sprintf('if (! array_key_exists(%s, $this->data)) {', var_export(
+                                                    $requiredField,
+                                                    true,
+                                                ));
+                                                yield '    return $this->' . $fieldName . ' = null;';
+                                                yield '}';
+                                            }
 
-                    if ($nodesType !== null) {
-                        yield '';
-                        yield from $generator->docComment(sprintf(
-                            '@var %s',
-                            TypeDumper::dump($nodesType, $generator->import(...)),
-                        ));
-                        yield sprintf(
-                            'public %s $nodes {',
-                            $this->dumpPHPType($nodesType, $generator->import(...)),
-                        );
-
-                        // Check if edges field has multi-field indexing
-                        $isMultiFieldIndexedEdges = false;
-
-                        if ($fields instanceof ArrayShapeType) {
-                            $edgesFieldType = $fields->getShape()['edges']['type'] ?? null;
-
-                            if ($edgesFieldType instanceof IndexByCollectionType) {
-                                $isMultiFieldIndexedEdges = $edgesFieldType->value instanceof IndexByCollectionType;
-                            }
-                        }
-
-                        if ($isMultiFieldIndexedEdges) {
-                            // For multi-field indexed edges, we need nested loops
-                            yield $generator->indent(function () use ($generator) {
-                                yield 'get {';
-                                yield $generator->indent(function () use ($generator) {
-                                    yield '$nodes = [];';
-                                    yield 'foreach ($this->edges as $edgeGroup) {';
-                                    yield $generator->indent(function () use ($generator) {
-                                        yield 'foreach ($edgeGroup as $edge) {';
-                                        yield $generator->indent(function () {
-                                            yield '$nodes[] = $edge->node;';
+                                            yield '';
+                                            yield sprintf('return $this->%s = %s;', $fieldName, $construct);
                                         });
                                         yield '}';
-                                    });
+                                    }
+
+                                    return;
+                                }
+
+                                // For ObjectType parents, fragments don't need field checking
+                                yield sprintf(
+                                    'get => $this->%s ??= %s;',
+                                    $fieldName,
+                                    $this->initializeFragmentObject($nakedFieldType, $generator),
+                                );
+
+                                return;
+                            }
+
+                            // Handle optional fields (from @include/@skip directives)
+                            if ($optional) {
+                                // Optional field - need array_key_exists check
+
+                                // Check the payload shape to determine if field is nullable
+                                $payloadType = $payloadFieldTypes[$fieldName] ?? null;
+                                $isPayloadNullable = $payloadType instanceof SymfonyType\NullableType;
+
+                                yield 'get {';
+                                yield $generator->indent(function () use (
+                                    $fieldName,
+                                    $fieldType,
+                                    $generator,
+                                    $isPayloadNullable,
+                                ) {
+                                    yield sprintf('if (isset($this->%s)) {', $fieldName);
+                                    yield '    return $this->' . $fieldName . ';';
+                                    yield '}';
+                                    yield '';
+                                    yield sprintf('if (! array_key_exists(%s, $this->data)) {', var_export(
+                                        $fieldName,
+                                        true,
+                                    ));
+                                    yield '    return $this->' . $fieldName . ' = null;';
                                     yield '}';
 
+                                    // Only check for null if the payload field is nullable
+                                    if ($isPayloadNullable) {
+                                        yield '';
+                                        yield sprintf('if ($this->data[%s] === null) {', var_export($fieldName, true));
+                                        yield '    return $this->' . $fieldName . ' = null;';
+                                        yield '}';
+                                    }
+
                                     yield '';
-                                    yield 'return $nodes;';
+                                    // Always use the non-nullable type for initialization
+                                    // since we've already handled the null case if needed
+                                    $typeForInit = $isPayloadNullable && $fieldType instanceof SymfonyType\NullableType
+                                        ? $fieldType->getWrappedType()
+                                        : $fieldType;
+
+                                    yield from $generator->wrap(
+                                        sprintf('return $this->%s = ', $fieldName),
+                                        $this->typeInitializer->__invoke(
+                                            $typeForInit,
+                                            $generator,
+                                            sprintf('$this->data[%s]', var_export($fieldName, true)),
+                                        ),
+                                        ';',
+                                    );
                                 });
                                 yield '}';
-                            });
-                        } else {
-                            yield $generator->indent(sprintf(
-                                'get => array_map(fn($edge) => $edge->node, $this->edges);',
-                            ));
-                        }
 
-                        yield '}';
-                    }
+                                return;
+                            }
 
-                    if ($isData) {
-                        yield '';
+                            // Check if this is a multi-field IndexByCollectionType
+                            $isMultiFieldIndexBy = false;
 
-                        yield from $generator->docComment('@var list<Error>');
-                        yield 'public readonly array $errors;';
-                    }
+                            if ($propertyType instanceof IndexByCollectionType) {
+                                $isMultiFieldIndexBy = $propertyType->value instanceof IndexByCollectionType;
+                            }
 
-                    // Split the hooks this class touches into legacy (per-instance
-                    // __invoke) and batched (resolved once via a HookLoader).
-                    $legacyHooks = [];
-                    $batchedHooks = [];
-
-                    foreach (array_keys($plan->usedHooks) as $hookName) {
-                        if ($this->config->hooks[$hookName]->batched) {
-                            $batchedHooks[$hookName] = true;
-                        } else {
-                            $legacyHooks[$hookName] = true;
-                        }
-                    }
-
-                    $usesBatched = $batchedHooks !== [];
-                    // The Data class always receives every hook instance (it needs
-                    // them to build the loaders); a nested class only needs $hooks
-                    // for legacy hooks. The Data class builds $loaders itself;
-                    // nested classes receive it.
-                    $hooksParam = $isData ? $plan->usedHooks : $legacyHooks;
-                    $needsHooksParam = $hooksParam !== [];
-                    $needsLoadersParam = ! $isData && $usesBatched;
-                    $buildsLoaders = $isData && $usesBatched;
-
-                    if ($buildsLoaders) {
-                        yield '';
-                        yield from $generator->docComment(sprintf(
-                            '@var %s',
-                            $this->dumpLoadersShape($batchedHooks, $generator),
-                        ));
-                        yield 'private readonly array $loaders;';
-                    }
-
-                    yield '';
-                    yield from $generator->docComment(function () use ($isData, $generator, $payloadShape, $hooksParam, $needsHooksParam, $needsLoadersParam, $batchedHooks) {
-                        yield sprintf(
-                            '@param %s $data',
-                            TypeDumper::dump($payloadShape, $generator->import(...)),
-                        );
-
-                        if ($isData) {
-                            yield sprintf(
-                                '@param %s $errors',
-                                TypeDumper::dump(SymfonyType::list(SymfonyType::arrayShape([
-                                    'message' => SymfonyType::string(),
-                                    'code' => SymfonyType::string(),
-                                    'debugMessage' => [
-                                        'type' => SymfonyType::string(),
-                                        'optional' => true,
-                                    ],
-                                ], sealed: false)), $generator->import(...)),
-                            );
-                        }
-
-                        if ($needsHooksParam) {
-                            yield sprintf(
-                                '@param %s $hooks',
-                                TypeDumper::dump($this->buildHooksShape($hooksParam), $generator->import(...)),
-                            );
-                        }
-
-                        if ($needsLoadersParam) {
-                            yield sprintf(
-                                '@param %s $loaders',
-                                $this->dumpLoadersShape($batchedHooks, $generator),
-                            );
-                        }
-                    });
-                    yield 'public function __construct(';
-                    yield $generator->indent(function () use ($generator, $payloadShape, $isData, $needsHooksParam, $needsLoadersParam) {
-                        yield sprintf(
-                            'private readonly %s $data,',
-                            $this->dumpPHPType($payloadShape, $generator->import(...)),
-                        );
-
-                        if ($isData) {
-                            yield 'array $errors,';
-                        }
-
-                        if ($needsHooksParam) {
-                            yield 'private readonly array $hooks,';
-                        }
-
-                        if ($needsLoadersParam) {
-                            yield 'private readonly array $loaders,';
-                        }
-                    });
-
-                    if ($isData) {
-                        yield ') {';
-                        yield $generator->indent(function () use ($generator, $buildsLoaders, $batchedHooks) {
-                            yield '$this->errors = array_map(fn(array $error) => new Error($error), $errors);';
-
-                            if ($buildsLoaders) {
-                                yield '';
-                                yield '$this->loaders = [';
-                                yield $generator->indent(function () use ($generator, $batchedHooks) {
-                                    foreach (array_keys($batchedHooks) as $hookName) {
-                                        yield sprintf(
-                                            '%s => new %s(',
-                                            var_export($hookName, true),
-                                            $generator->import($this->fullyQualified('HookLoader')),
-                                        );
-                                        yield $generator->indent(function () use ($hookName) {
-                                            yield sprintf('$this->%s(...),', $this->collectMethodName($hookName));
-                                            yield sprintf('$this->hooks[%s]->__invoke(...),', var_export($hookName, true));
-                                        });
-                                        yield '),';
-                                    }
-                                });
-                                yield '];';
+                            if ($isMultiFieldIndexBy) {
+                                yield from $generator->wrap(
+                                    sprintf('get => $this->%s ??= ', $fieldName),
+                                    $this->typeInitializer->__invoke(
+                                        $propertyType,
+                                        $generator,
+                                        sprintf('$this->data[%s]', var_export($fieldName, true)),
+                                    ),
+                                    ';',
+                                );
+                            } else {
+                                yield from $generator->wrap(
+                                    sprintf('get => $this->%s ??= ', $fieldName),
+                                    $this->typeInitializer->__invoke(
+                                        $propertyType,
+                                        $generator,
+                                        sprintf('$this->data[%s]', var_export($fieldName, true)),
+                                    ),
+                                    ';',
+                                );
                             }
                         });
                         yield '}';
-                    } else {
-                        yield ') {}';
+
+                        if (
+                            $nakedFieldType instanceof FragmentObjectType
+                            && $fieldType instanceof SymfonyType\NullableType
+                        ) {
+                            yield '';
+                            yield from $generator->docComment(static function () use ($fieldName) {
+                                yield '@api';
+                                yield sprintf('@phpstan-assert-if-true !null $this->%s', $fieldName);
+                            });
+                            yield sprintf('public bool $is%s {', $nakedFieldType->fragmentName);
+                            yield $generator->indent(function () use ($nakedFieldType, $plansByFqcn) {
+                                if ($nakedFieldType->fragmentType instanceof ObjectType) {
+                                    yield sprintf(
+                                        'get => $this->is%s ??= $this->data[\'__typename\'] === %s;',
+                                        $nakedFieldType->fragmentName,
+                                        var_export($nakedFieldType->fragmentType->name(), true),
+                                    );
+
+                                    return;
+                                }
+
+                                yield sprintf(
+                                    'get => $this->is%s ??= in_array($this->data[\'__typename\'], [%s], true);',
+                                    $nakedFieldType->fragmentName,
+                                    $this->dumpPossibleTypesList($plansByFqcn, $nakedFieldType->getClassName()),
+                                );
+                            });
+                            yield '}';
+                        }
+
+                        if ($this->config->dumpOrThrowProperties && $propertyType instanceof SymfonyType\NullableType) {
+                            $unwrappedType = $propertyType->getWrappedType();
+
+                            yield '';
+                            yield from $generator->docComment(function () use ($unwrappedType, $generator) {
+                                if ($this->getNakedType($unwrappedType) instanceof SymfonyType\CollectionType) {
+                                    yield sprintf('@var %s', TypeDumper::dump($unwrappedType, $generator->import(...)));
+                                }
+
+                                yield sprintf(
+                                    '@throws %s',
+                                    $generator->import($this->fullyQualified('NodeNotFoundException')),
+                                );
+                            });
+                            yield sprintf(
+                                'public %s $%sOrThrow {',
+                                $this->dumpPHPType($unwrappedType, $generator->import(...)),
+                                $fieldName,
+                            );
+                            yield $generator->indent(function () use ($parentType, $generator, $fieldName) {
+                                yield sprintf(
+                                    'get => $this->%s ?? throw %s::create(%s, %s);',
+                                    $fieldName,
+                                    $generator->import($this->fullyQualified('NodeNotFoundException')),
+                                    var_export($parentType->name(), true),
+                                    var_export($fieldName, true),
+                                );
+                            });
+                            yield '}';
+                        }
+                    }
+                }
+
+                if ($nodesType !== null) {
+                    yield '';
+                    yield from $generator->docComment(sprintf('@var %s', TypeDumper::dump(
+                        $nodesType,
+                        $generator->import(...),
+                    )));
+                    yield sprintf('public %s $nodes {', $this->dumpPHPType($nodesType, $generator->import(...)));
+
+                    // Check if edges field has multi-field indexing
+                    $isMultiFieldIndexedEdges = false;
+
+                    if ($fields instanceof ArrayShapeType) {
+                        $edgesFieldType = $fields->getShape()['edges']['type'] ?? null;
+
+                        if ($edgesFieldType instanceof IndexByCollectionType) {
+                            $isMultiFieldIndexedEdges = $edgesFieldType->value instanceof IndexByCollectionType;
+                        }
                     }
 
-                    yield from $this->dumpHookBuildMethods($plan, $generator);
-                    yield from $this->dumpCollectMethods($plan, $plansByFqcn, $generator);
-                },
-            );
+                    if ($isMultiFieldIndexedEdges) {
+                        // For multi-field indexed edges, we need nested loops
+                        yield $generator->indent(static function () use ($generator) {
+                            yield 'get {';
+                            yield $generator->indent(static function () use ($generator) {
+                                yield '$nodes = [];';
+                                yield 'foreach ($this->edges as $edgeGroup) {';
+                                yield $generator->indent(static function () use ($generator) {
+                                    yield 'foreach ($edgeGroup as $edge) {';
+                                    yield $generator->indent(static function () {
+                                        yield '$nodes[] = $edge->node;';
+                                    });
+                                    yield '}';
+                                });
+                                yield '}';
+
+                                yield '';
+                                yield 'return $nodes;';
+                            });
+                            yield '}';
+                        });
+                    } else {
+                        yield $generator->indent(sprintf('get => array_map(fn($edge) => $edge->node, $this->edges);'));
+                    }
+
+                    yield '}';
+                }
+
+                if ($isData) {
+                    yield '';
+
+                    yield from $generator->docComment('@var list<Error>');
+                    yield 'public readonly array $errors;';
+                }
+
+                // Split the hooks this class touches into legacy (per-instance
+                // __invoke) and batched (resolved once via a HookLoader).
+                $legacyHooks = [];
+                $batchedHooks = [];
+
+                foreach (array_keys($plan->usedHooks) as $hookName) {
+                    if ($this->config->hooks[$hookName]->batched) {
+                        $batchedHooks[$hookName] = true;
+                    } else {
+                        $legacyHooks[$hookName] = true;
+                    }
+                }
+
+                $usesBatched = $batchedHooks !== [];
+                // The Data class always receives every hook instance (it needs
+                // them to build the loaders); a nested class only needs $hooks
+                // for legacy hooks. The Data class builds $loaders itself;
+                // nested classes receive it.
+                $hooksParam = $isData ? $plan->usedHooks : $legacyHooks;
+                $needsHooksParam = $hooksParam !== [];
+                $needsLoadersParam = !$isData && $usesBatched;
+                $buildsLoaders = $isData && $usesBatched;
+
+                if ($buildsLoaders) {
+                    yield '';
+                    yield from $generator->docComment(sprintf('@var %s', $this->dumpLoadersShape(
+                        $batchedHooks,
+                        $generator,
+                    )));
+                    yield 'private readonly array $loaders;';
+                }
+
+                yield '';
+                yield from $generator->docComment(function () use (
+                    $isData,
+                    $generator,
+                    $payloadShape,
+                    $hooksParam,
+                    $needsHooksParam,
+                    $needsLoadersParam,
+                    $batchedHooks,
+                ) {
+                    yield sprintf('@param %s $data', TypeDumper::dump($payloadShape, $generator->import(...)));
+
+                    if ($isData) {
+                        yield sprintf('@param %s $errors', TypeDumper::dump(
+                            SymfonyType::list(SymfonyType::arrayShape([
+                                'message' => SymfonyType::string(),
+                                'code' => SymfonyType::string(),
+                                'debugMessage' => [
+                                    'type' => SymfonyType::string(),
+                                    'optional' => true,
+                                ],
+                            ], sealed: false)),
+                            $generator->import(...),
+                        ));
+                    }
+
+                    if ($needsHooksParam) {
+                        yield sprintf('@param %s $hooks', TypeDumper::dump(
+                            $this->buildHooksShape($hooksParam),
+                            $generator->import(...),
+                        ));
+                    }
+
+                    if ($needsLoadersParam) {
+                        yield sprintf('@param %s $loaders', $this->dumpLoadersShape($batchedHooks, $generator));
+                    }
+                });
+                yield 'public function __construct(';
+                yield $generator->indent(function () use (
+                    $generator,
+                    $payloadShape,
+                    $isData,
+                    $needsHooksParam,
+                    $needsLoadersParam,
+                ) {
+                    yield sprintf('private readonly %s $data,', $this->dumpPHPType(
+                        $payloadShape,
+                        $generator->import(...),
+                    ));
+
+                    if ($isData) {
+                        yield 'array $errors,';
+                    }
+
+                    if ($needsHooksParam) {
+                        yield 'private readonly array $hooks,';
+                    }
+
+                    if ($needsLoadersParam) {
+                        yield 'private readonly array $loaders,';
+                    }
+                });
+
+                if ($isData) {
+                    yield ') {';
+                    yield $generator->indent(function () use ($generator, $buildsLoaders, $batchedHooks) {
+                        yield '$this->errors = array_map(fn(array $error) => new Error($error), $errors);';
+
+                        if ($buildsLoaders) {
+                            yield '';
+                            yield '$this->loaders = [';
+                            yield $generator->indent(function () use ($generator, $batchedHooks) {
+                                foreach (array_keys($batchedHooks) as $hookName) {
+                                    yield sprintf(
+                                        '%s => new %s(',
+                                        var_export($hookName, true),
+                                        $generator->import($this->fullyQualified('HookLoader')),
+                                    );
+                                    yield $generator->indent(function () use ($hookName) {
+                                        yield sprintf('$this->%s(...),', $this->collectMethodName($hookName));
+                                        yield sprintf('$this->hooks[%s]->__invoke(...),', var_export($hookName, true));
+                                    });
+                                    yield '),';
+                                }
+                            });
+                            yield '];';
+                        }
+                    });
+                    yield '}';
+                } else {
+                    yield ') {}';
+                }
+
+                yield from $this->dumpHookBuildMethods($plan, $generator);
+                yield from $this->dumpCollectMethods($plan, $plansByFqcn, $generator);
+            });
             yield '}';
         });
     }

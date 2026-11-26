@@ -32,11 +32,11 @@ final class IndexByValidator extends ValidationRule
     ) {}
 
     #[Override]
-    public function getVisitor(QueryValidationContext $context) : array
+    public function getVisitor(QueryValidationContext $context): array
     {
         return [
-            NodeKind::FIELD => function (Node $node) use ($context) : void {
-                if ( ! $node instanceof FieldNode) {
+            NodeKind::FIELD => function (Node $node) use ($context): void {
+                if (!$node instanceof FieldNode) {
                     return;
                 }
 
@@ -58,7 +58,7 @@ final class IndexByValidator extends ValidationRule
                         continue;
                     }
 
-                    if ( ! $directive->arguments[0]->value instanceof StringValueNode) {
+                    if (!$directive->arguments[0]->value instanceof StringValueNode) {
                         continue;
                     }
 
@@ -77,11 +77,8 @@ final class IndexByValidator extends ValidationRule
                     $type = $type->getWrappedType();
                 }
 
-                if ( ! $type instanceof ListOfType) {
-                    $context->reportError(new Error(
-                        '@indexBy can only be used on lists',
-                        [$node],
-                    ));
+                if (!$type instanceof ListOfType) {
+                    $context->reportError(new Error('@indexBy can only be used on lists', [$node]));
 
                     return;
                 }
@@ -99,10 +96,7 @@ final class IndexByValidator extends ValidationRule
                     $fieldPath = trim($fieldPath);
 
                     if ($fieldPath === '') {
-                        $context->reportError(new Error(
-                            sprintf('Empty field in @indexBy directive'),
-                            [$node],
-                        ));
+                        $context->reportError(new Error(sprintf('Empty field in @indexBy directive'), [$node]));
 
                         continue;
                     }
@@ -115,11 +109,17 @@ final class IndexByValidator extends ValidationRule
                             $parentType = Type::getNamedType($currentType);
 
                             if ($parentType instanceof ObjectType || $parentType instanceof InterfaceType) {
-                                if ( ! $parentType->hasField($fieldName)) {
-                                    $context->reportError(new Error(
-                                        sprintf('Field "%s" is not defined for type "%s"', $fieldName, $parentType->name()),
-                                        [$node],
-                                    ));
+                                if (!$parentType->hasField($fieldName)) {
+                                    $context->reportError(
+                                        new Error(
+                                            sprintf(
+                                                'Field "%s" is not defined for type "%s"',
+                                                $fieldName,
+                                                $parentType->name(),
+                                            ),
+                                            [$node],
+                                        ),
+                                    );
 
                                     continue 2; // Skip to next fieldPath
                                 }
@@ -127,20 +127,31 @@ final class IndexByValidator extends ValidationRule
                                 $field = $parentType->getField($fieldName);
                                 $currentType = $field->getType();
                             } else {
-                                $context->reportError(new Error(
-                                    sprintf('Cannot traverse field "%s" in path "%s" - parent is not an object or interface type', $fieldName, $fieldPath),
-                                    [$node],
-                                ));
+                                $context->reportError(
+                                    new Error(
+                                        sprintf(
+                                            'Cannot traverse field "%s" in path "%s" - parent is not an object or interface type',
+                                            $fieldName,
+                                            $fieldPath,
+                                        ),
+                                        [$node],
+                                    ),
+                                );
 
                                 continue 2; // Skip to next fieldPath
                             }
 
-                            if ( ! $currentType instanceof NonNull) {
+                            if (!$currentType instanceof NonNull) {
                                 $pathSoFar = implode('.', array_slice($fieldParts, 0, $index + 1));
-                                $context->reportError(new Error(
-                                    sprintf('Field "%s" is nullable and cannot be used for @indexBy. All fields in the path must be non-null.', $pathSoFar),
-                                    [$node],
-                                ));
+                                $context->reportError(
+                                    new Error(
+                                        sprintf(
+                                            'Field "%s" is nullable and cannot be used for @indexBy. All fields in the path must be non-null.',
+                                            $pathSoFar,
+                                        ),
+                                        [$node],
+                                    ),
+                                );
 
                                 continue 2; // Skip to next fieldPath
                             }
@@ -157,11 +168,15 @@ final class IndexByValidator extends ValidationRule
                                 [$scalarType] = $scalarType;
                             }
 
-                            if ( ! $scalarType instanceof SymfonyType\BuiltinType) {
+                            if (!$scalarType instanceof SymfonyType\BuiltinType) {
                                 continue;
                             }
 
-                            if ( ! in_array($scalarType->getTypeIdentifier(), [TypeIdentifier::STRING, TypeIdentifier::INT], true)) {
+                            if (!in_array(
+                                $scalarType->getTypeIdentifier(),
+                                [TypeIdentifier::STRING, TypeIdentifier::INT],
+                                true,
+                            )) {
                                 continue;
                             }
 
@@ -172,11 +187,16 @@ final class IndexByValidator extends ValidationRule
                             continue;
                         }
 
-                        if ( ! in_array($namedType->name(), $possibleArrayKeyTypes, true)) {
-                            $context->reportError(new Error(
-                                sprintf('@indexBy(field: "%s") cannot be used because the field is not a valid array key type. Only String, Int, ID, and Enum types are allowed.', $fieldPath),
-                                [$node],
-                            ));
+                        if (!in_array($namedType->name(), $possibleArrayKeyTypes, true)) {
+                            $context->reportError(
+                                new Error(
+                                    sprintf(
+                                        '@indexBy(field: "%s") cannot be used because the field is not a valid array key type. Only String, Int, ID, and Enum types are allowed.',
+                                        $fieldPath,
+                                    ),
+                                    [$node],
+                                ),
+                            );
 
                             continue;
                         }
@@ -184,16 +204,20 @@ final class IndexByValidator extends ValidationRule
                         $found = $this->find($node, $fieldParts);
 
                         if ($found === null) {
-                            $context->reportError(new Error(
-                                sprintf('Field "%s" is not selected in the indexBy directive', $fieldPath),
-                                [$node],
-                            ));
+                            $context->reportError(
+                                new Error(
+                                    sprintf('Field "%s" is not selected in the indexBy directive', $fieldPath),
+                                    [$node],
+                                ),
+                            );
                         }
                     } catch (Throwable $error) {
-                        $context->reportError(new Error(
-                            sprintf('Error processing @indexBy(field: "%s"): %s', $fieldPath, $error->getMessage()),
-                            [$node],
-                        ));
+                        $context->reportError(
+                            new Error(
+                                sprintf('Error processing @indexBy(field: "%s"): %s', $fieldPath, $error->getMessage()),
+                                [$node],
+                            ),
+                        );
                     }
                 }
             },
@@ -203,12 +227,12 @@ final class IndexByValidator extends ValidationRule
     /**
      * @param non-empty-list<string> $indexBy
      */
-    public function find(FieldNode $node, array $indexBy) : ?FieldNode
+    public function find(FieldNode $node, array $indexBy): ?FieldNode
     {
         $field = array_shift($indexBy);
 
         foreach ($node->selectionSet->selections ?? [] as $selection) {
-            if ( ! $selection instanceof FieldNode) {
+            if (!$selection instanceof FieldNode) {
                 continue;
             }
 

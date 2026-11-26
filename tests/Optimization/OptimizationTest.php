@@ -9,12 +9,12 @@ use Ruudk\GraphQLCodeGenerator\Optimization\Generated\Query\Test\TestQuery;
 
 final class OptimizationTest extends GraphQLTestCase
 {
-    public function testGenerate() : void
+    public function testGenerate(): void
     {
         $this->assertActualMatchesExpected();
     }
 
-    public function testQuery() : void
+    public function testQuery(): void
     {
         $result = new TestQuery($this->getClient([
             'data' => [
@@ -49,8 +49,7 @@ final class OptimizationTest extends GraphQLTestCase
         self::assertTrue($result->viewer->isUser);
         self::assertSame('ruudk', $result->viewer->asUser?->login);
         self::assertSame('Ruud Kamphuis', $result->viewer->asUser->name);
-        self::assertNull($result->viewer->appUrl?->url);
-        self::assertNull($result->viewer->appUrl?->appName->name);
+        self::assertNull($result->viewer->appUrl);
         self::assertCount(1, $result->projects);
         [$project] = $result->projects;
         // Test Project properties - all fields should be directly accessible (from merged inline fragments)

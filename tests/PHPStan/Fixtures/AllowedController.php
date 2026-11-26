@@ -15,7 +15,7 @@ use Ruudk\GraphQLCodeGenerator\PHPStan\Generated\SomeQuery;
  */
 final readonly class AllowedController
 {
-    public function run() : string
+    public function run(): string
     {
         $query = new SomeQuery('ruud');
         $data = $query->execute();

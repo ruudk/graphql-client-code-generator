@@ -28,15 +28,15 @@ final readonly class FragmentOptimizer
      * @throws Exception
      * @return T
      */
-    public function __invoke(Node $node, array $fragmentDefinitions) : Node
+    public function __invoke(Node $node, array $fragmentDefinitions): Node
     {
-        if ( ! $node instanceof DocumentNode) {
+        if (!$node instanceof DocumentNode) {
             return $node;
         }
 
         $definedFragments = [];
         Visitor::visit($node, [
-            NodeKind::FRAGMENT_DEFINITION => function (Node $node) use (&$definedFragments) {
+            NodeKind::FRAGMENT_DEFINITION => static function (Node $node) use (&$definedFragments) {
                 Assert::isInstanceOf($node, FragmentDefinitionNode::class);
 
                 if (in_array($node->name->value, $definedFragments, true)) {
@@ -52,7 +52,11 @@ final readonly class FragmentOptimizer
         $requiredFragments = [];
 
         Visitor::visit($node, [
-            NodeKind::FRAGMENT_SPREAD => function (Node $node) use ($fragmentDefinitions, $definedFragments, &$requiredFragments) {
+            NodeKind::FRAGMENT_SPREAD => function (Node $node) use (
+                $fragmentDefinitions,
+                $definedFragments,
+                &$requiredFragments,
+            ) {
                 Assert::isInstanceOf($node, FragmentSpreadNode::class);
 
                 if (in_array($node->name->value, $definedFragments, true)) {
@@ -79,13 +83,13 @@ final readonly class FragmentOptimizer
 
         foreach ($requiredFragments as $requiredFragment) {
             // Only add if it's not already defined in the document
-            if ( ! in_array($requiredFragment, $definedFragments, true)) {
+            if (!in_array($requiredFragment, $definedFragments, true)) {
                 $node->definitions[] = $fragmentDefinitions[$requiredFragment][0];
             }
         }
 
-        $new = Visitor::visit($node, [
-            NodeKind::FRAGMENT_DEFINITION => function (Node $node) use ($requiredFragments) {
+        return VisitedNode::of($node, Visitor::visit($node, [
+            NodeKind::FRAGMENT_DEFINITION => static function (Node $node) use ($requiredFragments) {
                 Assert::isInstanceOf($node, FragmentDefinitionNode::class);
 
                 if (in_array($node->name->value, $requiredFragments, true)) {
@@ -94,19 +98,14 @@ final readonly class FragmentOptimizer
 
                 return Visitor::removeNode();
             },
-        ]);
-
-        Assert::isInstanceOf($new, DocumentNode::class);
-        Assert::isAOf($new, $node::class);
-
-        return $new;
+        ]));
     }
 
     /**
      * @param array<string, array{FragmentDefinitionNode, list<string>}> $fragmentDefinitions
      * @return list<string>
      */
-    private function getDependencies(string $name, array $fragmentDefinitions) : array
+    private function getDependencies(string $name, array $fragmentDefinitions): array
     {
         $requiredFragments = [$name];
         foreach ($fragmentDefinitions[$name][1] as $dependency) {

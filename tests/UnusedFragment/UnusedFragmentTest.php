@@ -17,7 +17,7 @@ use Ruudk\GraphQLCodeGenerator\TestClient;
  */
 final class UnusedFragmentTest extends TestCase
 {
-    private function plan() : Planner
+    private function plan(): Planner
     {
         $projectDir = dirname(__DIR__, 2);
 
@@ -35,7 +35,7 @@ final class UnusedFragmentTest extends TestCase
         return new Planner($config);
     }
 
-    public function testUnusedFragmentsAreReported() : void
+    public function testUnusedFragmentsAreReported(): void
     {
         $result = $this->plan()->plan();
 
@@ -49,7 +49,7 @@ final class UnusedFragmentTest extends TestCase
         );
     }
 
-    public function testUsedFragmentsAreNotReported() : void
+    public function testUsedFragmentsAreNotReported(): void
     {
         $result = $this->plan()->plan();
 

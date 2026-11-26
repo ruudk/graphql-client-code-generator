@@ -28,7 +28,7 @@ final readonly class OperationArgumentDirectiveSchemaExtender
      * @throws InvariantViolation
      * @throws Exception
      */
-    public static function extend(Schema $schema, array $operationArguments) : Schema
+    public static function extend(Schema $schema, array $operationArguments): Schema
     {
         /**
          * @var array<string, list<string>> $locationsByDirective

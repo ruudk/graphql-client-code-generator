@@ -13,7 +13,7 @@ use Ruudk\GraphQLCodeGenerator\PHPStan\Generated\SomeQuery;
  */
 final readonly class NotAllowedController
 {
-    public function run() : string
+    public function run(): string
     {
         $query = new SomeQuery('ruud');
         $data = $query->execute();
@@ -22,4 +22,6 @@ final readonly class NotAllowedController
 
         return $data->name . $inline->name . $twig->title;
     }
+
+    public function accept(Data $data): void {}
 }

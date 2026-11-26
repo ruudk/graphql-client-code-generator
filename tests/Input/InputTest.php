@@ -12,33 +12,32 @@ use Ruudk\GraphQLCodeGenerator\Input\Generated\Mutation\Test\TestMutation;
 
 final class InputTest extends GraphQLTestCase
 {
-    public function testGenerate() : void
+    public function testGenerate(): void
     {
         $this->assertActualMatchesExpected();
     }
 
-    public function testQuery() : void
+    public function testQuery(): void
     {
-        $result = new TestMutation($this->getClient([
-            'data' => [
-                'sayHello' => 'Hello, Ruud!',
-                'createUser' => true,
+        $result = new TestMutation($this->getClient(
+            [
+                'data' => [
+                    'sayHello' => 'Hello, Ruud!',
+                    'createUser' => true,
+                ],
             ],
-        ], new GraphQLRequestMatcher([
-            'firstName' => 'Ruud',
-            'input' => [
+            new GraphQLRequestMatcher([
                 'firstName' => 'Ruud',
-                'age' => 99,
+                'input' => [
+                    'firstName' => 'Ruud',
+                    'age' => 99,
+                    'lastName' => 'Kamphuis',
+                ],
                 'lastName' => 'Kamphuis',
-            ],
-            'lastName' => 'Kamphuis',
-        ])))->execute(
+            ]),
+        ))->execute(
             new Name('Ruud'),
-            new CreateUserInput(
-                new Name('Ruud'),
-                99,
-                new Name('Kamphuis'),
-            ),
+            new CreateUserInput(new Name('Ruud'), 99, new Name('Kamphuis')),
             new Name('Kamphuis'),
         );
 

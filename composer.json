@@ -20,6 +20,7 @@
         "webonyx/graphql-php": "^15.24.0"
     },
     "require-dev": {
+        "carthage-software/mago": "^1.61",
         "ergebnis/composer-normalize": "^2.51",
         "friendsofphp/php-cs-fixer": "^3.95.18",
         "guzzlehttp/psr7": "^2.9",
@@ -27,28 +28,22 @@
         "php-http/guzzle7-adapter": "^1.1",
         "php-http/message": "^1.16.2",
         "php-http/mock-client": "^1.6.1",
-        "phpstan/extension-installer": "^1.4.3",
-        "phpstan/phpstan-deprecation-rules": "^2.0.4",
-        "phpstan/phpstan-phpunit": "^2.0.16",
-        "phpstan/phpstan-strict-rules": "^2.0.10",
-        "phpstan/phpstan-webmozart-assert": "^2.0",
         "phpunit/phpunit": "^13.4.8",
         "psr/http-client": "^1.0.3",
         "psr/http-message": "^2.0",
         "ruudk/readme-examples-sync-hook": "^2.0",
         "shipmonk/composer-dependency-analyser": "^1.8.4",
-        "shipmonk/dead-code-detector": "^0.13.5",
-        "staabm/phpstan-todo-by": "^0.3.3",
         "symfony/dependency-injection": "^7.4 || ^8.0.8",
         "symfony/dotenv": "^7.4 || ^8.0.8",
         "symfony/var-dumper": "^7.4 || ^8.0.8",
-        "ticketswap/php-cs-fixer-config": "^1.5.1",
-        "ticketswap/phpstan-error-formatter": "^1.3",
         "twig/twig": "^3.24",
         "vincentlanglet/twig-cs-fixer": "^3.14"
     },
     "suggest": {
-        "twig/twig": "For generating GraphQL fragments from Twig templates"
+        "carthage-software/mago": "For the Mago extension that formats GraphQL in PHP and restricts usage of generated classes",
+        "friendsofphp/php-cs-fixer": "For the PHP CS Fixer fixer that formats GraphQL in PHP",
+        "twig/twig": "For generating GraphQL fragments from Twig templates",
+        "vincentlanglet/twig-cs-fixer": "For the Twig CS Fixer rule that formats GraphQL in Twig templates"
     },
     "autoload": {
         "psr-4": {
@@ -67,8 +62,7 @@
     "config": {
         "allow-plugins": {
             "ergebnis/composer-normalize": true,
-            "php-http/discovery": true,
-            "phpstan/extension-installer": true
+            "php-http/discovery": true
         }
     },
     "extra": {
@@ -81,6 +75,9 @@
     "scripts": {
         "post-install-cmd": [
             "command -v lefthook >/dev/null 2>&1 && lefthook install || true"
+        ],
+        "post-autoload-dump": [
+            "@php .mago/extract-phpstan-sources.php"
         ]
     }
 }

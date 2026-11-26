@@ -25,7 +25,7 @@ final readonly class IndexByDirectiveSchemaExtender
      * @throws InvariantViolation
      * @throws Exception
      */
-    public static function extend(Schema $schema) : Schema
+    public static function extend(Schema $schema): Schema
     {
         $existing = $schema->getDirective('indexBy');
 
@@ -35,18 +35,17 @@ final readonly class IndexByDirectiveSchemaExtender
 
             [$field] = $existing->args;
             Assert::eq($field->name, 'field', 'Expected @indexBy argument to be named "field"');
-            Assert::eq(Type::nonNull(Type::string()), $field->getType(), 'Expected @indexBy argument to be a non-null string');
+            Assert::eq(
+                Type::nonNull(Type::string()),
+                $field->getType(),
+                'Expected @indexBy argument to be a non-null string',
+            );
 
             return $schema;
         }
 
-        return SchemaExtender::extend(
-            $schema,
-            Parser::parse(
-                <<<'GRAPHQL'
-                    directive @indexBy(field: String!) on FIELD
-                    GRAPHQL,
-            ),
-        );
+        return SchemaExtender::extend($schema, Parser::parse(<<<'GRAPHQL'
+            directive @indexBy(field: String!) on FIELD
+            GRAPHQL));
     }
 }

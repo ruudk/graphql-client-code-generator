@@ -11,7 +11,7 @@ use Symfony\Component\Filesystem\Filesystem;
 
 $autoloaderPaths = [
     __DIR__ . '/../vendor/autoload.php', // When in development
-    __DIR__ . '/../../../autoload.php',   // When installed as a dependency
+    __DIR__ . '/../../../autoload.php', // When installed as a dependency
 ];
 
 $autoloaderFound = false;
@@ -24,7 +24,7 @@ foreach ($autoloaderPaths as $autoloaderPath) {
     }
 }
 
-if ( ! $autoloaderFound) {
+if (!$autoloaderFound) {
     fwrite(STDERR, "Autoloader not found. Please run 'composer install'.\n");
     exit(1);
 }

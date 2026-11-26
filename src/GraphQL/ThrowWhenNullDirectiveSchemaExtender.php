@@ -22,7 +22,7 @@ final readonly class ThrowWhenNullDirectiveSchemaExtender
      * @throws InvariantViolation
      * @throws Exception
      */
-    public static function extend(Schema $schema) : Schema
+    public static function extend(Schema $schema): Schema
     {
         $existing = $schema->getDirective('throwWhenNull');
 
@@ -33,13 +33,8 @@ final readonly class ThrowWhenNullDirectiveSchemaExtender
             return $schema;
         }
 
-        return SchemaExtender::extend(
-            $schema,
-            Parser::parse(
-                <<<'GRAPHQL'
-                    directive @throwWhenNull on FIELD
-                    GRAPHQL,
-            ),
-        );
+        return SchemaExtender::extend($schema, Parser::parse(<<<'GRAPHQL'
+            directive @throwWhenNull on FIELD
+            GRAPHQL));
     }
 }

@@ -18,9 +18,8 @@ final readonly class DelegatingTypeInitializer
      */
     private array $initializers;
 
-    public function __construct(
-        TypeInitializer ...$initializers,
-    ) {
+    public function __construct(TypeInitializer ...$initializers)
+    {
         $indexed = [];
 
         foreach ($initializers as $initializer) {
@@ -33,13 +32,10 @@ final readonly class DelegatingTypeInitializer
     /**
      * @return string|Generator<CodeLine>
      */
-    public function __invoke(
-        Type $type,
-        CodeGenerator $generator,
-        string $variable,
-    ) : Generator | string {
+    public function __invoke(Type $type, CodeGenerator $generator, string $variable): Generator|string
+    {
         foreach ($this->initializers as $initializer) {
-            if ( ! $initializer->supports($type)) {
+            if (!$initializer->supports($type)) {
                 continue;
             }
 

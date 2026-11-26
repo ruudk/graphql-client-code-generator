@@ -29,7 +29,7 @@ final readonly class SomeController
     /**
      * @return array{string, string}
      */
-    public function getResult() : array
+    public function getResult(): array
     {
         $result = $this->query->execute();
 

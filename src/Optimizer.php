@@ -13,6 +13,8 @@ use Ruudk\GraphQLCodeGenerator\Visitor\FragmentOptimizer;
 use Ruudk\GraphQLCodeGenerator\Visitor\IncludeAndSkipDirectiveOptimizer;
 use Ruudk\GraphQLCodeGenerator\Visitor\InlineFragmentOptimizer;
 use Ruudk\GraphQLCodeGenerator\Visitor\TypeNameVisitor;
+use Ruudk\GraphQLCodeGenerator\Visitor\VisitedNode;
+use Webmozart\Assert\InvalidArgumentException;
 
 final readonly class Optimizer
 {
@@ -38,12 +40,13 @@ final readonly class Optimizer
      * @param T $node
      * @param array<string, array{FragmentDefinitionNodeWithSource, list<string>}> $fragmentDefinitions
      * @throws Exception
+     * @throws InvalidArgumentException
      * @return T
      */
-    public function optimize(Node $node, array $fragmentDefinitions) : Node
+    public function optimize(Node $node, array $fragmentDefinitions): Node
     {
         foreach ($this->visitors as $visitor) {
-            $node = $visitor($node, $fragmentDefinitions);
+            $node = VisitedNode::of($node, $visitor($node, $fragmentDefinitions));
         }
 
         return $node;

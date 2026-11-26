@@ -15,7 +15,7 @@ use Symfony\Component\TypeInfo\Type;
 final class IndexByDirectiveTest extends GraphQLTestCase
 {
     #[Override]
-    public function getConfig() : Config
+    public function getConfig(): Config
     {
         return parent::getConfig()
             ->enableIndexByDirective()
@@ -26,12 +26,12 @@ final class IndexByDirectiveTest extends GraphQLTestCase
             ->enableUseEdgeNameForEdges();
     }
 
-    public function testGenerate() : void
+    public function testGenerate(): void
     {
         $this->assertActualMatchesExpected();
     }
 
-    public function testQuery() : void
+    public function testQuery(): void
     {
         $result = new TestQuery($this->getClient([
             'data' => [
@@ -95,7 +95,7 @@ final class IndexByDirectiveTest extends GraphQLTestCase
         self::assertSame('Customer 200', $result->customers->nodes[200]->name);
     }
 
-    public function testMultiFieldIndexBy() : void
+    public function testMultiFieldIndexBy(): void
     {
         $result = new TestMultiFieldQuery($this->getClient([
             'data' => [
@@ -152,7 +152,10 @@ final class IndexByDirectiveTest extends GraphQLTestCase
         self::assertCount(3, $result->projects);
         self::assertArrayHasKey('16b6f807-689d-4d3f-9c9b-a1c774eed7ea', $result->projects);
         self::assertArrayHasKey('GraphQL Code Generator', $result->projects['16b6f807-689d-4d3f-9c9b-a1c774eed7ea']);
-        self::assertSame('GraphQL Code Generator', $result->projects['16b6f807-689d-4d3f-9c9b-a1c774eed7ea']['GraphQL Code Generator']->name);
+        self::assertSame(
+            'GraphQL Code Generator',
+            $result->projects['16b6f807-689d-4d3f-9c9b-a1c774eed7ea']['GraphQL Code Generator']->name,
+        );
 
         self::assertArrayHasKey('644e7023-6e09-4e18-9ef2-947de0d0ed82', $result->projects);
         self::assertArrayHasKey('GraphQL PHP', $result->projects['644e7023-6e09-4e18-9ef2-947de0d0ed82']);
@@ -160,7 +163,10 @@ final class IndexByDirectiveTest extends GraphQLTestCase
 
         self::assertArrayHasKey('a1b2c3d4-e5f6-7890-1234-567890abcdef', $result->projects);
         self::assertArrayHasKey('GraphQL Code Generator', $result->projects['a1b2c3d4-e5f6-7890-1234-567890abcdef']);
-        self::assertSame('GraphQL Code Generator', $result->projects['a1b2c3d4-e5f6-7890-1234-567890abcdef']['GraphQL Code Generator']->name);
+        self::assertSame(
+            'GraphQL Code Generator',
+            $result->projects['a1b2c3d4-e5f6-7890-1234-567890abcdef']['GraphQL Code Generator']->name,
+        );
 
         // Test multi-field indexing on edges: edges indexed by node.id,node.name
         self::assertCount(2, $result->customers->edges);

@@ -37,19 +37,19 @@ final class HookPropertyType extends SymfonyType implements WrappingTypeInterfac
     ) {}
 
     #[Override]
-    public function getWrappedType() : SymfonyType
+    public function getWrappedType(): SymfonyType
     {
         return $this->returnType;
     }
 
     #[Override]
-    public function wrappedTypeIsSatisfiedBy(callable $specification) : bool
+    public function wrappedTypeIsSatisfiedBy(callable $specification): bool
     {
         return $specification($this->returnType);
     }
 
     #[Override]
-    public function __toString() : string
+    public function __toString(): string
     {
         return (string) $this->returnType;
     }

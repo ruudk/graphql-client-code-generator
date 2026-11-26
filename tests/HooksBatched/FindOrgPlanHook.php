@@ -36,7 +36,7 @@ final class FindOrgPlanHook
      * @param array<int, OrganizationId> $inputs
      * @return iterable<int, OrgPlan>
      */
-    public function __invoke(array $inputs) : iterable
+    public function __invoke(array $inputs): iterable
     {
         $this->batches[] = $inputs;
 

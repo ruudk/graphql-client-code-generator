@@ -17,7 +17,7 @@ use Symfony\Component\TypeInfo\Type;
 final class IndexByCollectionTypeInitializer implements TypeInitializer
 {
     #[Override]
-    public function supports(Type $type) : bool
+    public function supports(Type $type): bool
     {
         return $type instanceof IndexByCollectionType;
     }
@@ -31,7 +31,7 @@ final class IndexByCollectionTypeInitializer implements TypeInitializer
         CodeGenerator $generator,
         string $variable,
         DelegatingTypeInitializer $delegator,
-    ) : Generator {
+    ): Generator {
         // Check if this is multi-field indexing (nested IndexByCollectionType)
         if ($type->value instanceof IndexByCollectionType) {
             // Multi-field indexing: use closure with foreach to handle duplicates
@@ -67,17 +67,9 @@ final class IndexByCollectionTypeInitializer implements TypeInitializer
         yield 'array_combine(';
         yield $generator->indent(function () use ($generator, $type, $variable, $delegator) {
             if (count($type->indexBy) > 1) {
-                yield sprintf(
-                    'array_map(fn($item) => $item%s, %s),',
-                    $this->buildKeyAccess($type->indexBy),
-                    $variable,
-                );
+                yield sprintf('array_map(fn($item) => $item%s, %s),', $this->buildKeyAccess($type->indexBy), $variable);
             } else {
-                yield sprintf(
-                    'array_column(%s, %s),',
-                    $variable,
-                    var_export($type->indexBy[0], true),
-                );
+                yield sprintf('array_column(%s, %s),', $variable, var_export($type->indexBy[0], true));
             }
 
             $inner = $delegator($type->value, $generator, '$item');
@@ -88,11 +80,7 @@ final class IndexByCollectionTypeInitializer implements TypeInitializer
                 return;
             }
 
-            yield from $generator->wrap(
-                'array_map(fn($item) => ',
-                $inner,
-                sprintf(', %s),', $variable),
-            );
+            yield from $generator->wrap('array_map(fn($item) => ', $inner, sprintf(', %s),', $variable));
         });
         yield ')';
     }
@@ -100,11 +88,8 @@ final class IndexByCollectionTypeInitializer implements TypeInitializer
     /**
      * @param list<string> $indexBy
      */
-    private function buildKeyAccess(array $indexBy) : string
+    private function buildKeyAccess(array $indexBy): string
     {
-        return join(array_map(
-            fn($key) => sprintf('[%s]', var_export($key, true)),
-            $indexBy,
-        ));
+        return implode(array_map(static fn($key) => sprintf('[%s]', var_export($key, true)), $indexBy));
     }
 }

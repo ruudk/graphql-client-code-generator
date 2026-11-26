@@ -10,18 +10,13 @@ use TwigCsFixer\Ruleset\Ruleset;
 use TwigCsFixer\Standard\TwigCsFixer;
 
 $ruleset = new Ruleset();
-
 $ruleset->addStandard(new TwigCsFixer());
 $ruleset->addRule(new GraphQLFormatterRule());
 
-$finder = Finder::create()
-    ->in('tests');
-
 $config = new Config();
 $config->allowNonFixableRules();
-$config->setCacheFile(__DIR__ . '/.twig-cs-fixer.cache');
 $config->setRuleset($ruleset);
-$config->setFinder($finder);
+$config->setFinder(Finder::create()->in(__DIR__ . '/templates'));
 $config->addTokenParser(new GraphQLTokenParser());
 
 return $config;

@@ -13,7 +13,5 @@ final readonly class Generated
         public string $source,
         public bool $restricted = false,
         public bool $restrictInstantiation = false,
-    ) {
-    }
-
+    ) {}
 }

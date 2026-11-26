@@ -12,7 +12,7 @@ use Ruudk\GraphQLCodeGenerator\InlineProcessing\Generated\Query\ViewerProjects1d
 final class InlineProcessingTest extends GraphQLTestCase
 {
     #[Override]
-    public function getConfig() : Config
+    public function getConfig(): Config
     {
         return parent::getConfig()
             ->enableGeneratedAttribute()
@@ -21,12 +21,12 @@ final class InlineProcessingTest extends GraphQLTestCase
             ->withInlineProcessingDirectory(__DIR__);
     }
 
-    public function testGenerate() : void
+    public function testGenerate(): void
     {
         $this->assertActualMatchesExpected();
     }
 
-    public function testQuery() : void
+    public function testQuery(): void
     {
         $query = new ViewerProjectsQuery($this->getClient([
             'data' => [

@@ -38,12 +38,12 @@ final readonly class TypeNameVisitor
      * @throws Exception
      * @return T
      */
-    public function __invoke(Node $node, array $fragmentDefinitions) : Node
+    public function __invoke(Node $node, array $fragmentDefinitions): Node
     {
         $typeInfo = new TypeInfo($this->schema);
 
         $wrapped = Visitor::visitWithTypeInfo($typeInfo, [
-            NodeKind::SELECTION_SET => function (Node $node) use ($typeInfo) : ?Node {
+            NodeKind::SELECTION_SET => static function (Node $node) use ($typeInfo): ?Node {
                 Assert::isInstanceOf($node, SelectionSetNode::class);
 
                 $type = Type::getNamedType($typeInfo->getType());
@@ -63,7 +63,7 @@ final readonly class TypeNameVisitor
                     }
                 }
 
-                if ( ! $needsTypeName) {
+                if (!$needsTypeName) {
                     return null;
                 }
 
@@ -80,11 +80,6 @@ final readonly class TypeNameVisitor
             },
         ]);
 
-        $new = Visitor::visit($node, $wrapped);
-
-        Assert::isInstanceOf($new, Node::class);
-        Assert::isAOf($new, $node::class);
-
-        return $new;
+        return VisitedNode::of($node, Visitor::visit($node, $wrapped));
     }
 }

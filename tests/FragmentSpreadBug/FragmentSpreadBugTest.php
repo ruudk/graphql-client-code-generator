@@ -10,12 +10,12 @@ use Ruudk\GraphQLCodeGenerator\GraphQLTestCase;
 
 final class FragmentSpreadBugTest extends GraphQLTestCase
 {
-    public function testGenerate() : void
+    public function testGenerate(): void
     {
         $this->assertActualMatchesExpected();
     }
 
-    public function testQuery() : void
+    public function testQuery(): void
     {
         $result = new GetTransactionDetailsQuery($this->getClient([
             'data' => [
@@ -58,9 +58,7 @@ final class FragmentSpreadBugTest extends GraphQLTestCase
                     ],
                 ],
             ],
-        ], new GraphQLRequestMatcher(
-            operationName: 'GetTransactionDetails',
-        )))->execute();
+        ], new GraphQLRequestMatcher(operationName: 'GetTransactionDetails')))->execute();
         self::assertNotNull($result->transaction);
         self::assertSame('1', $result->transaction->id);
         self::assertSame('completed', $result->transaction->state);

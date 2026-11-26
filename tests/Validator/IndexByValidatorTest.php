@@ -21,7 +21,7 @@ final class IndexByValidatorTest extends TestCase
     private IndexByValidator $validator;
 
     #[Override]
-    protected function setUp() : void
+    protected function setUp(): void
     {
         // Create a test schema
         $statusEnum = new EnumType([
@@ -75,11 +75,11 @@ final class IndexByValidatorTest extends TestCase
             'fields' => [
                 'users' => [
                     'type' => Type::listOf($userType),
-                    'resolve' => fn() => [],
+                    'resolve' => static fn() => [],
                 ],
                 'userConnection' => [
                     'type' => $connectionType,
-                    'resolve' => fn() => [],
+                    'resolve' => static fn() => [],
                 ],
             ],
         ]);
@@ -98,7 +98,7 @@ final class IndexByValidatorTest extends TestCase
         ]);
     }
 
-    public function testValidSingleFieldIndexBy() : void
+    public function testValidSingleFieldIndexBy(): void
     {
         $query = <<<'GRAPHQL'
             {
@@ -113,7 +113,7 @@ final class IndexByValidatorTest extends TestCase
         self::assertCount(0, $errors);
     }
 
-    public function testValidSingleFieldIndexByWithStringField() : void
+    public function testValidSingleFieldIndexByWithStringField(): void
     {
         $query = <<<'GRAPHQL'
             {
@@ -128,7 +128,7 @@ final class IndexByValidatorTest extends TestCase
         self::assertCount(0, $errors);
     }
 
-    public function testValidNestedFieldIndexBy() : void
+    public function testValidNestedFieldIndexBy(): void
     {
         $query = <<<'GRAPHQL'
             {
@@ -147,7 +147,7 @@ final class IndexByValidatorTest extends TestCase
         self::assertCount(0, $errors);
     }
 
-    public function testValidMultiFieldIndexBy() : void
+    public function testValidMultiFieldIndexBy(): void
     {
         $query = <<<'GRAPHQL'
             {
@@ -163,7 +163,7 @@ final class IndexByValidatorTest extends TestCase
         self::assertCount(0, $errors);
     }
 
-    public function testValidMultiFieldIndexByWithSpaces() : void
+    public function testValidMultiFieldIndexByWithSpaces(): void
     {
         $query = <<<'GRAPHQL'
             {
@@ -179,7 +179,7 @@ final class IndexByValidatorTest extends TestCase
         self::assertCount(0, $errors);
     }
 
-    public function testValidMultiFieldNestedIndexBy() : void
+    public function testValidMultiFieldNestedIndexBy(): void
     {
         $query = <<<'GRAPHQL'
             {
@@ -198,7 +198,7 @@ final class IndexByValidatorTest extends TestCase
         self::assertCount(0, $errors);
     }
 
-    public function testInvalidIndexByOnNonList() : void
+    public function testInvalidIndexByOnNonList(): void
     {
         $query = <<<'GRAPHQL'
             {
@@ -217,7 +217,7 @@ final class IndexByValidatorTest extends TestCase
         self::assertStringContainsString('@indexBy can only be used on lists', $errors[0]->getMessage());
     }
 
-    public function testInvalidIndexByFieldNotSelected() : void
+    public function testInvalidIndexByFieldNotSelected(): void
     {
         $query = <<<'GRAPHQL'
             {
@@ -229,10 +229,13 @@ final class IndexByValidatorTest extends TestCase
 
         $errors = $this->validate($query);
         self::assertCount(1, $errors);
-        self::assertStringContainsString('Field "name" is not selected in the indexBy directive', $errors[0]->getMessage());
+        self::assertStringContainsString(
+            'Field "name" is not selected in the indexBy directive',
+            $errors[0]->getMessage(),
+        );
     }
 
-    public function testInvalidIndexByFieldDoesNotExist() : void
+    public function testInvalidIndexByFieldDoesNotExist(): void
     {
         $query = <<<'GRAPHQL'
             {
@@ -249,7 +252,7 @@ final class IndexByValidatorTest extends TestCase
         self::assertStringContainsString('Field "nonexistent" is not defined for type', $errors[0]->getMessage());
     }
 
-    public function testInvalidIndexByWithNullableFloatField() : void
+    public function testInvalidIndexByWithNullableFloatField(): void
     {
         $query = <<<'GRAPHQL'
             {
@@ -262,10 +265,13 @@ final class IndexByValidatorTest extends TestCase
 
         $errors = $this->validate($query);
         self::assertCount(1, $errors);
-        self::assertStringContainsString('Field "score" is nullable and cannot be used for @indexBy', $errors[0]->getMessage());
+        self::assertStringContainsString(
+            'Field "score" is nullable and cannot be used for @indexBy',
+            $errors[0]->getMessage(),
+        );
     }
 
-    public function testInvalidIndexByWithNonNullFloatField() : void
+    public function testInvalidIndexByWithNonNullFloatField(): void
     {
         $query = <<<'GRAPHQL'
             {
@@ -278,10 +284,13 @@ final class IndexByValidatorTest extends TestCase
 
         $errors = $this->validate($query);
         self::assertCount(1, $errors);
-        self::assertStringContainsString('@indexBy(field: "rating") cannot be used because the field is not a valid array key type', $errors[0]->getMessage());
+        self::assertStringContainsString(
+            '@indexBy(field: "rating") cannot be used because the field is not a valid array key type',
+            $errors[0]->getMessage(),
+        );
     }
 
-    public function testInvalidIndexByWithNullableBooleanField() : void
+    public function testInvalidIndexByWithNullableBooleanField(): void
     {
         $query = <<<'GRAPHQL'
             {
@@ -294,10 +303,13 @@ final class IndexByValidatorTest extends TestCase
 
         $errors = $this->validate($query);
         self::assertCount(1, $errors);
-        self::assertStringContainsString('Field "active" is nullable and cannot be used for @indexBy', $errors[0]->getMessage());
+        self::assertStringContainsString(
+            'Field "active" is nullable and cannot be used for @indexBy',
+            $errors[0]->getMessage(),
+        );
     }
 
-    public function testInvalidIndexByWithNonNullBooleanField() : void
+    public function testInvalidIndexByWithNonNullBooleanField(): void
     {
         $query = <<<'GRAPHQL'
             {
@@ -310,10 +322,13 @@ final class IndexByValidatorTest extends TestCase
 
         $errors = $this->validate($query);
         self::assertCount(1, $errors);
-        self::assertStringContainsString('@indexBy(field: "verified") cannot be used because the field is not a valid array key type', $errors[0]->getMessage());
+        self::assertStringContainsString(
+            '@indexBy(field: "verified") cannot be used because the field is not a valid array key type',
+            $errors[0]->getMessage(),
+        );
     }
 
-    public function testMultiFieldIndexByWithOneInvalidField() : void
+    public function testMultiFieldIndexByWithOneInvalidField(): void
     {
         $query = <<<'GRAPHQL'
             {
@@ -326,10 +341,13 @@ final class IndexByValidatorTest extends TestCase
 
         $errors = $this->validate($query);
         self::assertCount(1, $errors);
-        self::assertStringContainsString('Field "score" is nullable and cannot be used for @indexBy', $errors[0]->getMessage());
+        self::assertStringContainsString(
+            'Field "score" is nullable and cannot be used for @indexBy',
+            $errors[0]->getMessage(),
+        );
     }
 
-    public function testMultiFieldIndexByWithOneFieldNotSelected() : void
+    public function testMultiFieldIndexByWithOneFieldNotSelected(): void
     {
         $query = <<<'GRAPHQL'
             {
@@ -341,10 +359,13 @@ final class IndexByValidatorTest extends TestCase
 
         $errors = $this->validate($query);
         self::assertCount(1, $errors);
-        self::assertStringContainsString('Field "name" is not selected in the indexBy directive', $errors[0]->getMessage());
+        self::assertStringContainsString(
+            'Field "name" is not selected in the indexBy directive',
+            $errors[0]->getMessage(),
+        );
     }
 
-    public function testInvalidIndexByWithNullableStringField() : void
+    public function testInvalidIndexByWithNullableStringField(): void
     {
         $query = <<<'GRAPHQL'
             {
@@ -357,10 +378,13 @@ final class IndexByValidatorTest extends TestCase
 
         $errors = $this->validate($query);
         self::assertCount(1, $errors);
-        self::assertStringContainsString('Field "email" is nullable and cannot be used for @indexBy', $errors[0]->getMessage());
+        self::assertStringContainsString(
+            'Field "email" is nullable and cannot be used for @indexBy',
+            $errors[0]->getMessage(),
+        );
     }
 
-    public function testInvalidIndexByWithNullableIntField() : void
+    public function testInvalidIndexByWithNullableIntField(): void
     {
         $query = <<<'GRAPHQL'
             {
@@ -373,10 +397,13 @@ final class IndexByValidatorTest extends TestCase
 
         $errors = $this->validate($query);
         self::assertCount(1, $errors);
-        self::assertStringContainsString('Field "age" is nullable and cannot be used for @indexBy', $errors[0]->getMessage());
+        self::assertStringContainsString(
+            'Field "age" is nullable and cannot be used for @indexBy',
+            $errors[0]->getMessage(),
+        );
     }
 
-    public function testValidIndexByWithNonNullEnumField() : void
+    public function testValidIndexByWithNonNullEnumField(): void
     {
         $query = <<<'GRAPHQL'
             {
@@ -391,7 +418,7 @@ final class IndexByValidatorTest extends TestCase
         self::assertCount(0, $errors);
     }
 
-    public function testInvalidIndexByWithNullableEnumField() : void
+    public function testInvalidIndexByWithNullableEnumField(): void
     {
         $query = <<<'GRAPHQL'
             {
@@ -404,10 +431,13 @@ final class IndexByValidatorTest extends TestCase
 
         $errors = $this->validate($query);
         self::assertCount(1, $errors);
-        self::assertStringContainsString('Field "optionalStatus" is nullable and cannot be used for @indexBy', $errors[0]->getMessage());
+        self::assertStringContainsString(
+            'Field "optionalStatus" is nullable and cannot be used for @indexBy',
+            $errors[0]->getMessage(),
+        );
     }
 
-    public function testMultiFieldIndexByWithMixedNullability() : void
+    public function testMultiFieldIndexByWithMixedNullability(): void
     {
         $query = <<<'GRAPHQL'
             {
@@ -420,10 +450,13 @@ final class IndexByValidatorTest extends TestCase
 
         $errors = $this->validate($query);
         self::assertCount(1, $errors);
-        self::assertStringContainsString('Field "email" is nullable and cannot be used for @indexBy', $errors[0]->getMessage());
+        self::assertStringContainsString(
+            'Field "email" is nullable and cannot be used for @indexBy',
+            $errors[0]->getMessage(),
+        );
     }
 
-    public function testValidMultiFieldIndexByWithNonNullFields() : void
+    public function testValidMultiFieldIndexByWithNonNullFields(): void
     {
         $query = <<<'GRAPHQL'
             {
@@ -439,7 +472,7 @@ final class IndexByValidatorTest extends TestCase
         self::assertCount(0, $errors);
     }
 
-    public function testIndexByWithEmptyField() : void
+    public function testIndexByWithEmptyField(): void
     {
         $query = <<<'GRAPHQL'
             {
@@ -455,7 +488,7 @@ final class IndexByValidatorTest extends TestCase
         self::assertStringContainsString('Empty field in @indexBy directive', $errors[0]->getMessage());
     }
 
-    public function testMultiFieldIndexByWithEmptyFieldInMiddle() : void
+    public function testMultiFieldIndexByWithEmptyFieldInMiddle(): void
     {
         $query = <<<'GRAPHQL'
             {
@@ -472,7 +505,7 @@ final class IndexByValidatorTest extends TestCase
         self::assertStringContainsString('Empty field in @indexBy directive', $errors[0]->getMessage());
     }
 
-    public function testIndexByWithoutFieldArgument() : void
+    public function testIndexByWithoutFieldArgument(): void
     {
         $query = <<<'GRAPHQL'
             {
@@ -488,7 +521,7 @@ final class IndexByValidatorTest extends TestCase
         self::assertCount(0, $errors);
     }
 
-    public function testIndexByWithWrongArgumentName() : void
+    public function testIndexByWithWrongArgumentName(): void
     {
         $query = <<<'GRAPHQL'
             {
@@ -504,7 +537,7 @@ final class IndexByValidatorTest extends TestCase
         self::assertCount(0, $errors);
     }
 
-    public function testIndexByOnNullableList() : void
+    public function testIndexByOnNullableList(): void
     {
         $query = <<<'GRAPHQL'
             {
@@ -522,7 +555,7 @@ final class IndexByValidatorTest extends TestCase
         self::assertCount(0, $errors);
     }
 
-    public function testNestedIndexByWithDeepPath() : void
+    public function testNestedIndexByWithDeepPath(): void
     {
         // Create a more complex schema for this test
         $addressType = new ObjectType([
@@ -548,7 +581,7 @@ final class IndexByValidatorTest extends TestCase
             'fields' => [
                 'usersWithAddress' => [
                     'type' => Type::listOf($userWithAddressType),
-                    'resolve' => fn() => [],
+                    'resolve' => static fn() => [],
                 ],
             ],
         ]);
@@ -574,7 +607,7 @@ final class IndexByValidatorTest extends TestCase
         self::assertCount(0, $errors);
     }
 
-    public function testInvalidIndexByWithNullableIntermediateField() : void
+    public function testInvalidIndexByWithNullableIntermediateField(): void
     {
         // Create a schema with nullable intermediate field
         $addressType = new ObjectType([
@@ -598,7 +631,7 @@ final class IndexByValidatorTest extends TestCase
             'fields' => [
                 'usersWithAddress' => [
                     'type' => Type::listOf($userWithAddressType),
-                    'resolve' => fn() => [],
+                    'resolve' => static fn() => [],
                 ],
             ],
         ]);
@@ -622,13 +655,16 @@ final class IndexByValidatorTest extends TestCase
         $errors = DocumentValidator::validate($schema, $document, [$this->validator]);
 
         self::assertCount(1, $errors);
-        self::assertStringContainsString('Field "optionalAddress" is nullable and cannot be used for @indexBy', $errors[0]->getMessage());
+        self::assertStringContainsString(
+            'Field "optionalAddress" is nullable and cannot be used for @indexBy',
+            $errors[0]->getMessage(),
+        );
     }
 
     /**
      * @return array<Error>
      */
-    private function validate(string $query) : array
+    private function validate(string $query): array
     {
         $document = Parser::parse($query);
 

@@ -10,7 +10,7 @@ use Symfony\Component\TypeInfo\Type;
 final class ScalarType extends Type
 {
     #[Override]
-    public function __toString() : string
+    public function __toString(): string
     {
         return 'scalar';
     }

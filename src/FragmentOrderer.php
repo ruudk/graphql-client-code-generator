@@ -19,7 +19,7 @@ final class FragmentOrderer
      * @throws Exception
      * @return list<FragmentDefinitionNodeWithSource> Sorted so that dependencies come first
      */
-    public static function orderFragments(array $operations) : array
+    public static function orderFragments(array $operations): array
     {
         /**
          * @var array<string, FragmentDefinitionNodeWithSource> $fragments
@@ -34,7 +34,7 @@ final class FragmentOrderer
         foreach ($operations as $documents) {
             foreach ($documents as $document) {
                 foreach ($document->definitions as $def) {
-                    if ( ! $def instanceof FragmentDefinitionNodeWithSource) {
+                    if (!$def instanceof FragmentDefinitionNodeWithSource) {
                         continue;
                     }
 
@@ -49,7 +49,7 @@ final class FragmentOrderer
         $unknown = [];
         foreach ($deps as $set) {
             foreach ($set as $to) {
-                if ( ! isset($fragments[$to])) {
+                if (!isset($fragments[$to])) {
                     $unknown[$to] = true;
                 }
             }
@@ -100,15 +100,16 @@ final class FragmentOrderer
         // If not all fragments were output, we have a cycle
         if (count($sortedNames) !== count($fragments)) {
             // Find one cycle-ish set to report
-            $remaining = array_keys(array_filter($inDegree, fn($d) => $d > 0));
+            $remaining = array_keys(array_filter($inDegree, static fn($d) => $d > 0));
             $hint = implode(' → ', $remaining);
 
-            throw new RuntimeException(
-                sprintf('Circular dependency detected among fragments (in-degree > 0): %s', $hint),
-            );
+            throw new RuntimeException(sprintf(
+                'Circular dependency detected among fragments (in-degree > 0): %s',
+                $hint,
+            ));
         }
 
         // Return in dependency-safe order (dependencies first)
-        return array_map(fn($name) => $fragments[$name], $sortedNames);
+        return array_map(static fn($name) => $fragments[$name], $sortedNames);
     }
 }

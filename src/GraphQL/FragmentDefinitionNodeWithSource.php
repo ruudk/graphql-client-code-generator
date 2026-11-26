@@ -13,10 +13,12 @@ use Ruudk\GraphQLCodeGenerator\Planner\Source\TwigFileSource;
 
 final class FragmentDefinitionNodeWithSource extends FragmentDefinitionNode
 {
-    public GraphQLFileSource | HookInputSource | InlineFragmentSource | InlineSource | TwigFileSource $source;
+    public GraphQLFileSource|HookInputSource|InlineFragmentSource|InlineSource|TwigFileSource $source;
 
-    public static function create(FragmentDefinitionNode $fragmentNode, GraphQLFileSource | HookInputSource | InlineFragmentSource | InlineSource | TwigFileSource $source) : self
-    {
+    public static function create(
+        FragmentDefinitionNode $fragmentNode,
+        GraphQLFileSource|HookInputSource|InlineFragmentSource|InlineSource|TwigFileSource $source,
+    ): self {
         return new self([
             'name' => $fragmentNode->name,
             'variableDefinitions' => $fragmentNode->variableDefinitions,

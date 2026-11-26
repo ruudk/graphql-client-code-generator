@@ -7,9 +7,10 @@ namespace Ruudk\GraphQLCodeGenerator\TypeInitializer;
 use Override;
 use Ruudk\CodeGenerator\CodeGenerator;
 use Symfony\Component\TypeInfo\Type;
+use Symfony\Component\TypeInfo\TypeIdentifier;
 
 /**
- * @implements TypeInitializer<Type\BackedEnumType<*, *>>
+ * @implements TypeInitializer<Type\BackedEnumType<class-string<\BackedEnum>, Type\BuiltinType<TypeIdentifier::INT>|Type\BuiltinType<TypeIdentifier::STRING>>>
  */
 final readonly class BackedEnumTypeInitializer implements TypeInitializer
 {
@@ -19,7 +20,7 @@ final readonly class BackedEnumTypeInitializer implements TypeInitializer
     ) {}
 
     #[Override]
-    public function supports(Type $type) : bool
+    public function supports(Type $type): bool
     {
         return $type instanceof Type\BackedEnumType;
     }
@@ -30,7 +31,7 @@ final readonly class BackedEnumTypeInitializer implements TypeInitializer
         CodeGenerator $generator,
         string $variable,
         DelegatingTypeInitializer $delegator,
-    ) : string {
+    ): string {
         if ($this->addUnknownCaseToEnums && str_starts_with($type->getClassName(), $this->namespace)) {
             return sprintf(
                 '%s::tryFrom(%s) ?? %s::Unknown__',
@@ -40,10 +41,6 @@ final readonly class BackedEnumTypeInitializer implements TypeInitializer
             );
         }
 
-        return sprintf(
-            '%s::from(%s)',
-            $generator->import($type->getClassName()),
-            $variable,
-        );
+        return sprintf('%s::from(%s)', $generator->import($type->getClassName()), $variable);
     }
 }

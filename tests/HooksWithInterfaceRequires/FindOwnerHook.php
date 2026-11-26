@@ -12,14 +12,11 @@ use Ruudk\GraphQLCodeGenerator\HooksWithInterfaceRequires\Generated\Hook\NodeId;
  * hook (and a single generated data class) serves every type implementing it —
  * here both `Article` and `Video`.
  */
-#[Hook(
-    name: 'findOwner',
-    requires: <<<'GRAPHQL'
-        fragment NodeId on Node {
-          id
-        }
-        GRAPHQL,
-)]
+#[Hook(name: 'findOwner', requires: <<<'GRAPHQL'
+    fragment NodeId on Node {
+      id
+    }
+    GRAPHQL)]
 final readonly class FindOwnerHook
 {
     /**
@@ -29,7 +26,7 @@ final readonly class FindOwnerHook
         private array $owners = [],
     ) {}
 
-    public function __invoke(NodeId $node) : ?Owner
+    public function __invoke(NodeId $node): ?Owner
     {
         return $this->owners[$node->id] ?? null;
     }

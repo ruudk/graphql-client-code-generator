@@ -19,7 +19,7 @@ use GraphQL\Language\AST\NameNode;
  */
 final class InjectedTypenameFieldNode extends FieldNode
 {
-    public static function create() : self
+    public static function create(): self
     {
         return new self([
             'name' => new NameNode([

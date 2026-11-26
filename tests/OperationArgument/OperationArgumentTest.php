@@ -16,7 +16,7 @@ use Symfony\Component\TypeInfo\Type;
 final class OperationArgumentTest extends GraphQLTestCase
 {
     #[Override]
-    public function getConfig() : Config
+    public function getConfig(): Config
     {
         return Config::create(
             schema: __DIR__ . '/Schema.graphql',
@@ -27,31 +27,33 @@ final class OperationArgumentTest extends GraphQLTestCase
         )
             ->withQueriesDir(__DIR__)
             ->enableDumpOrThrowMethods()
-            ->withOperationArgument(
-                name: 'actor',
-                type: Type::object(Actor::class),
-                directive: 'requiresActor',
-            );
+            ->withOperationArgument(name: 'actor', type: Type::object(Actor::class), directive: 'requiresActor');
     }
 
-    public function testGenerate() : void
+    public function testGenerate(): void
     {
         $this->assertActualMatchesExpected();
     }
 
-    public function testExecuteForwardsActorToClient() : void
+    public function testExecuteForwardsActorToClient(): void
     {
         $mock = new Client();
-        $mock->addResponse(new Response(200, [
-            'Content-Type' => 'application/json',
-        ], json_encode([
-            'data' => [
-                'createThing' => [
-                    'id' => '1',
-                    'name' => 'Thing',
+        $mock->addResponse(
+            new Response(
+                200,
+                [
+                    'Content-Type' => 'application/json',
                 ],
-            ],
-        ], flags: JSON_THROW_ON_ERROR)));
+                json_encode([
+                    'data' => [
+                        'createThing' => [
+                            'id' => '1',
+                            'name' => 'Thing',
+                        ],
+                    ],
+                ], flags: JSON_THROW_ON_ERROR),
+            ),
+        );
 
         $mutation = new CreateThingMutation(new ActorTestClient($mock));
         $data = $mutation->executeOrThrow(new Actor('actor-42'), 'Thing');

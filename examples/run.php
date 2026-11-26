@@ -34,6 +34,9 @@ foreach ($data->search->nodes ?? [] as $node) {
     }
 
     if ($node->pullRequestInfo !== null) {
-        dump(asPullRequest: $node->pullRequestInfo->title . ' is merged: ' . $node->pullRequestInfo->merged);
+        dump(
+            asPullRequest: $node->pullRequestInfo->title . ' is merged: '
+                . var_export($node->pullRequestInfo->merged, true),
+        );
     }
 }

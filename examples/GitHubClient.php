@@ -28,7 +28,7 @@ final readonly class GitHubClient
      * @throws ClientExceptionInterface
      * @return array<mixed>
      */
-    public function graphql(string $query, array $variables = [], ?string $operationName = null) : array
+    public function graphql(string $query, array $variables = [], ?string $operationName = null): array
     {
         $request = new Request(
             'POST',
@@ -37,11 +37,17 @@ final readonly class GitHubClient
                 'Content-type' => 'application/json',
                 'Authorization' => 'Bearer ' . $this->token,
             ],
-            json_encode(array_filter([
-                'query' => $query,
-                'operationName' => $operationName,
-                'variables' => $variables,
-            ], fn($value) => ! is_null($value)), JSON_THROW_ON_ERROR),
+            json_encode(
+                array_filter(
+                    [
+                        'query' => $query,
+                        'operationName' => $operationName,
+                        'variables' => $variables,
+                    ],
+                    static fn($value) => !is_null($value),
+                ),
+                JSON_THROW_ON_ERROR,
+            ),
         );
 
         $response = $this->client->sendRequest($request);

@@ -11,7 +11,7 @@ use Ruudk\GraphQLCodeGenerator\InlineFragmentTypename\Generated\Mutation\Test\Da
 
 final class InlineFragmentTypenameTest extends GraphQLTestCase
 {
-    public function testGenerate() : void
+    public function testGenerate(): void
     {
         $this->assertActualMatchesExpected();
     }
@@ -21,7 +21,7 @@ final class InlineFragmentTypenameTest extends GraphQLTestCase
      * caller reads back, so the generated __typename property is tagged
      * @api, just like a sole __typename on a fire-and-forget mutation.
      */
-    public function testSoleTypenameOnInlineFragmentIsApi() : void
+    public function testSoleTypenameOnInlineFragmentIsApi(): void
     {
         $docComment = new ReflectionClass(AsSupportedCountryError::class)
             ->getProperty('__typename')
@@ -35,7 +35,7 @@ final class InlineFragmentTypenameTest extends GraphQLTestCase
      * An inline fragment that selects real fields alongside __typename is
      * data the caller asked for; __typename must NOT be tagged @api.
      */
-    public function testTypenameWithSiblingFieldsIsNotApi() : void
+    public function testTypenameWithSiblingFieldsIsNotApi(): void
     {
         $docComment = new ReflectionClass(AsUnsupportedCountryError::class)
             ->getProperty('__typename')

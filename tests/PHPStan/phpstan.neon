@@ -9,10 +9,3 @@ parameters:
     graphQLClientCodeGenerator:
         configs:
             - config.php
-
-    ignoreErrors:
-        # Fixtures aren't wired into a real app; silence dead-code detection here.
-        -
-            identifier: shipmonk.deadMethod
-            paths:
-                - Fixtures/*.php

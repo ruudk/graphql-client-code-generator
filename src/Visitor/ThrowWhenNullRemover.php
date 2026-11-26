@@ -23,10 +23,10 @@ final readonly class ThrowWhenNullRemover
      * @throws Exception
      * @return T
      */
-    public function __invoke(Node $node) : Node
+    public function __invoke(Node $node): Node
     {
-        $new = Visitor::visit($node, [
-            NodeKind::DIRECTIVE => function (Node $node) : ?VisitorRemoveNode {
+        return VisitedNode::of($node, Visitor::visit($node, [
+            NodeKind::DIRECTIVE => static function (Node $node): ?VisitorRemoveNode {
                 Assert::isInstanceOf($node, DirectiveNode::class);
 
                 if ($node->name->value !== 'throwWhenNull') {
@@ -35,11 +35,6 @@ final readonly class ThrowWhenNullRemover
 
                 return Visitor::removeNode();
             },
-        ]);
-
-        Assert::isInstanceOf($new, Node::class);
-        Assert::isAOf($new, $node::class);
-
-        return $new;
+        ]));
     }
 }

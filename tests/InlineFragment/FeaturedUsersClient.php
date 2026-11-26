@@ -26,10 +26,11 @@ final readonly class FeaturedUsersClient
     /**
      * @return list<string>
      */
-    public function getDisplayNames() : array
+    public function getDisplayNames(): array
     {
-        return $this->mapper->mapMany(
-            array_map(fn($user) => $user->userName, $this->query->execute()->featuredUsers),
-        );
+        return $this->mapper->mapMany(array_map(
+            static fn($user) => $user->userName,
+            $this->query->execute()->featuredUsers,
+        ));
     }
 }

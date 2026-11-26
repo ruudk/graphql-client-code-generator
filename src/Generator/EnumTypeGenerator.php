@@ -10,7 +10,7 @@ use Symfony\Component\String\UnicodeString;
 
 final class EnumTypeGenerator extends AbstractGenerator
 {
-    public function generate(EnumClassPlan $plan) : string
+    public function generate(EnumClassPlan $plan): string
     {
         $generator = new CodeGenerator($this->fullyQualified('Enum'));
 
@@ -31,7 +31,11 @@ final class EnumTypeGenerator extends AbstractGenerator
                         yield from $generator->comment($value['description']);
                     }
 
-                    yield sprintf("case %s = '%s';", new UnicodeString($value['value'])->lower()->pascal()->toString(), $value['value']);
+                    yield sprintf(
+                        "case %s = '%s';",
+                        new UnicodeString($value['value'])->lower()->pascal()->toString(),
+                        $value['value'],
+                    );
 
                     if ($value['description'] !== null) {
                         yield '';
@@ -40,7 +44,9 @@ final class EnumTypeGenerator extends AbstractGenerator
 
                 if ($this->config->addUnknownCaseToEnums) {
                     yield '';
-                    yield from $generator->comment('When the server returns an unknown enum value, this is the value that will be used.');
+                    yield from $generator->comment(
+                        'When the server returns an unknown enum value, this is the value that will be used.',
+                    );
                     yield 'case Unknown__ = \'unknown__\';';
                 }
 
@@ -48,11 +54,14 @@ final class EnumTypeGenerator extends AbstractGenerator
                     $numberOfValues = count($plan->values);
                     foreach ($plan->values as $value) {
                         yield '';
-                        yield sprintf('public function is%s() : bool', new UnicodeString($value['value'])->lower()->pascal()->toString());
+                        yield sprintf(
+                            'public function is%s() : bool',
+                            new UnicodeString($value['value'])->lower()->pascal()->toString(),
+                        );
                         yield '{';
                         yield $generator->indent(function () use ($generator, $numberOfValues, $value) {
                             // Only add the phpstan-ignore if there's exactly one value and no Unknown__ case
-                            if ($numberOfValues === 1 && ! $this->config->addUnknownCaseToEnums) {
+                            if ($numberOfValues === 1 && !$this->config->addUnknownCaseToEnums) {
                                 yield from $generator->comment('@phpstan-ignore identical.alwaysTrue');
                             }
 

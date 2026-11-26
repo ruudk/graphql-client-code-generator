@@ -11,12 +11,12 @@ use Symfony\Component\TypeInfo\Type;
 
 /**
  * @phpstan-import-type CodeLine from CodeGenerator
- * @implements TypeInitializer<Type\NullableType<*>>
+ * @implements TypeInitializer<Type\NullableType<Type>>
  */
 final readonly class NullableTypeInitializer implements TypeInitializer
 {
     #[Override]
-    public function supports(Type $type) : bool
+    public function supports(Type $type): bool
     {
         return $type instanceof Type\NullableType;
     }
@@ -30,12 +30,9 @@ final readonly class NullableTypeInitializer implements TypeInitializer
         CodeGenerator $generator,
         string $variable,
         DelegatingTypeInitializer $delegator,
-    ) : Generator {
+    ): Generator {
         yield from $generator->wrap(
-            sprintf(
-                '%s !== null ? ',
-                $variable,
-            ),
+            sprintf('%s !== null ? ', $variable),
             $delegator($type->getWrappedType(), $generator, $variable),
             ' : null',
         );

@@ -30,7 +30,7 @@ final class FragmentFinder extends NodeVisitorAbstract
      * @throws InvalidArgumentException
      */
     #[Override]
-    public function enterNode(Node $node) : null
+    public function enterNode(Node $node): null
     {
         if ($node instanceof Node\Stmt\Class_ && $node->name !== null) {
             $this->className = $node->namespacedName?->toString();
@@ -38,7 +38,7 @@ final class FragmentFinder extends NodeVisitorAbstract
             return null;
         }
 
-        if ( ! $node instanceof Node\Stmt\ClassMethod) {
+        if (!$node instanceof Node\Stmt\ClassMethod) {
             return null;
         }
 
@@ -47,11 +47,11 @@ final class FragmentFinder extends NodeVisitorAbstract
         }
 
         foreach ($node->params as $param) {
-            if ( ! $param->var instanceof Node\Expr\Variable) {
+            if (!$param->var instanceof Node\Expr\Variable) {
                 continue;
             }
 
-            if ( ! is_string($param->var->name)) {
+            if (!is_string($param->var->name)) {
                 continue;
             }
 
@@ -81,7 +81,7 @@ final class FragmentFinder extends NodeVisitorAbstract
                         $value = $this->constants[$value->name->toString()];
                     }
 
-                    if ( ! $value instanceof String_) {
+                    if (!$value instanceof String_) {
                         throw new InvalidArgumentException('Invalid argument type');
                     }
 
@@ -96,9 +96,9 @@ final class FragmentFinder extends NodeVisitorAbstract
     }
 
     #[Override]
-    public function leaveNode(Node $node) : null
+    public function leaveNode(Node $node): null
     {
-        if ( ! $node instanceof Node\Stmt\Class_) {
+        if (!$node instanceof Node\Stmt\Class_) {
             return null;
         }
 

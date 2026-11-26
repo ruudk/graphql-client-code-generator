@@ -93,7 +93,10 @@ foreach ($data->search->nodes ?? [] as $node) {
     }
 
     if ($node->pullRequestInfo !== null) {
-        dump(asPullRequest: $node->pullRequestInfo->title . ' is merged: ' . $node->pullRequestInfo->merged);
+        dump(
+            asPullRequest: $node->pullRequestInfo->title . ' is merged: '
+                . var_export($node->pullRequestInfo->merged, true),
+        );
     }
 }
 ```
@@ -215,7 +218,10 @@ foreach ($data->search->nodes ?? [] as $node) {
     }
 
     if ($node->pullRequestInfo !== null) {
-        dump(asPullRequest: $node->pullRequestInfo->title . ' is merged: ' . $node->pullRequestInfo->merged);
+        dump(
+            asPullRequest: $node->pullRequestInfo->title . ' is merged: '
+                . var_export($node->pullRequestInfo->merged, true),
+        );
     }
 }
 ```
@@ -279,6 +285,7 @@ final readonly class SearchQuery {
             self::OPERATION_NAME,
         );
 
+        // @mago-expect analysis:mixed-argument(2)
         return new Data(
             $data['data'] ?? [], // @phpstan-ignore argument.type
             $data['errors'] ?? [] // @phpstan-ignore argument.type
@@ -462,14 +469,11 @@ final readonly class SomeController
         public ProjectsQuery $query,
     ) {}
 
-    public function __invoke() : string
+    public function __invoke(): string
     {
-        return $this->twig->render(
-            'list.html.twig',
-            [
-                'data' => $this->query->executeOrThrow()->adminProjectList,
-            ],
-        );
+        return $this->twig->render('list.html.twig', [
+            'data' => $this->query->executeOrThrow()->adminProjectList,
+        ]);
     }
 }
 ```
@@ -512,14 +516,9 @@ final readonly class UserMapper
      * @param list<UserName> $users
      * @return list<string>
      */
-    public function mapMany(
-        #[GeneratedGraphQLFragment(self::FRAGMENT)]
-        array $users,
-    ) : array {
-        return array_map(
-            fn(UserName $u) => $u->firstName . ' ' . $u->lastName,
-            $users,
-        );
+    public function mapMany(#[GeneratedGraphQLFragment(self::FRAGMENT)] array $users): array
+    {
+        return array_map(static fn(UserName $u) => $u->firstName . ' ' . $u->lastName, $users);
     }
 }
 ```
@@ -556,11 +555,9 @@ final readonly class ListUsersClient
     /**
      * @return list<string>
      */
-    public function getDisplayNames() : array
+    public function getDisplayNames(): array
     {
-        return $this->mapper->mapMany(
-            array_map(fn($user) => $user->userName, $this->query->execute()->users),
-        );
+        return $this->mapper->mapMany(array_map(static fn($user) => $user->userName, $this->query->execute()->users));
     }
 }
 ```
@@ -569,7 +566,7 @@ final readonly class ListUsersClient
 
 1. The service tags a method parameter with `#[GeneratedGraphQLFragment(self::FRAGMENT)]`.
 2. The generator emits the fragment class at `Generated/Fragment/{Name}{hash}/{Name}.php` — hashed by the declaration site, like `#[GeneratedGraphQLClient]`.
-3. The fragment class is stamped with `#[Generated(source: …, restricted: true, restrictInstantiation: true)]`, so PHPStan only lets the declaring service consume it.
+3. The fragment class is stamped with `#[Generated(source: …, restricted: true, restrictInstantiation: true)]`, so the [PHPStan extension](#-restrict-generated-classes) and the [Mago extension](#-mago-extension) only let the declaring service consume it.
 4. Any query — `.graphql` file, Twig block, or another inline `#[GeneratedGraphQLClient]` — can spread `...UserName`; the generated Data class imports the same hashed fragment class.
 5. Callers hand fragment-shaped data back to the service, which is the only place allowed to read it.
 
@@ -577,48 +574,34 @@ final readonly class ListUsersClient
 
 #### 🧹 Auto-Format GraphQL in PHP Heredocs
 
-A custom [PHP CS Fixer](https://cs.symfony.com/) fixer ships with this library to keep the GraphQL inside your `<<<'GRAPHQL' ... GRAPHQL` nowdoc strings consistently formatted. It parses the operation and rewrites it with `webonyx/graphql-php`'s `Printer::doPrint()`, indented to match the heredoc. Only single-quoted nowdocs are touched (a heredoc would interpolate GraphQL `$variables` as PHP variables); invalid GraphQL is left untouched.
+This library ships a formatter that keeps the GraphQL inside your `<<<'GRAPHQL' ... GRAPHQL` nowdoc strings consistently formatted. It parses the operation and rewrites it with `webonyx/graphql-php`'s `Printer::doPrint()`, indented to match the nowdoc. Only single-quoted nowdocs are touched (a heredoc would interpolate GraphQL `$variables` as PHP variables); invalid GraphQL is left untouched.
 
-Register `GraphQLHeredocFixer` in your `.php-cs-fixer.php`:
+It is available for both [PHP CS Fixer](https://cs.symfony.com/) and [Mago](https://mago.carthage.software/).
 
-<!-- source: .php-cs-fixer.php -->
+**PHP CS Fixer:** register `GraphQLHeredocFixer` in your `.php-cs-fixer.php`:
+
+<!-- source: examples/Tools/php-cs-fixer.php -->
 ```php
 <?php
 
 declare(strict_types=1);
 
+use PhpCsFixer\Config;
 use PhpCsFixer\Finder;
 use Ruudk\GraphQLCodeGenerator\PhpCsFixer\GraphQLHeredocFixer;
-use Ticketswap\PhpCsFixerConfig\PhpCsFixerConfigFactory;
-use Ticketswap\PhpCsFixerConfig\RuleSet\TicketSwapRuleSet;
 
-$finder = Finder::create()
-    ->in(__DIR__ . '/examples')
-    ->in(__DIR__ . '/src')
-    ->in(__DIR__ . '/tests')
-    ->notPath(['Generated'])
-    ->append([
-        __DIR__ . '/.php-cs-fixer.php',
-        __DIR__ . '/bin/graphql-client-code-generator',
-        __DIR__ . '/composer-dependency-analyser.php',
-        __DIR__ . '/phpstan.php',
+return new Config()
+    ->setFinder(Finder::create()->in(__DIR__ . '/src'))
+    ->registerCustomFixers([new GraphQLHeredocFixer()])
+    ->setRules([
+        '@PER-CS' => true,
+        'Ruudk/graphql_heredoc' => true,
     ]);
-
-$config = PhpCsFixerConfigFactory::create(TicketSwapRuleSet::create())->setFinder($finder);
-
-$config->registerCustomFixers([
-    new GraphQLHeredocFixer(),
-]);
-
-$config->setRules([
-    ...$config->getRules(),
-    'Ruudk/graphql_heredoc' => true,
-]);
-
-return $config;
 ```
 
 Running `vendor/bin/php-cs-fixer fix` now formats every `<<<'GRAPHQL'` block automatically. The fixer runs before `heredoc_indentation`, so the surrounding indentation stays consistent with the rest of your codebase.
+
+**Mago:** enable the [Mago extension](#-mago-extension); its `graphql/heredoc-format` lint rule reports unformatted nowdocs and `vendor/bin/mago lint --fix` formats them. The GraphQL is indented to the closing `GRAPHQL` marker, so it works together with Mago's formatter.
 
 ### 🎭 Twig Template Support
 
@@ -655,7 +638,7 @@ A [Twig CS Fixer](https://github.com/VincentLanglet/Twig-CS-Fixer) rule ships wi
 
 Register `GraphQLFormatterRule` (and the `GraphQLTokenParser` so Twig CS Fixer understands the tag) in your `.twig-cs-fixer.php`:
 
-<!-- source: .twig-cs-fixer.php -->
+<!-- source: examples/Tools/twig-cs-fixer.php -->
 ```php
 <?php
 
@@ -669,24 +652,73 @@ use TwigCsFixer\Ruleset\Ruleset;
 use TwigCsFixer\Standard\TwigCsFixer;
 
 $ruleset = new Ruleset();
-
 $ruleset->addStandard(new TwigCsFixer());
 $ruleset->addRule(new GraphQLFormatterRule());
 
-$finder = Finder::create()
-    ->in('tests');
-
 $config = new Config();
 $config->allowNonFixableRules();
-$config->setCacheFile(__DIR__ . '/.twig-cs-fixer.cache');
 $config->setRuleset($ruleset);
-$config->setFinder($finder);
+$config->setFinder(Finder::create()->in(__DIR__ . '/templates'));
 $config->addTokenParser(new GraphQLTokenParser());
 
 return $config;
 ```
 
 Running `vendor/bin/twig-cs-fixer fix` now formats every `{% graphql %}` block automatically, and `vendor/bin/twig-cs-fixer lint` fails on any block that isn't canonically formatted.
+
+### 🔒 Restrict Generated Classes
+
+Generated classes marked `#[Generated(restricted: true)]` may only be used by the class (or Twig template) they were generated for. Two static analysis integrations enforce this.
+
+**PHPStan:** with [phpstan/extension-installer](https://github.com/phpstan/extension-installer) the extension is registered automatically. Point it at your configs in `phpstan.neon`:
+
+```neon
+parameters:
+    graphQLClientCodeGenerator:
+        configs:
+            - graphql.php
+```
+
+**Mago:** enable the analyzer plugin of the [Mago extension](#-mago-extension) by passing your configs to `GraphQLExtension::create()`. It reports `graphql/restricted-class`, `graphql/restricted-instantiation`, `graphql/restricted-method` and `graphql/restricted-property`.
+
+### 🪄 Mago Extension
+
+The library ships a [Mago](https://mago.carthage.software/) extension (Mago 1.61 or newer) with:
+
+- the `graphql/heredoc-format` lint rule, see [Auto-Format GraphQL in PHP Heredocs](#-auto-format-graphql-in-php-heredocs);
+- the `graphql` analyzer plugin, see [Restrict Generated Classes](#-restrict-generated-classes). It is only enabled when you pass the configs of the code generator.
+
+Install Mago with Composer, which also brings the SDK the extension is built on:
+
+```bash
+composer require --dev carthage-software/mago
+```
+
+Mago extensions run in a PHP worker process that your project owns. Create a worker entrypoint, for example `.mago/extensions.php`:
+
+```php
+<?php
+
+declare(strict_types=1);
+
+use Mago\Sdk\Worker;
+use Ruudk\GraphQLCodeGenerator\Mago\GraphQLExtension;
+
+require dirname(__DIR__) . '/vendor/autoload.php';
+
+new Worker(GraphQLExtension::create([
+    dirname(__DIR__) . '/graphql.php',
+]))->run();
+```
+
+Then register it in `mago.toml`:
+
+```toml
+[extension-hosts.graphql]
+command = ["php", ".mago/extensions.php"]
+```
+
+Check that Mago picks it up with `vendor/bin/mago extension list`. Twig templates are not covered yet: Mago extensions cannot add Twig lint rules ([carthage-software/mago#2813](https://github.com/carthage-software/mago/issues/2813)), so keep using the Twig CS Fixer rule for `{% graphql %}` blocks.
 
 ### ⚡ Custom `@indexBy` Directive
 
@@ -1119,6 +1151,7 @@ final readonly class CreateThingMutation {
             actor: $actor,
         );
 
+        // @mago-expect analysis:mixed-argument(2)
         return new Data(
             $data['data'] ?? [], // @phpstan-ignore argument.type
             $data['errors'] ?? [] // @phpstan-ignore argument.type
@@ -1335,7 +1368,10 @@ foreach ($data->search->nodes ?? [] as $node) {
     }
 
     if ($node->pullRequestInfo !== null) {
-        dump(asPullRequest: $node->pullRequestInfo->title . ' is merged: ' . $node->pullRequestInfo->merged);
+        dump(
+            asPullRequest: $node->pullRequestInfo->title . ' is merged: '
+                . var_export($node->pullRequestInfo->merged, true),
+        );
     }
 }
 ```
@@ -1385,15 +1421,17 @@ Check out the `examples/` directory for complete working examples:
 ## Contributing
 
 Contributions welcome! This project uses:
-- **PHP-CS-Fixer** for code formatting
-- **PHPStan** (level 9!) for static analysis
+- **Mago** for formatting, linting and static analysis of PHP and Twig
 - **PHPUnit** for testing
 
 Run the quality checks:
 
 ```bash
-vendor/bin/php-cs-fixer fix
-vendor/bin/phpstan
+vendor/bin/mago format
+vendor/bin/mago lint
+vendor/bin/mago analyze
+vendor/bin/mago twig:fmt
+vendor/bin/mago twig:lint
 vendor/bin/phpunit
 ```
 

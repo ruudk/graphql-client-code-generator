@@ -10,7 +10,7 @@ use Symfony\Component\TypeInfo\Type\GenericType;
 use Symfony\Component\TypeInfo\TypeIdentifier;
 
 /**
- * @extends Type\CollectionType<Type\GenericType<Type\BuiltinType<TypeIdentifier::ARRAY>>>
+ * @extends Type\CollectionType<Type\GenericType>
  */
 final class IndexByCollectionType extends Type\CollectionType
 {
@@ -22,12 +22,6 @@ final class IndexByCollectionType extends Type\CollectionType
         public readonly Type $value,
         public readonly array $indexBy,
     ) {
-        parent::__construct(
-            new GenericType(
-                new BuiltinType(TypeIdentifier::ARRAY),
-                $key,
-                $value,
-            ),
-        );
+        parent::__construct(new GenericType(new BuiltinType(TypeIdentifier::ARRAY), $key, $value));
     }
 }

@@ -23,7 +23,7 @@ abstract class GraphQLTestCase extends TestCase
     private Client $client;
 
     #[Override]
-    protected function setUp() : void
+    protected function setUp(): void
     {
         parent::setUp();
         $parts = explode('\\', static::class);
@@ -35,7 +35,7 @@ abstract class GraphQLTestCase extends TestCase
         $this->client = new Client();
     }
 
-    public function getConfig() : Config
+    public function getConfig(): Config
     {
         return Config::create(
             schema: $this->directory . '/Schema.graphql',
@@ -46,7 +46,7 @@ abstract class GraphQLTestCase extends TestCase
         )->withQueriesDir($this->directory);
     }
 
-    protected function assertActualMatchesExpected() : void
+    protected function assertActualMatchesExpected(): void
     {
         $config = $this->getConfig();
         $plan = new Planner($config)->plan();
@@ -82,27 +82,29 @@ abstract class GraphQLTestCase extends TestCase
      * @param array<string, mixed> $data
      * @throws JsonException
      */
-    protected function getClient(array $data, GraphQLRequestMatcher $matcher = new GraphQLRequestMatcher()) : TestClient
+    protected function getClient(array $data, GraphQLRequestMatcher $matcher = new GraphQLRequestMatcher()): TestClient
     {
-        $this->client->on($matcher, new Response(200, [
-            'Content-Type' => 'application/json',
-        ], json_encode($data, flags: JSON_THROW_ON_ERROR)));
+        $this->client->on(
+            $matcher,
+            new Response(
+                200,
+                [
+                    'Content-Type' => 'application/json',
+                ],
+                json_encode($data, flags: JSON_THROW_ON_ERROR),
+            ),
+        );
 
         return new TestClient($this->client);
     }
 
-    protected function getLastOperation() : string
+    protected function getLastOperation(): string
     {
         $lastRequest = $this->client->getLastRequest();
 
         Assert::isInstanceOf($lastRequest, RequestInterface::class, 'Expected a request to be made');
 
-        $json = json_decode(
-            (string) $lastRequest->getBody(),
-            true,
-            512,
-            JSON_THROW_ON_ERROR,
-        );
+        $json = json_decode((string) $lastRequest->getBody(), true, 512, JSON_THROW_ON_ERROR);
 
         Assert::isArray($json, 'Expected request body to be an array');
         Assert::keyExists($json, 'query', 'Expected request body to have a "query" key');

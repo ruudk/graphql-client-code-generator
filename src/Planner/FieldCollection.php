@@ -16,19 +16,19 @@ final class FieldCollection
      */
     private array $fields = [];
 
-    public function add(string $name, SymfonyType $type) : self
+    public function add(string $name, SymfonyType $type): self
     {
         $this->fields[$name] = $type;
 
         return $this;
     }
 
-    public function get(string $name) : SymfonyType
+    public function get(string $name): SymfonyType
     {
         return $this->fields[$name];
     }
 
-    public function toArrayShape() : SymfonyType
+    public function toArrayShape(): SymfonyType
     {
         return SymfonyType::arrayShape($this->fields, sealed: false);
     }

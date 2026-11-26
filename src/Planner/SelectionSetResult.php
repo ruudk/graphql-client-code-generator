@@ -20,12 +20,12 @@ final readonly class SelectionSetResult
         public ?SymfonyType $wrappedPayloadShape = null,
     ) {}
 
-    public function getFieldsType() : SymfonyType
+    public function getFieldsType(): SymfonyType
     {
         return $this->wrappedFields ?? $this->fields->toArrayShape();
     }
 
-    public function getPayloadShapeType() : SymfonyType
+    public function getPayloadShapeType(): SymfonyType
     {
         return $this->wrappedPayloadShape ?? $this->payloadShape->toArrayShape();
     }

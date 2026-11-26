@@ -20,13 +20,13 @@ final readonly class Currency implements JsonSerializable, Stringable
     }
 
     #[Override]
-    public function jsonSerialize() : string
+    public function jsonSerialize(): string
     {
         return $this->code;
     }
 
     #[Override]
-    public function __toString() : string
+    public function __toString(): string
     {
         return $this->code;
     }

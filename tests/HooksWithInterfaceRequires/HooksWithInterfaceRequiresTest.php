@@ -17,18 +17,17 @@ use Ruudk\GraphQLCodeGenerator\HooksWithInterfaceRequires\Generated\Query\Test\T
 final class HooksWithInterfaceRequiresTest extends GraphQLTestCase
 {
     #[Override]
-    public function getConfig() : Config
+    public function getConfig(): Config
     {
-        return parent::getConfig()
-            ->withHook(FindOwnerHook::class);
+        return parent::getConfig()->withHook(FindOwnerHook::class);
     }
 
-    public function testGenerate() : void
+    public function testGenerate(): void
     {
         $this->assertActualMatchesExpected();
     }
 
-    public function testQuery() : void
+    public function testQuery(): void
     {
         $findOwner = new FindOwnerHook([
             'article-1' => new Owner('article-1', 'Alice'),

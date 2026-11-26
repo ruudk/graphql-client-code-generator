@@ -12,17 +12,14 @@ use Ruudk\GraphQLCodeGenerator\Attribute\Hook;
  * invoked, so `__invoke` takes a loose `object` rather than its generated
  * `requires` data class (which is not committed anywhere).
  */
-#[Hook(
-    name: 'unusedHookForTesting',
-    requires: <<<'GRAPHQL'
-        fragment UnusedHookProbe on Project {
-          id
-        }
-        GRAPHQL
-)]
+#[Hook(name: 'unusedHookForTesting', requires: <<<'GRAPHQL'
+    fragment UnusedHookProbe on Project {
+      id
+    }
+    GRAPHQL)]
 final readonly class UnusedHookForTesting
 {
-    public function __invoke(object $project) : string
+    public function __invoke(object $project): string
     {
         return 'unused';
     }

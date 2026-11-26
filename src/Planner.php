@@ -60,7 +60,6 @@ use JsonException;
 use PhpParser\NodeTraverser;
 use PhpParser\NodeVisitor\NameResolver;
 use PhpParser\ParserFactory;
-use Ruudk\GraphQLCodeGenerator\Attribute\GeneratedGraphQLClient;
 use Ruudk\GraphQLCodeGenerator\Config\Config;
 use Ruudk\GraphQLCodeGenerator\GraphQL\AST\Printer;
 use Ruudk\GraphQLCodeGenerator\GraphQL\DocumentNodeWithSource;
@@ -88,6 +87,7 @@ use Ruudk\GraphQLCodeGenerator\Planner\Source\InlineSource;
 use Ruudk\GraphQLCodeGenerator\Planner\Source\TwigFileSource;
 use Ruudk\GraphQLCodeGenerator\Twig\GraphQLExtension;
 use Ruudk\GraphQLCodeGenerator\Twig\GraphQLNodeFinder;
+use Ruudk\GraphQLCodeGenerator\Type\GeneratedClassName;
 use Ruudk\GraphQLCodeGenerator\Type\HookPropertyType;
 use Ruudk\GraphQLCodeGenerator\Type\ThrowWhenNullPropertyType;
 use Ruudk\GraphQLCodeGenerator\Type\TypeHelper;
@@ -172,7 +172,12 @@ final class Planner
         ];
 
         $this->schemaLoader = new SchemaLoader(new Filesystem());
-        $schema = $this->schemaLoader->load($config->schema, $config->indexByDirective, $config->hooks !== [], $config->throwWhenNullDirective);
+        $schema = $this->schemaLoader->load(
+            $config->schema,
+            $config->indexByDirective,
+            $config->hooks !== [],
+            $config->throwWhenNullDirective,
+        );
 
         // Auto-inject the marker directives (e.g. @requiresActor) into the schema so operations
         // using them validate. They are stripped from the operation before it is sent to the server.
@@ -237,7 +242,7 @@ final class Planner
      * @throws Exception
      * @throws InvalidArgumentException
      */
-    public function plan() : PlannerResult
+    public function plan(): PlannerResult
     {
         $operations = [];
         $usedTypesCollector = new UsedTypesCollector($this->schema);
@@ -247,10 +252,7 @@ final class Planner
         // only uses inline/Twig sources (e.g. `GeneratedGraphQLClient`), so there
         // are no query files to discover.
         if ($this->config->queriesDir !== null) {
-            $finder = Finder::create()->files()
-                ->in($this->config->queriesDir)
-                ->name('*.graphql')
-                ->sortByName();
+            $finder = Finder::create()->files()->in($this->config->queriesDir)->name('*.graphql')->sortByName();
 
             if ($this->schemaLoader->schemaPath !== null) {
                 $finder->notPath(Path::makeRelative($this->schemaLoader->schemaPath, $this->config->queriesDir));
@@ -317,28 +319,23 @@ final class Planner
                             [$definition] = $document->definitions;
                             Assert::isInstanceOf($definition, OperationDefinitionNode::class);
 
-                            Assert::notNull($definition->name, 'Expected operation to have a name');
+                            $name = $definition->name;
+
+                            Assert::notNull($name, 'Expected operation to have a name');
 
                             $usedTypesCollector->analyze($document);
 
                             $operationType = $definition->operation;
-                            $operationName = $definition->name->value;
+                            $operationName = $name->value;
 
                             $operationsToInject[$file->getPathname()][$method][$property] = $this->fullyQualified(
                                 ucfirst($operationType),
-                                sprintf(
-                                    '%s%s',
-                                    $operationName,
-                                    $shortHash,
-                                ),
+                                sprintf('%s%s', $operationName, $shortHash),
                                 $operationName . ucfirst($operationType),
                             );
                             $operations[$file->getPathname()][] = DocumentNodeWithSource::create(
                                 $document,
-                                new InlineSource(
-                                    $className,
-                                    $shortHash,
-                                ),
+                                new InlineSource($className, $shortHash),
                             );
                         }
                     }
@@ -358,20 +355,28 @@ final class Planner
                             $shortHash = substr($hash, 0, 6);
 
                             $document = Parser::parse($fragmentString);
-                            Assert::count($document->definitions, 1, sprintf(
-                                'Expected %s::%s::$%s to declare exactly one fragment.',
-                                $className,
-                                $method,
-                                $property,
-                            ));
+                            Assert::count(
+                                $document->definitions,
+                                1,
+                                sprintf(
+                                    'Expected %s::%s::$%s to declare exactly one fragment.',
+                                    $className,
+                                    $method,
+                                    $property,
+                                ),
+                            );
 
                             [$definition] = $document->definitions;
-                            Assert::isInstanceOf($definition, FragmentDefinitionNode::class, sprintf(
-                                'Expected %s::%s::$%s to declare a fragment definition.',
-                                $className,
-                                $method,
-                                $property,
-                            ));
+                            Assert::isInstanceOf(
+                                $definition,
+                                FragmentDefinitionNode::class,
+                                sprintf(
+                                    'Expected %s::%s::$%s to declare a fragment definition.',
+                                    $className,
+                                    $method,
+                                    $property,
+                                ),
+                            );
 
                             $name = $definition->name->value;
 
@@ -397,12 +402,7 @@ final class Planner
                             );
                             $operations[$file->getPathname()][] = DocumentNodeWithSource::create(
                                 $document,
-                                new InlineFragmentSource(
-                                    $className,
-                                    $method,
-                                    $property,
-                                    $shortHash,
-                                ),
+                                new InlineFragmentSource($className, $method, $property, $shortHash),
                             );
                         }
                     }
@@ -411,7 +411,10 @@ final class Planner
         }
 
         if ($this->config->twigProcessingDirectories !== []) {
-            Assert::true(InstalledVersions::isInstalled('twig/twig'), 'Twig is required to use twigProcessingDirectories');
+            Assert::true(
+                InstalledVersions::isInstalled('twig/twig'),
+                'Twig is required to use twigProcessingDirectories',
+            );
 
             $twig = new Environment(new ArrayLoader([]));
             $twig->addExtension(new GraphQLExtension());
@@ -428,7 +431,11 @@ final class Planner
                     $document = Parser::parse($operation);
 
                     Assert::minCount($document->definitions, 1);
-                    Assert::allIsInstanceOf($document->definitions, FragmentDefinitionNode::class, 'Only fragment definitions are supported in Twig templates');
+                    Assert::allIsInstanceOf(
+                        $document->definitions,
+                        FragmentDefinitionNode::class,
+                        'Only fragment definitions are supported in Twig templates',
+                    );
 
                     $usedTypesCollector->analyze($document);
 
@@ -448,18 +455,24 @@ final class Planner
                 continue;
             }
 
-            if ( ! in_array($typeName, $usedTypes, true)) {
+            if (!in_array($typeName, $usedTypes, true)) {
                 continue;
             }
 
             if ($type instanceof EnumType) {
-                $this->enumTypes[$typeName] ??= new BackedEnumType($this->fullyQualified('Enum', $typeName), SymfonyType::string());
+                $this->enumTypes[$typeName] ??= new BackedEnumType(
+                    GeneratedClassName::ofBackedEnum($this->fullyQualified('Enum', $typeName)),
+                    SymfonyType::string(),
+                );
 
                 continue;
             }
 
             if ($type instanceof InputObjectType) {
-                $this->inputObjectTypes[$typeName] ??= SymfonyType::object($this->fullyQualified('Input', $typeName));
+                $this->inputObjectTypes[$typeName] ??= SymfonyType::object(GeneratedClassName::of($this->fullyQualified(
+                    'Input',
+                    $typeName,
+                )));
 
                 continue;
             }
@@ -497,11 +510,11 @@ final class Planner
             }
 
             if ($type instanceof EnumType) {
-                if ( ! in_array($typeName, $usedTypes, true)) {
+                if (!in_array($typeName, $usedTypes, true)) {
                     continue;
                 }
 
-                if ( ! in_array($typeName, $this->config->ignoreTypes, true)) {
+                if (!in_array($typeName, $this->config->ignoreTypes, true)) {
                     $values = [];
                     foreach ($type->getValues() as $value) {
                         Assert::string($value->value, 'Enum value must be a string');
@@ -523,7 +536,7 @@ final class Planner
             }
 
             if ($type instanceof InputObjectType) {
-                if ( ! in_array($typeName, $usedTypes, true)) {
+                if (!in_array($typeName, $usedTypes, true)) {
                     continue;
                 }
 
@@ -535,7 +548,10 @@ final class Planner
 
                 // Put the ones that are not required at the end
                 $sortedFields = $type->getFields();
-                uasort($sortedFields, fn($left, $right) => (int) $right->isRequired() <=> (int) $left->isRequired());
+                uasort(
+                    $sortedFields,
+                    static fn($left, $right) => (int) $right->isRequired() <=> (int) $left->isRequired(),
+                );
 
                 $fields = [];
                 $required = [];
@@ -545,25 +561,30 @@ final class Planner
                     $payloadShape[$fieldName] = $fieldType;
 
                     if ($fieldType->isIdentifiedBy(TypeIdentifier::STRING)) {
-                        $fieldType = TypeHelper::rewrap($fieldType, fn() => SymfonyType::union(SymfonyType::string(), SymfonyType::object(Stringable::class)));
+                        $fieldType = TypeHelper::rewrap($fieldType, static fn() => SymfonyType::union(
+                            SymfonyType::string(),
+                            SymfonyType::object(Stringable::class),
+                        ));
                     }
 
                     $fields[$fieldName] = $fieldType;
 
-                    if ( ! $type->isOneOf() && $field->isRequired()) {
+                    if (!$type->isOneOf() && $field->isRequired()) {
                         $required[] = $fieldName;
                     }
                 }
 
-                $result->addClass(new InputClassPlan(
-                    $this->config->outputDir . '/Input/' . $typeName . '.php',
-                    $typeName,
-                    $type->description(),
-                    $type->isOneOf(),
-                    $fields,
-                    $required,
-                    SymfonyType::arrayShape($payloadShape),
-                ));
+                $result->addClass(
+                    new InputClassPlan(
+                        $this->config->outputDir . '/Input/' . $typeName . '.php',
+                        $typeName,
+                        $type->description(),
+                        $type->isOneOf(),
+                        $fields,
+                        $required,
+                        SymfonyType::arrayShape($payloadShape),
+                    ),
+                );
 
                 continue;
             }
@@ -596,7 +617,10 @@ final class Planner
             $errors = DocumentValidator::validate($this->schema, $validationDocument, $this->validatorRules);
 
             if ($errors !== []) {
-                throw new Exception(sprintf('Fragment validation failed: %s', implode(PHP_EOL, array_map(fn($error) => $error->getMessage(), $errors))));
+                throw new Exception(sprintf('Fragment validation failed: %s', implode(PHP_EOL, array_map(
+                    static fn($error) => $error->getMessage(),
+                    $errors,
+                ))));
             }
 
             $fragment = $this->optimizer->optimize($fragment, []);
@@ -655,20 +679,22 @@ final class Planner
             $planner->setFragmentPayloadShape($name, $planResult->payloadShape);
 
             // Add the fragment class itself
-            $result->addClass(new DataClassPlan(
-                $fragment->source,
-                $path,
-                $fqcn,
-                $type,
-                $planResult->fields,
-                $planResult->payloadShape,
-                $this->possibleTypesFinder->find($type),
-                $fragment,
-                null,
-                $planResult->inlineFragmentRequiredFields,
-                false,
-                true,
-            ));
+            $result->addClass(
+                new DataClassPlan(
+                    $fragment->source,
+                    $path,
+                    $fqcn,
+                    $type,
+                    $planResult->fields,
+                    $planResult->payloadShape,
+                    $this->possibleTypesFinder->find($type),
+                    $fragment,
+                    null,
+                    $planResult->inlineFragmentRequiredFields,
+                    false,
+                    true,
+                ),
+            );
         }
 
         // Plan the data classes hooks receive (built from each hook's `requires`
@@ -677,12 +703,16 @@ final class Planner
         $hookDataClassNames = [];
 
         foreach ($this->config->hooks as $hook) {
-            Assert::keyNotExists($hookDataClassNames, $hook->requiresClassName, sprintf(
-                'Hooks "%s" and "%s" both generate a data class named "%s".',
-                $hookDataClassNames[$hook->requiresClassName] ?? '?',
-                $hook->name,
+            Assert::keyNotExists(
+                $hookDataClassNames,
                 $hook->requiresClassName,
-            ));
+                sprintf(
+                    'Hooks "%s" and "%s" both generate a data class named "%s".',
+                    $hookDataClassNames[$hook->requiresClassName] ?? '?',
+                    $hook->name,
+                    $hook->requiresClassName,
+                ),
+            );
             $hookDataClassNames[$hook->requiresClassName] = $hook->name;
 
             $type = Type::getNamedType($this->schema->getType($hook->requiresTypeCondition));
@@ -692,11 +722,15 @@ final class Planner
                 $hook->name,
                 $hook->requiresTypeCondition,
             ));
-            Assert::isInstanceOfAny($type, [ObjectType::class, InterfaceType::class], sprintf(
-                'Hook "%s" requires type "%s", which must be an object or interface type.',
-                $hook->name,
-                $hook->requiresTypeCondition,
-            ));
+            Assert::isInstanceOfAny(
+                $type,
+                [ObjectType::class, InterfaceType::class],
+                sprintf(
+                    'Hook "%s" requires type "%s", which must be an object or interface type.',
+                    $hook->name,
+                    $hook->requiresTypeCondition,
+                ),
+            );
 
             $errors = DocumentValidator::validate(
                 $this->schema,
@@ -710,7 +744,7 @@ final class Planner
                 throw new Exception(sprintf(
                     'The `requires` fragment of hook "%s" is invalid: %s',
                     $hook->name,
-                    implode(PHP_EOL, array_map(fn($error) => $error->getMessage(), $errors)),
+                    implode(PHP_EOL, array_map(static fn($error) => $error->getMessage(), $errors)),
                 ));
             }
 
@@ -725,20 +759,22 @@ final class Planner
                 'fragment',
             );
 
-            $result->addClass(new DataClassPlan(
-                $source,
-                $this->config->outputDir . '/Hook/' . $hook->requiresClassName . '.php',
-                $hook->requiresFqcn,
-                $type,
-                $planResult->fields,
-                $planResult->payloadShape,
-                $this->possibleTypesFinder->find($type),
-                $hook->requiresFragment,
-                null,
-                $planResult->inlineFragmentRequiredFields,
-                false,
-                true,
-            ));
+            $result->addClass(
+                new DataClassPlan(
+                    $source,
+                    $this->config->outputDir . '/Hook/' . $hook->requiresClassName . '.php',
+                    $hook->requiresFqcn,
+                    $type,
+                    $planResult->fields,
+                    $planResult->payloadShape,
+                    $this->possibleTypesFinder->find($type),
+                    $hook->requiresFragment,
+                    null,
+                    $planResult->inlineFragmentRequiredFields,
+                    false,
+                    true,
+                ),
+            );
         }
 
         // Plan operations
@@ -760,15 +796,13 @@ final class Planner
         }
 
         if ($this->anyClassUsesBatchedHook($result)) {
-            $result->addClass(new HookLoaderPlan(
-                path: $this->config->outputDir . '/HookLoader.php',
-            ));
+            $result->addClass(new HookLoaderPlan(path: $this->config->outputDir . '/HookLoader.php'));
         }
 
         if ($this->config->dumpOrThrowProperties || $this->anyClassUsesThrowWhenNull($result)) {
-            $result->addClass(new NodeNotFoundExceptionPlan(
-                path: $this->config->outputDir . '/NodeNotFoundException.php',
-            ));
+            $result->addClass(
+                new NodeNotFoundExceptionPlan(path: $this->config->outputDir . '/NodeNotFoundException.php'),
+            );
         }
 
         return $result;
@@ -788,7 +822,7 @@ final class Planner
      * @throws Exception
      * @return array<string, string> fragment name => relative source path
      */
-    private function findUnusedFragments(array $operations, array $ordered) : array
+    private function findUnusedFragments(array $operations, array $ordered): array
     {
         /**
          * @var array<string, list<string>> $fragmentSpreads
@@ -825,7 +859,7 @@ final class Planner
         foreach ($operations as $documents) {
             foreach ($documents as $document) {
                 foreach ($document->definitions as $definition) {
-                    if ( ! $definition instanceof OperationDefinitionNode) {
+                    if (!$definition instanceof OperationDefinitionNode) {
                         continue;
                     }
 
@@ -851,7 +885,7 @@ final class Planner
             $reachable[$name] = true;
 
             foreach ($fragmentSpreads[$name] ?? [] as $dependency) {
-                if ( ! isset($reachable[$dependency])) {
+                if (!isset($reachable[$dependency])) {
                     $queue[] = $dependency;
                 }
             }
@@ -867,10 +901,10 @@ final class Planner
      * True when any generated class resolves a hook registered with
      * `#[Hook(..., batched: true)]` — the trigger for emitting `HookLoader.php`.
      */
-    private function anyClassUsesBatchedHook(PlannerResult $result) : bool
+    private function anyClassUsesBatchedHook(PlannerResult $result): bool
     {
         foreach ($result->classes as $plan) {
-            if ( ! $plan instanceof DataClassPlan) {
+            if (!$plan instanceof DataClassPlan) {
                 continue;
             }
 
@@ -884,10 +918,10 @@ final class Planner
         return false;
     }
 
-    private function anyClassUsesThrowWhenNull(PlannerResult $result) : bool
+    private function anyClassUsesThrowWhenNull(PlannerResult $result): bool
     {
         foreach ($result->classes as $plan) {
-            if ( ! $plan instanceof DataClassPlan) {
+            if (!$plan instanceof DataClassPlan) {
                 continue;
             }
 
@@ -909,7 +943,7 @@ final class Planner
      * graphs are small and may contain back-references via fragments, which makes a fixed
      * point simpler than computing a correct order.
      */
-    private function propagateUsedHooks(PlannerResult $result) : void
+    private function propagateUsedHooks(PlannerResult $result): void
     {
         /**
          * @var array<string, DataClassPlan> $plansByFqcn
@@ -921,7 +955,7 @@ final class Planner
         $childFqcnsByPlan = [];
 
         foreach ($result->classes as $plan) {
-            if ( ! $plan instanceof DataClassPlan) {
+            if (!$plan instanceof DataClassPlan) {
                 continue;
             }
 
@@ -980,13 +1014,13 @@ final class Planner
      *
      * @return iterable<SymfonyType>
      */
-    private function fieldTypesIn(SymfonyType $type) : iterable
+    private function fieldTypesIn(SymfonyType $type): iterable
     {
         while ($type instanceof SymfonyType\NullableType) {
             $type = $type->getWrappedType();
         }
 
-        if ( ! $type instanceof SymfonyType\ArrayShapeType) {
+        if (!$type instanceof SymfonyType\ArrayShapeType) {
             return;
         }
 
@@ -999,7 +1033,7 @@ final class Planner
      * Peel off nullable/collection wrappers; return the FQCN of the nested ObjectType
      * if that's what we find, otherwise null.
      */
-    private function unwrapToObjectType(SymfonyType $type) : ?string
+    private function unwrapToObjectType(SymfonyType $type): ?string
     {
         while (true) {
             if ($type instanceof ThrowWhenNullPropertyType) {
@@ -1032,8 +1066,12 @@ final class Planner
      * @throws JsonException
      * @throws InvariantViolation
      */
-    private function planOperation(DocumentNodeWithSource $document, string $path, PlannerResult $result, SelectionSetPlanner $planner) : void
-    {
+    private function planOperation(
+        DocumentNodeWithSource $document,
+        string $path,
+        PlannerResult $result,
+        SelectionSetPlanner $planner,
+    ): void {
         $document = $this->optimizer->optimize($document, $planner->fragmentDefinitions);
 
         $validationDocument = $document;
@@ -1045,10 +1083,10 @@ final class Planner
         $errors = DocumentValidator::validate($this->schema, $validationDocument, $this->validatorRules);
 
         if ($errors !== []) {
-            throw new Exception(sprintf(
-                'Document validation failed: %s',
-                implode(PHP_EOL, array_map(fn($error) => $error->getMessage(), $errors)),
-            ));
+            throw new Exception(sprintf('Document validation failed: %s', implode(PHP_EOL, array_map(
+                static fn($error) => $error->getMessage(),
+                $errors,
+            ))));
         }
 
         $operation = null;
@@ -1080,24 +1118,24 @@ final class Planner
         $operationNamespaceName = $operationName;
 
         if ($source instanceof InlineSource) {
-            $operationNamespaceName = sprintf(
-                '%s%s',
-                $operationName,
-                $source->hash,
-            );
+            $operationNamespaceName = sprintf('%s%s', $operationName, $source->hash);
         }
 
         $operationType = ucfirst($operation->operation);
 
         $extraParameters = [];
         foreach ($this->config->operationArguments as $operationArgument) {
-            if ($operationArgument->operations !== []
-                && ! in_array($operation->operation, $operationArgument->operations, true)) {
+            if (
+                $operationArgument->operations !== []
+                && !in_array($operation->operation, $operationArgument->operations, true)
+            ) {
                 continue;
             }
 
-            if ($operationArgument->directive !== null
-                && ! $this->directiveProcessor->hasDirective($operation->directives, $operationArgument->directive)) {
+            if (
+                $operationArgument->directive !== null
+                && !$this->directiveProcessor->hasDirective($operation->directives, $operationArgument->directive)
+            ) {
                 continue;
             }
 
@@ -1176,7 +1214,7 @@ final class Planner
             $operationDir . '/' . $operationName . $operationType . '.php',
             $operationName . $operationType,
             $operationNamespaceName,
-            $operation->name->value,
+            $operationName,
             $operationType,
             $operationDefinition,
             $variables,
@@ -1185,10 +1223,10 @@ final class Planner
         );
 
         // Create the error class plan
-        $errorClassPlan = new ErrorClassPlan(
-            $operationDir . '/Error.php',
-            $this->fullyQualified($operationType, $operationNamespaceName),
-        );
+        $errorClassPlan = new ErrorClassPlan($operationDir . '/Error.php', $this->fullyQualified(
+            $operationType,
+            $operationNamespaceName,
+        ));
 
         $exceptionClassPlan = null;
 
@@ -1201,20 +1239,20 @@ final class Planner
         }
 
         // Add the operation plan
-        $result->addOperation(new OperationPlan(
-            $operationNamespaceName,
-            $operationClassPlan,
-            $errorClassPlan,
-            $exceptionClassPlan,
-        ));
+        $result->addOperation(
+            new OperationPlan($operationNamespaceName, $operationClassPlan, $errorClassPlan, $exceptionClassPlan),
+        );
     }
 
-    private function fullyQualified(string $part, string ...$moreParts) : string
+    private function fullyQualified(string $part, string ...$moreParts): string
     {
         if (str_starts_with($part, $this->config->namespace . '\\')) {
             $part = substr($part, strlen($this->config->namespace) + 1);
         }
 
-        return implode('\\', array_filter([$this->config->namespace, $part, ...$moreParts], fn($part) => $part !== ''));
+        return implode('\\', array_filter(
+            [$this->config->namespace, $part, ...$moreParts],
+            static fn($part) => $part !== '',
+        ));
     }
 }

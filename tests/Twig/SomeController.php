@@ -22,13 +22,10 @@ final readonly class SomeController
         public ProjectsQuery $query,
     ) {}
 
-    public function __invoke() : string
+    public function __invoke(): string
     {
-        return $this->twig->render(
-            'list.html.twig',
-            [
-                'data' => $this->query->executeOrThrow()->adminProjectList,
-            ],
-        );
+        return $this->twig->render('list.html.twig', [
+            'data' => $this->query->executeOrThrow()->adminProjectList,
+        ]);
     }
 }

@@ -17,14 +17,14 @@ final class ClassConstantFinder extends NodeVisitorAbstract
     public private(set) array $constants = [];
 
     #[Override]
-    public function enterNode(Node $node) : null
+    public function enterNode(Node $node): null
     {
-        if ( ! $node instanceof Node\Stmt\ClassConst) {
+        if (!$node instanceof Node\Stmt\ClassConst) {
             return null;
         }
 
         foreach ($node->consts as $const) {
-            if ( ! $const->value instanceof String_) {
+            if (!$const->value instanceof String_) {
                 continue;
             }
 

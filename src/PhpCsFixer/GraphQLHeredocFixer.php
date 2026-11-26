@@ -26,44 +26,39 @@ final class GraphQLHeredocFixer implements FixerInterface
     private const string INDENT = '    ';
 
     #[Override]
-    public function getName() : string
+    public function getName(): string
     {
         return 'Ruudk/graphql_heredoc';
     }
 
     #[Override]
-    public function getDefinition() : FixerDefinitionInterface
+    public function getDefinition(): FixerDefinitionInterface
     {
-        return new FixerDefinition(
-            "GraphQL inside <<<'GRAPHQL' nowdoc strings must be formatted with the webonyx/graphql-php printer.",
-            [
-                new CodeSample(
-                    <<<'PHP'
-                        <?php
-                        $query = <<<'GRAPHQL'
-                            query  Foo{ id }
-                            GRAPHQL;
+        return new FixerDefinition("GraphQL inside <<<'GRAPHQL' nowdoc strings must be formatted with the webonyx/graphql-php printer.", [
+            new CodeSample(<<<'PHP'
+                <?php
+                $query = <<<'GRAPHQL'
+                    query  Foo{ id }
+                    GRAPHQL;
 
-                        PHP,
-                ),
-            ],
-        );
+                PHP),
+        ]);
     }
 
     #[Override]
-    public function isCandidate(Tokens $tokens) : bool
+    public function isCandidate(Tokens $tokens): bool
     {
         return $tokens->isTokenKindFound(T_START_HEREDOC);
     }
 
     #[Override]
-    public function isRisky() : bool
+    public function isRisky(): bool
     {
         return false;
     }
 
     #[Override]
-    public function getPriority() : int
+    public function getPriority(): int
     {
         // Run before the built-in heredoc_indentation fixer (priority -26)
         // so the re-indentation it applies afterwards stays a no-op.
@@ -71,22 +66,22 @@ final class GraphQLHeredocFixer implements FixerInterface
     }
 
     #[Override]
-    public function supports(SplFileInfo $file) : bool
+    public function supports(SplFileInfo $file): bool
     {
         return true;
     }
 
     #[Override]
-    public function fix(SplFileInfo $file, Tokens $tokens) : void
+    public function fix(SplFileInfo $file, Tokens $tokens): void
     {
-        if ($tokens->count() === 0 || ! $this->isCandidate($tokens)) {
+        if ($tokens->count() === 0 || !$this->isCandidate($tokens)) {
             return;
         }
 
         for ($index = $tokens->count() - 1; $index >= 0; --$index) {
             $token = $tokens[$index];
 
-            if ( ! $token->isGivenKind(T_START_HEREDOC)) {
+            if (!$token->isGivenKind(T_START_HEREDOC)) {
                 continue;
             }
 
@@ -98,20 +93,20 @@ final class GraphQLHeredocFixer implements FixerInterface
 
             $endIndex = $tokens->getNextTokenOfKind($index, [[T_END_HEREDOC]]);
 
-            if ($endIndex === null || $endIndex === $index + 1) {
+            if ($endIndex === null || $endIndex === ($index + 1)) {
                 continue;
             }
 
             $bodyIndex = $index + 1;
             $bodyToken = $tokens[$bodyIndex];
 
-            if ( ! $bodyToken->isGivenKind(T_ENCAPSED_AND_WHITESPACE) || $bodyIndex + 1 !== $endIndex) {
+            if (!$bodyToken->isGivenKind(T_ENCAPSED_AND_WHITESPACE) || ($bodyIndex + 1) !== $endIndex) {
                 continue;
             }
 
             try {
                 $formatted = rtrim(Printer::doPrint(Parser::parse($bodyToken->getContent())), "\r\n");
-            } catch (JsonException | SyntaxError) {
+            } catch (JsonException|SyntaxError) {
                 continue;
             }
 
@@ -134,7 +129,7 @@ final class GraphQLHeredocFixer implements FixerInterface
         }
     }
 
-    private function detectIndent(Tokens $tokens, int $index) : string
+    private function detectIndent(Tokens $tokens, int $index): string
     {
         while (true) {
             $whitespaceIndex = $tokens->getPrevTokenOfKind($index, [[T_WHITESPACE]]);
