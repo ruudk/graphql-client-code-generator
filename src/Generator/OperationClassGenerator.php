@@ -201,6 +201,7 @@ final class OperationClassGenerator extends AbstractGenerator
                         });
                         yield ');';
                         yield '';
+                        yield '// @mago-expect analysis:mixed-argument(2)';
                         yield 'return new Data(';
                         $trailingComma = $usedHooks !== [] ? ',' : '';
                         yield $generator->indent(function () use ($trailingComma, $usedHooks) {

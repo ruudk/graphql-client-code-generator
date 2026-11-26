@@ -33,6 +33,7 @@ final readonly class PingQuery {
             self::OPERATION_NAME,
         );
 
+        // @mago-expect analysis:mixed-argument(2)
         return new Data(
             $data['data'] ?? [], // @phpstan-ignore argument.type
             $data['errors'] ?? [] // @phpstan-ignore argument.type

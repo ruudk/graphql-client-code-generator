@@ -279,6 +279,7 @@ final readonly class SearchQuery {
             self::OPERATION_NAME,
         );
 
+        // @mago-expect analysis:mixed-argument(2)
         return new Data(
             $data['data'] ?? [], // @phpstan-ignore argument.type
             $data['errors'] ?? [] // @phpstan-ignore argument.type
@@ -1175,6 +1176,7 @@ final readonly class CreateThingMutation {
             actor: $actor,
         );
 
+        // @mago-expect analysis:mixed-argument(2)
         return new Data(
             $data['data'] ?? [], // @phpstan-ignore argument.type
             $data['errors'] ?? [] // @phpstan-ignore argument.type
