@@ -132,4 +132,51 @@ final readonly class Config
     {
         return [...$this->twigProcessingDirectories, ...$schema->twigProcessingDirectories];
     }
+
+    /**
+     * The schemas that read this PHP file for inline attributes.
+     *
+     * @return list<SchemaConfig>
+     */
+    public function schemasReadingInlineFile(string $path): array
+    {
+        return array_values(array_filter($this->schemas, fn(SchemaConfig $schema) => self::contains(
+            $this->inlineProcessingDirectoriesOf($schema),
+            $path,
+        )));
+    }
+
+    /**
+     * Every inline and Twig directory that this config or one of its schemas reads.
+     *
+     * @return list<string>
+     */
+    public function processingDirectories(): array
+    {
+        $directories = [...$this->inlineProcessingDirectories, ...$this->twigProcessingDirectories];
+
+        foreach ($this->schemas as $schema) {
+            $directories = [
+                ...$directories,
+                ...$schema->inlineProcessingDirectories,
+                ...$schema->twigProcessingDirectories,
+            ];
+        }
+
+        return $directories;
+    }
+
+    /**
+     * @param list<string> $directories
+     */
+    private static function contains(array $directories, string $path): bool
+    {
+        foreach ($directories as $directory) {
+            if (Path::isBasePath(Path::canonicalize($directory), Path::canonicalize($path))) {
+                return true;
+            }
+        }
+
+        return false;
+    }
 }

@@ -607,6 +607,89 @@ Running `vendor/bin/php-cs-fixer fix` now formats every `<<<'GRAPHQL'` block aut
 
 **Mago:** enable the [Mago extension](#-mago-extension); its `graphql/heredoc-format` lint rule reports unformatted nowdocs and `vendor/bin/mago lint --fix` formats them. The GraphQL is indented to the closing `GRAPHQL` marker, so it works together with Mago's formatter.
 
+### 🗂️ Several Schemas in One Codebase
+
+Talking to more than one GraphQL API? Add a `SchemaConfig` per schema to one `Config`. Each schema has its own SDL, client, namespace and output directory, and once there is more than one, each needs a `name`.
+
+Directories on the `Config` are read by every schema. Directories on a `SchemaConfig` are read by that schema only:
+
+```php
+return Config::create(projectDir: __DIR__)
+    // Read by every schema
+    ->withInlineProcessingDirectory(__DIR__ . '/src/Checkout')
+    ->withSchema(
+        SchemaConfig::create(
+            schema: __DIR__ . '/billing.graphql',
+            outputDir: __DIR__ . '/src/Generated/Billing',
+            namespace: 'App\\Generated\\Billing',
+            client: BillingClient::class,
+            name: 'billing',
+        )
+            // Read by the billing schema only
+            ->withInlineProcessingDirectory(__DIR__ . '/src/Billing'),
+    )
+    ->withSchema(
+        SchemaConfig::create(
+            schema: __DIR__ . '/shipping.graphql',
+            outputDir: __DIR__ . '/src/Generated/Shipping',
+            namespace: 'App\\Generated\\Shipping',
+            client: ShippingClient::class,
+            name: 'shipping',
+        )->withInlineProcessingDirectory(__DIR__ . '/src/Shipping'),
+    );
+```
+
+Whether an attribute has to name its schema depends on the file it is in:
+
+- **One schema reads the file** (`src/Billing`): leave the schema out, like with a single schema.
+- **More than one schema reads the file** (`src/Checkout`): name the schema with `schema:`. Leaving it out, or naming a schema that does not read the file, fails the run with the location of the attribute.
+
+<!-- source: tests/Schemas/Checkout/CheckoutController.php -->
+```php
+<?php
+
+declare(strict_types=1);
+
+namespace Ruudk\GraphQLCodeGenerator\Schemas\Checkout;
+
+use Ruudk\GraphQLCodeGenerator\Attribute\GeneratedGraphQLClient;
+use Ruudk\GraphQLCodeGenerator\Schemas\Generated\Billing\Query\CheckoutViewer0d4a41\CheckoutViewerQuery;
+use Ruudk\GraphQLCodeGenerator\Schemas\Generated\Shipping\Query\CheckoutParcelsaa940f\CheckoutParcelsQuery;
+
+/**
+ * Both schemas read this directory, so every attribute names its schema.
+ */
+final readonly class CheckoutController
+{
+    private const string BILLING = 'billing';
+    private const string VIEWER = <<<'GRAPHQL'
+        query CheckoutViewer {
+          viewer {
+            login
+          }
+        }
+        GRAPHQL;
+    private const string PARCELS = <<<'GRAPHQL'
+        query CheckoutParcels {
+          parcels {
+            trackingCode
+          }
+        }
+        GRAPHQL;
+
+    public function __construct(
+        #[GeneratedGraphQLClient(self::VIEWER, self::BILLING)]
+        public CheckoutViewerQuery $viewer,
+        #[GeneratedGraphQLClient(self::PARCELS, schema: 'shipping')]
+        public CheckoutParcelsQuery $parcels,
+    ) {}
+}
+```
+
+The `schema` argument is a string or a string constant of the same class, because the generator reads it without loading your code. One class can hold clients of different schemas, and moving a client to another schema removes the import of its old class.
+
+All schemas that read the same directories have to be in the same `Config`. Passing several config files that read the same directory fails, because only the schemas of one config know about each other.
+
 ### 🎭 Twig Template Support
 
 Keep your GraphQL fragments next to where they're used in your templates:

@@ -1,0 +1,13 @@
+type Query {
+  viewer: Viewer!
+  bills: [Invoice!]!
+}
+
+type Viewer {
+  login: String!
+}
+
+type Invoice {
+  id: ID!
+  total: Int!
+}

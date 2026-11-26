@@ -80,6 +80,7 @@ use Ruudk\GraphQLCodeGenerator\Planner\Plan\InputClassPlan;
 use Ruudk\GraphQLCodeGenerator\Planner\Plan\NodeNotFoundExceptionPlan;
 use Ruudk\GraphQLCodeGenerator\Planner\Plan\OperationClassPlan;
 use Ruudk\GraphQLCodeGenerator\Planner\PlannerResult;
+use Ruudk\GraphQLCodeGenerator\Planner\SchemaSelector;
 use Ruudk\GraphQLCodeGenerator\Planner\SelectionSetPlanner;
 use Ruudk\GraphQLCodeGenerator\Planner\Source\GraphQLFileSource;
 use Ruudk\GraphQLCodeGenerator\Planner\Source\HookInputSource;
@@ -297,14 +298,37 @@ final class Planner
                 ->name('*.php')
                 ->contains('/GeneratedGraphQL(?:Client|Fragment)/');
 
+            $seen = [];
+
             foreach ($finder as $file) {
+                // A file in nested directories, like `src` and `src/Billing`, is found once per directory.
+                $path = Path::canonicalize($file->getPathname());
+
+                if (isset($seen[$path])) {
+                    continue;
+                }
+
+                $seen[$path] = true;
+
+                $schemaSelector = new SchemaSelector(
+                    $this->schemaConfig->name,
+                    array_map(
+                        static fn(SchemaConfig $schema) => $schema->name,
+                        $this->config->schemasReadingInlineFile($file->getPathname()),
+                    ),
+                );
+
+                // Rewrite every file this schema reads, also when all its attributes belong to
+                // another schema, so the import of a client that moved to that schema is removed.
+                $operationsToInject[$file->getPathname()] ??= [];
+
                 $stmts = $this->phpParser->parse($this->filesystem->readFile($file->getPathname()));
                 Assert::notNull($stmts, 'Failed to parse PHP file');
 
                 $classConstants = new ClassConstantFinder();
                 $stmts = new NodeTraverser(new NameResolver(), $classConstants)->traverse($stmts);
 
-                $operationFinder = new OperationFinder($classConstants->constants);
+                $operationFinder = new OperationFinder($classConstants->constants, $schemaSelector);
                 new NodeTraverser($operationFinder)->traverse($stmts);
 
                 foreach ($operationFinder->operations as $className => $methods) {
@@ -345,7 +369,7 @@ final class Planner
                     }
                 }
 
-                $fragmentFinder = new FragmentFinder($classConstants->constants);
+                $fragmentFinder = new FragmentFinder($classConstants->constants, $schemaSelector);
                 new NodeTraverser($fragmentFinder)->traverse($stmts);
 
                 foreach ($fragmentFinder->fragments as $className => $methods) {

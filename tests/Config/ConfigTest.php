@@ -28,6 +28,45 @@ final class ConfigTest extends TestCase
         );
     }
 
+    public function testFindsTheSchemasThatReadAFile(): void
+    {
+        $billing = $this->createSchemaConfig('billing')->withInlineProcessingDirectory('/app/src/Billing');
+        $shipping = $this->createSchemaConfig('shipping')->withInlineProcessingDirectory('/app/src/Shipping/');
+
+        $config = Config::create('/app')
+            ->withInlineProcessingDirectory('/app/src/Checkout')
+            ->withSchema($billing)
+            ->withSchema($shipping);
+
+        self::assertSame(
+            [$billing, $shipping],
+            $config->schemasReadingInlineFile('/app/src/Checkout/CheckoutController.php'),
+        );
+        self::assertSame(
+            [$billing],
+            $config->schemasReadingInlineFile('/app/src/Billing/Invoice/InvoiceController.php'),
+        );
+        self::assertSame(
+            [$shipping],
+            $config->schemasReadingInlineFile('/app/src/Shipping/../Shipping/ParcelController.php'),
+        );
+        self::assertSame([], $config->schemasReadingInlineFile('/app/src/BillingExtra/Controller.php'));
+    }
+
+    public function testListsEveryDirectoryItReads(): void
+    {
+        $config = Config::create('/app')
+            ->withInlineProcessingDirectory('/app/src/Checkout')
+            ->withTwigProcessingDirectory('/app/templates')
+            ->withSchema($this->createSchemaConfig('billing')->withInlineProcessingDirectory('/app/src/Billing'))
+            ->withSchema($this->createSchemaConfig('shipping')->withTwigProcessingDirectory('/app/templates/shipping'));
+
+        self::assertSame(
+            ['/app/src/Checkout', '/app/templates', '/app/src/Billing', '/app/templates/shipping'],
+            $config->processingDirectories(),
+        );
+    }
+
     public function testOneSchemaDoesNotNeedAName(): void
     {
         $schemaConfig = $this->createSchemaConfig(null);
