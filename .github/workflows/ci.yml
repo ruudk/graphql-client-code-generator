@@ -15,6 +15,7 @@ jobs:
       matrix:
         php-version:
             - '8.5'
+            - '8.6'
         dependency-versions:
             - 'lowest'
             - 'highest'
