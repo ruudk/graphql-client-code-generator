@@ -13,9 +13,13 @@ final readonly class InvoicesQuery {
     public const string OPERATION_DEFINITION = <<<'GRAPHQL'
         query Invoices {
           bills {
-            id
-            total
+            ...InvoiceRow
           }
+        }
+        
+        fragment InvoiceRow on Invoice {
+          id
+          total
         }
         
         GRAPHQL;

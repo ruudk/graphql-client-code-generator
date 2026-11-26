@@ -147,6 +147,19 @@ final readonly class Config
     }
 
     /**
+     * The schemas that read this Twig template.
+     *
+     * @return list<SchemaConfig>
+     */
+    public function schemasReadingTwigFile(string $path): array
+    {
+        return array_values(array_filter($this->schemas, fn(SchemaConfig $schema) => self::contains(
+            $this->twigProcessingDirectoriesOf($schema),
+            $path,
+        )));
+    }
+
+    /**
      * Every inline and Twig directory that this config or one of its schemas reads.
      *
      * @return list<string>

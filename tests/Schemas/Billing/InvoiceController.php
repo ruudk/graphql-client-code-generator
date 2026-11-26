@@ -15,8 +15,7 @@ final readonly class InvoiceController
     private const string OPERATION = <<<'GRAPHQL'
         query Invoices {
           bills {
-            id
-            total
+            ...InvoiceRow
           }
         }
         GRAPHQL;

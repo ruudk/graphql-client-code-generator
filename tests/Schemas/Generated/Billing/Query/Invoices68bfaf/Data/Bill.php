@@ -4,16 +4,14 @@ declare(strict_types=1);
 
 namespace Ruudk\GraphQLCodeGenerator\Schemas\Generated\Billing\Query\Invoices68bfaf\Data;
 
+use Ruudk\GraphQLCodeGenerator\Schemas\Generated\Billing\Fragment\InvoiceRow;
+
 // This file was automatically generated and should not be edited.
 
 final class Bill
 {
-    public string $id {
-        get => $this->id ??= $this->data['id'];
-    }
-
-    public int $total {
-        get => $this->total ??= $this->data['total'];
+    public InvoiceRow $invoiceRow {
+        get => $this->invoiceRow ??= new InvoiceRow($this->data);
     }
 
     /**

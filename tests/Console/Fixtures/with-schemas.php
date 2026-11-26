@@ -19,6 +19,7 @@ $billing = SchemaConfig::create(
 
 return Config::create(projectDir: dirname(__DIR__, 3))
     ->withInlineProcessingDirectory($schemas . '/Checkout')
+    ->withTwigProcessingDirectory($schemas . '/templates')
     ->withSchema($billing->withInlineProcessingDirectory($schemas . '/Billing'))
     ->withSchema(SchemaConfig::create(
         schema: $schemas . '/Shipping.graphql',

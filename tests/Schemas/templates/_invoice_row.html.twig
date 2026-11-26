@@ -1,0 +1,9 @@
+{# Both schemas read this directory, so the block names its schema. #}
+{% graphql schema 'billing' %}
+fragment InvoiceRow on Invoice {
+  id
+  total
+}
+{% endgraphql %}
+
+<li>#{{ invoice.id }}: {{ invoice.total }}</li>

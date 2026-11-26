@@ -27,20 +27,28 @@ final class SchemasTest extends GraphQLTestCase
     public function getProjectConfig(): Config
     {
         return Config::create(dirname(__DIR__, 2))
-            ->withSchema(SchemaConfig::create(
-                schema: __DIR__ . '/Billing.graphql',
-                outputDir: __DIR__ . '/Generated/Billing',
-                namespace: __NAMESPACE__ . '\\Generated\\Billing',
-                client: TestClient::class,
-                name: 'billing',
-            )->withInlineProcessingDirectory(__DIR__ . '/Checkout', __DIR__ . '/Billing'))
-            ->withSchema(SchemaConfig::create(
-                schema: __DIR__ . '/Shipping.graphql',
-                outputDir: __DIR__ . '/Generated/Shipping',
-                namespace: __NAMESPACE__ . '\\Generated\\Shipping',
-                client: TestClient::class,
-                name: 'shipping',
-            )->withInlineProcessingDirectory(__DIR__ . '/Checkout'));
+            ->withSchema(
+                SchemaConfig::create(
+                    schema: __DIR__ . '/Billing.graphql',
+                    outputDir: __DIR__ . '/Generated/Billing',
+                    namespace: __NAMESPACE__ . '\\Generated\\Billing',
+                    client: TestClient::class,
+                    name: 'billing',
+                )
+                    ->withInlineProcessingDirectory(__DIR__ . '/Checkout', __DIR__ . '/Billing')
+                    ->withTwigProcessingDirectory(__DIR__ . '/templates'),
+            )
+            ->withSchema(
+                SchemaConfig::create(
+                    schema: __DIR__ . '/Shipping.graphql',
+                    outputDir: __DIR__ . '/Generated/Shipping',
+                    namespace: __NAMESPACE__ . '\\Generated\\Shipping',
+                    client: TestClient::class,
+                    name: 'shipping',
+                )
+                    ->withInlineProcessingDirectory(__DIR__ . '/Checkout')
+                    ->withTwigProcessingDirectory(__DIR__ . '/templates'),
+            );
     }
 
     public function testGenerate(): void
@@ -98,7 +106,7 @@ final class SchemasTest extends GraphQLTestCase
         ], new GraphQLRequestMatcher(operationName: 'ShipmentParcels'))));
 
         self::assertSame([2500, '3SABCD'], [
-            $invoices->invoices->execute()->bills[0]->total,
+            $invoices->invoices->execute()->bills[0]->invoiceRow->total,
             $shipment->parcels->execute()->parcels[0]->trackingCode,
         ]);
     }

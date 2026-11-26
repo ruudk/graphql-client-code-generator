@@ -688,6 +688,21 @@ final readonly class CheckoutController
 
 The `schema` argument is a string or a string constant of the same class, because the generator reads it without loading your code. One class can hold clients of different schemas, and moving a client to another schema removes the import of its old class.
 
+Twig templates follow the same rule. Directories added with `withTwigProcessingDirectory()` on the `Config` are read by every schema, and a `{% graphql %}` block in them names its schema:
+
+<!-- source: tests/Schemas/templates/_invoice_row.html.twig -->
+```twig
+{# Both schemas read this directory, so the block names its schema. #}
+{% graphql schema 'billing' %}
+fragment InvoiceRow on Invoice {
+  id
+  total
+}
+{% endgraphql %}
+
+<li>#{{ invoice.id }}: {{ invoice.total }}</li>
+```
+
 All schemas that read the same directories have to be in the same `Config`. Passing several config files that read the same directory fails, because only the schemas of one config know about each other.
 
 ### 🎭 Twig Template Support
@@ -718,6 +733,8 @@ fragment AdminProjectRow on Project {
 ```
 
 The generator extracts fragments from Twig files and creates type-safe classes. Your templates and GraphQL stay together!
+
+Add the directories that hold your templates with `withTwigProcessingDirectory()`. When more than one schema reads a template, name the schema of each block with `{% graphql schema 'billing' %}`, as described in *Several Schemas in One Codebase* above.
 
 #### 🧹 Auto-Format GraphQL in Twig
 

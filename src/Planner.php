@@ -454,11 +454,38 @@ final class Planner
                 ->files()
                 ->in($twigProcessingDirectories)
                 ->name('*.twig')
-                ->contains('{% graphql %}');
+                ->contains('/\{%-?\s*graphql\b/');
+
+            $seen = [];
 
             foreach ($finder as $file) {
-                foreach ($nodeFinder->find($file->getContents()) as $operation) {
-                    $document = Parser::parse($operation);
+                // A file in nested directories, like `templates` and `templates/billing`, is found once per directory.
+                $path = Path::canonicalize($file->getPathname());
+
+                if (isset($seen[$path])) {
+                    continue;
+                }
+
+                $seen[$path] = true;
+
+                $relativePath = Path::makeRelative($file->getPathname(), $this->config->projectDir);
+                $schemaSelector = new SchemaSelector(
+                    $this->schemaConfig->name,
+                    array_map(
+                        static fn(SchemaConfig $schema) => $schema->name,
+                        $this->config->schemasReadingTwigFile($file->getPathname()),
+                    ),
+                );
+
+                foreach ($nodeFinder->find($file->getContents(), $relativePath) as $block) {
+                    if (!$schemaSelector->selects(
+                        $block->schema,
+                        sprintf('The graphql block on line %d of %s', $block->line, $relativePath),
+                    )) {
+                        continue;
+                    }
+
+                    $document = Parser::parse($block->graphql);
 
                     Assert::minCount($document->definitions, 1);
                     Assert::allIsInstanceOf(
@@ -471,7 +498,7 @@ final class Planner
 
                     $operations[$file->getPathname()][] = DocumentNodeWithSource::create(
                         $document,
-                        new TwigFileSource(Path::makeRelative($file->getPathname(), $this->config->projectDir)),
+                        new TwigFileSource($relativePath),
                     );
                 }
             }
