@@ -9,6 +9,7 @@ use PhpParser\NodeTraverser;
 use PhpParser\NodeVisitor\NameResolver;
 use PhpParser\ParserFactory;
 use PHPUnit\Framework\TestCase;
+use Ruudk\GraphQLCodeGenerator\Planner\SchemaSelector;
 
 final class FragmentFinderTest extends TestCase
 {
@@ -60,7 +61,36 @@ final class FragmentFinderTest extends TestCase
             PHP);
     }
 
-    private function collect(string $code): FragmentFinder
+    public function testOnlyFindsFragmentsOfItsSchema(): void
+    {
+        $finder = $this->collect(<<<'PHP'
+            <?php
+            namespace App;
+            use Ruudk\GraphQLCodeGenerator\Attribute\GeneratedGraphQLFragment;
+            final class UserMapper {
+                private const string BILLING = 'billing';
+                public function map(
+                    #[GeneratedGraphQLFragment('fragment Payer on User { id }', schema: self::BILLING)]
+                    object $payer,
+                    #[GeneratedGraphQLFragment(fragment: 'fragment Recipient on User { id }', schema: 'shipping')]
+                    object $recipient,
+                ) : void {}
+            }
+            PHP, new SchemaSelector('billing', ['billing', 'shipping']));
+
+        self::assertSame(
+            [
+                'App\UserMapper' => [
+                    'map' => [
+                        'payer' => 'fragment Payer on User { id }',
+                    ],
+                ],
+            ],
+            $finder->fragments,
+        );
+    }
+
+    private function collect(string $code, SchemaSelector $schemaSelector = new SchemaSelector()): FragmentFinder
     {
         $stmts = new ParserFactory()
             ->createForNewestSupportedVersion()
@@ -70,7 +100,7 @@ final class FragmentFinderTest extends TestCase
         $classConstants = new ClassConstantFinder();
         $stmts = new NodeTraverser(new NameResolver(), $classConstants)->traverse($stmts);
 
-        $finder = new FragmentFinder($classConstants->constants);
+        $finder = new FragmentFinder($classConstants->constants, $schemaSelector);
         new NodeTraverser($finder)->traverse($stmts);
 
         return $finder;

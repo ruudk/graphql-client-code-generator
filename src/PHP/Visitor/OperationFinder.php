@@ -10,6 +10,7 @@ use PhpParser\Node;
 use PhpParser\Node\Scalar\String_;
 use PhpParser\NodeVisitorAbstract;
 use Ruudk\GraphQLCodeGenerator\Attribute\GeneratedGraphQLClient;
+use Ruudk\GraphQLCodeGenerator\Planner\SchemaSelector;
 
 final class OperationFinder extends NodeVisitorAbstract
 {
@@ -24,6 +25,7 @@ final class OperationFinder extends NodeVisitorAbstract
      */
     public function __construct(
         private array $constants,
+        private SchemaSelector $schemaSelector = new SchemaSelector(),
     ) {}
 
     /**
@@ -51,7 +53,9 @@ final class OperationFinder extends NodeVisitorAbstract
                 continue;
             }
 
-            if (!is_string($param->var->name)) {
+            $paramName = $param->var->name;
+
+            if (!is_string($paramName)) {
                 continue;
             }
 
@@ -61,13 +65,18 @@ final class OperationFinder extends NodeVisitorAbstract
                         continue;
                     }
 
-                    if (count($attr->args) !== 1) {
+                    $value = AttributeArguments::find($attr, 'operation', 0);
+
+                    if ($value === null) {
                         continue;
                     }
 
-                    $arg = $attr->args[0];
+                    $location = sprintf('%s::%s::$%s', $this->className, $node->name->toString(), $paramName);
+                    $schema = AttributeArguments::string($attr, 'schema', 1, $this->constants, $location);
 
-                    $value = $arg->value;
+                    if (!$this->schemaSelector->selects($schema, $location)) {
+                        continue;
+                    }
 
                     if ($value instanceof Node\Expr\ClassConstFetch && $value->name instanceof Node\Identifier) {
                         $value = $this->constants[$value->name->toString()];
@@ -77,7 +86,7 @@ final class OperationFinder extends NodeVisitorAbstract
                         throw new InvalidArgumentException('Invalid argument type');
                     }
 
-                    $this->operations[$this->className][$node->name->toString()][$param->var->name] = $value->value;
+                    $this->operations[$this->className][$node->name->toString()][$paramName] = $value->value;
 
                     continue 3;
                 }

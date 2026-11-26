@@ -7,7 +7,7 @@ namespace Ruudk\GraphQLCodeGenerator\Generator;
 use JsonException;
 use Ruudk\CodeGenerator\CodeGenerator;
 use Ruudk\GraphQLCodeGenerator\Attribute\Generated;
-use Ruudk\GraphQLCodeGenerator\Config\Config;
+use Ruudk\GraphQLCodeGenerator\Config\SchemaConfig;
 use Ruudk\GraphQLCodeGenerator\Planner\Plan\OperationClassPlan;
 use Ruudk\GraphQLCodeGenerator\Planner\Source\GraphQLFileSource;
 use Ruudk\GraphQLCodeGenerator\Type\TypeDumper;
@@ -18,7 +18,7 @@ use Symfony\Component\TypeInfo\TypeIdentifier;
 final class OperationClassGenerator extends AbstractGenerator
 {
     public function __construct(
-        Config $config,
+        SchemaConfig $config,
         private readonly ClassHookUsageRegistry $hookUsageRegistry,
     ) {
         parent::__construct($config);

@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Ruudk\GraphQLCodeGenerator\IndexByDirective;
 
 use Override;
-use Ruudk\GraphQLCodeGenerator\Config\Config;
+use Ruudk\GraphQLCodeGenerator\Config\SchemaConfig;
 use Ruudk\GraphQLCodeGenerator\GraphQLRequestMatcher;
 use Ruudk\GraphQLCodeGenerator\GraphQLTestCase;
 use Ruudk\GraphQLCodeGenerator\IndexByDirective\Generated\Query\Test\TestQuery;
@@ -15,7 +15,7 @@ use Symfony\Component\TypeInfo\Type;
 final class IndexByDirectiveTest extends GraphQLTestCase
 {
     #[Override]
-    public function getConfig(): Config
+    public function getConfig(): SchemaConfig
     {
         return parent::getConfig()
             ->enableIndexByDirective()

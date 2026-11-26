@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Ruudk\GraphQLCodeGenerator\HooksBatched;
 
 use Override;
-use Ruudk\GraphQLCodeGenerator\Config\Config;
+use Ruudk\GraphQLCodeGenerator\Config\SchemaConfig;
 use Ruudk\GraphQLCodeGenerator\GraphQLTestCase;
 use Ruudk\GraphQLCodeGenerator\HooksBatched\Generated\Query\Test\TestQuery;
 
@@ -30,7 +30,7 @@ use Ruudk\GraphQLCodeGenerator\HooksBatched\Generated\Query\Test\TestQuery;
 final class HooksBatchedTest extends GraphQLTestCase
 {
     #[Override]
-    public function getConfig(): Config
+    public function getConfig(): SchemaConfig
     {
         return parent::getConfig()
             ->withHook(FindUserByIdHook::class)

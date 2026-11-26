@@ -5,13 +5,13 @@ declare(strict_types=1);
 namespace Ruudk\GraphQLCodeGenerator\ThrowWhenNullDirective;
 
 use Override;
-use Ruudk\GraphQLCodeGenerator\Config\Config;
+use Ruudk\GraphQLCodeGenerator\Config\SchemaConfig;
 use Ruudk\GraphQLCodeGenerator\GraphQLTestCase;
 
 final class ThrowWhenNullDirectiveTest extends GraphQLTestCase
 {
     #[Override]
-    public function getConfig(): Config
+    public function getConfig(): SchemaConfig
     {
         return parent::getConfig()->enableThrowWhenNullDirective();
     }

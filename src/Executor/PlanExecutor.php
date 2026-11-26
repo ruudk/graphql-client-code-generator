@@ -15,7 +15,7 @@ use PhpParser\Parser;
 use PhpParser\ParserFactory;
 use PhpParser\PrettyPrinter\Standard;
 use RuntimeException;
-use Ruudk\GraphQLCodeGenerator\Config\Config;
+use Ruudk\GraphQLCodeGenerator\Config\SchemaConfig;
 use Ruudk\GraphQLCodeGenerator\Generator\DataClassGenerator;
 use Ruudk\GraphQLCodeGenerator\Generator\EnumTypeGenerator;
 use Ruudk\GraphQLCodeGenerator\Generator\ErrorClassGenerator;
@@ -62,7 +62,7 @@ final class PlanExecutor
     private Filesystem $filesystem;
 
     public function __construct(
-        private Config $config,
+        private SchemaConfig $config,
     ) {
         $this->hookUsageRegistry = new ClassHookUsageRegistry($config->hooks);
 

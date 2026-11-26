@@ -7,7 +7,7 @@ namespace Ruudk\GraphQLCodeGenerator\Generator;
 use JsonSerializable;
 use Override;
 use Ruudk\CodeGenerator\CodeGenerator;
-use Ruudk\GraphQLCodeGenerator\Config\Config;
+use Ruudk\GraphQLCodeGenerator\Config\SchemaConfig;
 use Ruudk\GraphQLCodeGenerator\Planner\Plan\InputClassPlan;
 use Ruudk\GraphQLCodeGenerator\Type\TypeDumper;
 use Symfony\Component\TypeInfo\Type as SymfonyType;
@@ -15,7 +15,7 @@ use Symfony\Component\TypeInfo\TypeIdentifier;
 
 final class InputTypeGenerator extends AbstractGenerator
 {
-    public function __construct(Config $config)
+    public function __construct(SchemaConfig $config)
     {
         parent::__construct($config);
     }

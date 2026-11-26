@@ -7,7 +7,7 @@ namespace Ruudk\GraphQLCodeGenerator\Money;
 use Generator;
 use Override;
 use Ruudk\CodeGenerator\CodeGenerator;
-use Ruudk\GraphQLCodeGenerator\Config\Config;
+use Ruudk\GraphQLCodeGenerator\Config\SchemaConfig;
 use Ruudk\GraphQLCodeGenerator\GraphQLRequestMatcher;
 use Ruudk\GraphQLCodeGenerator\GraphQLTestCase;
 use Ruudk\GraphQLCodeGenerator\Money\Generated\Query\ConvertMoney\ConvertMoneyQuery;
@@ -22,7 +22,7 @@ use Symfony\Component\TypeInfo\Type\ObjectType;
 final class MoneyTest extends GraphQLTestCase
 {
     #[Override]
-    public function getConfig(): Config
+    public function getConfig(): SchemaConfig
     {
         return parent::getConfig()
             ->withScalar('Currency', Type::string(), Type::object(Currency::class))

@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Ruudk\GraphQLCodeGenerator\HooksWithSymfonyAutowire;
 
 use Override;
-use Ruudk\GraphQLCodeGenerator\Config\Config;
+use Ruudk\GraphQLCodeGenerator\Config\SchemaConfig;
 use Ruudk\GraphQLCodeGenerator\GraphQLTestCase;
 use Ruudk\GraphQLCodeGenerator\HooksWithSymfonyAutowire\Generated\Query\Test\TestQuery;
 use Ruudk\GraphQLCodeGenerator\TestClient;
@@ -15,7 +15,7 @@ use Symfony\Component\DependencyInjection\Reference;
 final class HooksWithSymfonyAutowireTest extends GraphQLTestCase
 {
     #[Override]
-    public function getConfig(): Config
+    public function getConfig(): SchemaConfig
     {
         return parent::getConfig()->withHook(FindUserByIdHook::class)->enableSymfonyAutowireHooks();
     }

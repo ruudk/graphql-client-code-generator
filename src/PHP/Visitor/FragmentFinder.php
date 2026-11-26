@@ -10,6 +10,7 @@ use PhpParser\Node;
 use PhpParser\Node\Scalar\String_;
 use PhpParser\NodeVisitorAbstract;
 use Ruudk\GraphQLCodeGenerator\Attribute\GeneratedGraphQLFragment;
+use Ruudk\GraphQLCodeGenerator\Planner\SchemaSelector;
 
 final class FragmentFinder extends NodeVisitorAbstract
 {
@@ -24,6 +25,7 @@ final class FragmentFinder extends NodeVisitorAbstract
      */
     public function __construct(
         private array $constants,
+        private SchemaSelector $schemaSelector = new SchemaSelector(),
     ) {}
 
     /**
@@ -51,7 +53,9 @@ final class FragmentFinder extends NodeVisitorAbstract
                 continue;
             }
 
-            if (!is_string($param->var->name)) {
+            $paramName = $param->var->name;
+
+            if (!is_string($paramName)) {
                 continue;
             }
 
@@ -65,17 +69,22 @@ final class FragmentFinder extends NodeVisitorAbstract
                         throw new InvalidArgumentException(sprintf(
                             'The #[GeneratedGraphQLFragment] attribute cannot be used on constructor parameters. Found on "%s::__construct::$%s". Use it on a non-constructor method parameter instead.',
                             $this->className,
-                            $param->var->name,
+                            $paramName,
                         ));
                     }
 
-                    if (count($attr->args) !== 1) {
+                    $value = AttributeArguments::find($attr, 'fragment', 0);
+
+                    if ($value === null) {
                         continue;
                     }
 
-                    $arg = $attr->args[0];
+                    $location = sprintf('%s::%s::$%s', $this->className, $node->name->toString(), $paramName);
+                    $schema = AttributeArguments::string($attr, 'schema', 1, $this->constants, $location);
 
-                    $value = $arg->value;
+                    if (!$this->schemaSelector->selects($schema, $location)) {
+                        continue;
+                    }
 
                     if ($value instanceof Node\Expr\ClassConstFetch && $value->name instanceof Node\Identifier) {
                         $value = $this->constants[$value->name->toString()];
@@ -85,7 +94,7 @@ final class FragmentFinder extends NodeVisitorAbstract
                         throw new InvalidArgumentException('Invalid argument type');
                     }
 
-                    $this->fragments[$this->className][$node->name->toString()][$param->var->name] = $value->value;
+                    $this->fragments[$this->className][$node->name->toString()][$paramName] = $value->value;
 
                     continue 3;
                 }

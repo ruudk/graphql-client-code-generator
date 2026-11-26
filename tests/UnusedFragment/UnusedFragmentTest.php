@@ -6,6 +6,7 @@ namespace Ruudk\GraphQLCodeGenerator\UnusedFragment;
 
 use PHPUnit\Framework\TestCase;
 use Ruudk\GraphQLCodeGenerator\Config\Config;
+use Ruudk\GraphQLCodeGenerator\Config\SchemaConfig;
 use Ruudk\GraphQLCodeGenerator\Planner;
 use Ruudk\GraphQLCodeGenerator\TestClient;
 
@@ -21,9 +22,8 @@ final class UnusedFragmentTest extends TestCase
     {
         $projectDir = dirname(__DIR__, 2);
 
-        $config = Config::create(
+        $config = SchemaConfig::create(
             schema: __DIR__ . '/Schema.graphql',
-            projectDir: $projectDir,
             outputDir: __DIR__ . '/Generated',
             namespace: 'Ruudk\\GraphQLCodeGenerator\\UnusedFragment\\Generated',
             client: TestClient::class,
@@ -32,7 +32,7 @@ final class UnusedFragmentTest extends TestCase
             ->withInlineProcessingDirectory(__DIR__)
             ->withTwigProcessingDirectory(__DIR__ . '/templates');
 
-        return new Planner($config);
+        return new Planner(Config::create($projectDir)->withSchema($config), $config);
     }
 
     public function testUnusedFragmentsAreReported(): void

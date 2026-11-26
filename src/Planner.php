@@ -61,6 +61,7 @@ use PhpParser\NodeTraverser;
 use PhpParser\NodeVisitor\NameResolver;
 use PhpParser\ParserFactory;
 use Ruudk\GraphQLCodeGenerator\Config\Config;
+use Ruudk\GraphQLCodeGenerator\Config\SchemaConfig;
 use Ruudk\GraphQLCodeGenerator\GraphQL\AST\Printer;
 use Ruudk\GraphQLCodeGenerator\GraphQL\DocumentNodeWithSource;
 use Ruudk\GraphQLCodeGenerator\GraphQL\FragmentDefinitionNodeWithSource;
@@ -79,6 +80,7 @@ use Ruudk\GraphQLCodeGenerator\Planner\Plan\InputClassPlan;
 use Ruudk\GraphQLCodeGenerator\Planner\Plan\NodeNotFoundExceptionPlan;
 use Ruudk\GraphQLCodeGenerator\Planner\Plan\OperationClassPlan;
 use Ruudk\GraphQLCodeGenerator\Planner\PlannerResult;
+use Ruudk\GraphQLCodeGenerator\Planner\SchemaSelector;
 use Ruudk\GraphQLCodeGenerator\Planner\SelectionSetPlanner;
 use Ruudk\GraphQLCodeGenerator\Planner\Source\GraphQLFileSource;
 use Ruudk\GraphQLCodeGenerator\Planner\Source\HookInputSource;
@@ -156,11 +158,12 @@ final class Planner
      */
     public function __construct(
         private readonly Config $config,
+        private readonly SchemaConfig $schemaConfig,
         private readonly EnglishInflector $inflector = new EnglishInflector(),
     ) {
-        $this->inputObjectTypes = $config->inputObjectTypes;
-        $this->objectTypes = $config->objectTypes;
-        $this->enumTypes = $config->enumTypes;
+        $this->inputObjectTypes = $schemaConfig->inputObjectTypes;
+        $this->objectTypes = $schemaConfig->objectTypes;
+        $this->enumTypes = $schemaConfig->enumTypes;
 
         $this->scalars = [
             'ID' => [SymfonyType::string(), SymfonyType::string()],
@@ -168,21 +171,21 @@ final class Planner
             'Int' => [SymfonyType::int(), SymfonyType::int()],
             'Float' => [SymfonyType::float(), SymfonyType::float()],
             'Boolean' => [SymfonyType::bool(), SymfonyType::bool()],
-            ...$config->scalars,
+            ...$schemaConfig->scalars,
         ];
 
         $this->schemaLoader = new SchemaLoader(new Filesystem());
         $schema = $this->schemaLoader->load(
-            $config->schema,
-            $config->indexByDirective,
-            $config->hooks !== [],
-            $config->throwWhenNullDirective,
+            $schemaConfig->schema,
+            $schemaConfig->indexByDirective,
+            $schemaConfig->hooks !== [],
+            $schemaConfig->throwWhenNullDirective,
         );
 
         // Auto-inject the marker directives (e.g. @requiresActor) into the schema so operations
         // using them validate. They are stripped from the operation before it is sent to the server.
-        if ($config->operationArguments !== []) {
-            $schema = OperationArgumentDirectiveSchemaExtender::extend($schema, $config->operationArguments);
+        if ($schemaConfig->operationArguments !== []) {
+            $schema = OperationArgumentDirectiveSchemaExtender::extend($schema, $schemaConfig->operationArguments);
         }
 
         $this->schema = $schema;
@@ -227,7 +230,7 @@ final class Planner
             ProvidedRequiredArgumentsOnDirectives::class => new ProvidedRequiredArgumentsOnDirectives(),
         ];
 
-        if ($config->indexByDirective) {
+        if ($schemaConfig->indexByDirective) {
             $this->validatorRules[IndexByValidator::class] = new IndexByValidator($this->scalars);
         }
 
@@ -251,11 +254,11 @@ final class Planner
         // Skip the .graphql finder when no queriesDir is configured — the caller
         // only uses inline/Twig sources (e.g. `GeneratedGraphQLClient`), so there
         // are no query files to discover.
-        if ($this->config->queriesDir !== null) {
-            $finder = Finder::create()->files()->in($this->config->queriesDir)->name('*.graphql')->sortByName();
+        if ($this->schemaConfig->queriesDir !== null) {
+            $finder = Finder::create()->files()->in($this->schemaConfig->queriesDir)->name('*.graphql')->sortByName();
 
             if ($this->schemaLoader->schemaPath !== null) {
-                $finder->notPath(Path::makeRelative($this->schemaLoader->schemaPath, $this->config->queriesDir));
+                $finder->notPath(Path::makeRelative($this->schemaLoader->schemaPath, $this->schemaConfig->queriesDir));
             }
 
             // First pass: parse all queries to find what types are actually used
@@ -286,21 +289,46 @@ final class Planner
 
         $operationsToInject = [];
 
-        if ($this->config->inlineProcessingDirectories !== []) {
+        $inlineProcessingDirectories = $this->config->inlineProcessingDirectoriesOf($this->schemaConfig);
+
+        if ($inlineProcessingDirectories !== []) {
             $finder = Finder::create()
                 ->files()
-                ->in($this->config->inlineProcessingDirectories)
+                ->in($inlineProcessingDirectories)
                 ->name('*.php')
                 ->contains('/GeneratedGraphQL(?:Client|Fragment)/');
 
+            $seen = [];
+
             foreach ($finder as $file) {
+                // A file in nested directories, like `src` and `src/Billing`, is found once per directory.
+                $path = Path::canonicalize($file->getPathname());
+
+                if (isset($seen[$path])) {
+                    continue;
+                }
+
+                $seen[$path] = true;
+
+                $schemaSelector = new SchemaSelector(
+                    $this->schemaConfig->name,
+                    array_map(
+                        static fn(SchemaConfig $schema) => $schema->name,
+                        $this->config->schemasReadingInlineFile($file->getPathname()),
+                    ),
+                );
+
+                // Rewrite every file this schema reads, also when all its attributes belong to
+                // another schema, so the import of a client that moved to that schema is removed.
+                $operationsToInject[$file->getPathname()] ??= [];
+
                 $stmts = $this->phpParser->parse($this->filesystem->readFile($file->getPathname()));
                 Assert::notNull($stmts, 'Failed to parse PHP file');
 
                 $classConstants = new ClassConstantFinder();
                 $stmts = new NodeTraverser(new NameResolver(), $classConstants)->traverse($stmts);
 
-                $operationFinder = new OperationFinder($classConstants->constants);
+                $operationFinder = new OperationFinder($classConstants->constants, $schemaSelector);
                 new NodeTraverser($operationFinder)->traverse($stmts);
 
                 foreach ($operationFinder->operations as $className => $methods) {
@@ -341,7 +369,7 @@ final class Planner
                     }
                 }
 
-                $fragmentFinder = new FragmentFinder($classConstants->constants);
+                $fragmentFinder = new FragmentFinder($classConstants->constants, $schemaSelector);
                 new NodeTraverser($fragmentFinder)->traverse($stmts);
 
                 foreach ($fragmentFinder->fragments as $className => $methods) {
@@ -410,7 +438,9 @@ final class Planner
             }
         }
 
-        if ($this->config->twigProcessingDirectories !== []) {
+        $twigProcessingDirectories = $this->config->twigProcessingDirectoriesOf($this->schemaConfig);
+
+        if ($twigProcessingDirectories !== []) {
             Assert::true(
                 InstalledVersions::isInstalled('twig/twig'),
                 'Twig is required to use twigProcessingDirectories',
@@ -422,13 +452,40 @@ final class Planner
 
             $finder = Finder::create()
                 ->files()
-                ->in($this->config->inlineProcessingDirectories)
+                ->in($twigProcessingDirectories)
                 ->name('*.twig')
-                ->contains('{% graphql %}');
+                ->contains('/\{%-?\s*graphql\b/');
+
+            $seen = [];
 
             foreach ($finder as $file) {
-                foreach ($nodeFinder->find($file->getContents()) as $operation) {
-                    $document = Parser::parse($operation);
+                // A file in nested directories, like `templates` and `templates/billing`, is found once per directory.
+                $path = Path::canonicalize($file->getPathname());
+
+                if (isset($seen[$path])) {
+                    continue;
+                }
+
+                $seen[$path] = true;
+
+                $relativePath = Path::makeRelative($file->getPathname(), $this->config->projectDir);
+                $schemaSelector = new SchemaSelector(
+                    $this->schemaConfig->name,
+                    array_map(
+                        static fn(SchemaConfig $schema) => $schema->name,
+                        $this->config->schemasReadingTwigFile($file->getPathname()),
+                    ),
+                );
+
+                foreach ($nodeFinder->find($file->getContents(), $relativePath) as $block) {
+                    if (!$schemaSelector->selects(
+                        $block->schema,
+                        sprintf('The graphql block on line %d of %s', $block->line, $relativePath),
+                    )) {
+                        continue;
+                    }
+
+                    $document = Parser::parse($block->graphql);
 
                     Assert::minCount($document->definitions, 1);
                     Assert::allIsInstanceOf(
@@ -441,7 +498,7 @@ final class Planner
 
                     $operations[$file->getPathname()][] = DocumentNodeWithSource::create(
                         $document,
-                        new TwigFileSource(Path::makeRelative($file->getPathname(), $this->config->projectDir)),
+                        new TwigFileSource($relativePath),
                     );
                 }
             }
@@ -495,7 +552,7 @@ final class Planner
 
         // Create the planner
         $planner = new SelectionSetPlanner(
-            $this->config,
+            $this->schemaConfig,
             $this->schema,
             $this->typeMapper,
             $this->directiveProcessor,
@@ -514,7 +571,7 @@ final class Planner
                     continue;
                 }
 
-                if (!in_array($typeName, $this->config->ignoreTypes, true)) {
+                if (!in_array($typeName, $this->schemaConfig->ignoreTypes, true)) {
                     $values = [];
                     foreach ($type->getValues() as $value) {
                         Assert::string($value->value, 'Enum value must be a string');
@@ -525,7 +582,7 @@ final class Planner
                     }
 
                     $result->addClass(new EnumClassPlan(
-                        path: $this->config->outputDir . '/Enum/' . $typeName . '.php',
+                        path: $this->schemaConfig->outputDir . '/Enum/' . $typeName . '.php',
                         typeName: $typeName,
                         description: $type->description(),
                         values: $values,
@@ -540,7 +597,7 @@ final class Planner
                     continue;
                 }
 
-                if (in_array($typeName, $this->config->ignoreTypes, true)) {
+                if (in_array($typeName, $this->schemaConfig->ignoreTypes, true)) {
                     continue;
                 }
 
@@ -576,7 +633,7 @@ final class Planner
 
                 $result->addClass(
                     new InputClassPlan(
-                        $this->config->outputDir . '/Input/' . $typeName . '.php',
+                        $this->schemaConfig->outputDir . '/Input/' . $typeName . '.php',
                         $typeName,
                         $type->description(),
                         $type->isOneOf(),
@@ -610,8 +667,8 @@ final class Planner
                 'definitions' => new NodeList([$fragment]),
             ]);
 
-            if ($this->config->hooks !== []) {
-                $validationDocument = new HookFieldInjector($this->config->hooks)->__invoke($validationDocument);
+            if ($this->schemaConfig->hooks !== []) {
+                $validationDocument = new HookFieldInjector($this->schemaConfig->hooks)->__invoke($validationDocument);
             }
 
             $errors = DocumentValidator::validate($this->schema, $validationDocument, $this->validatorRules);
@@ -634,13 +691,13 @@ final class Planner
             if ($fragment->source instanceof InlineFragmentSource) {
                 $namespacedName = sprintf('%s%s', $name, $fragment->source->hash);
                 $fqcn = $this->fullyQualified('Fragment', $namespacedName, $name);
-                $fragmentDir = $this->config->outputDir . '/Fragment/' . $namespacedName;
+                $fragmentDir = $this->schemaConfig->outputDir . '/Fragment/' . $namespacedName;
                 $path = $fragmentDir . '/' . $name . '.php';
                 $nestedDir = $fragmentDir . '/' . $name;
             } else {
                 $fqcn = $this->fullyQualified('Fragment', $name);
-                $path = $this->config->outputDir . '/Fragment/' . $name . '.php';
-                $nestedDir = $this->config->outputDir . '/Fragment/' . $name;
+                $path = $this->schemaConfig->outputDir . '/Fragment/' . $name . '.php';
+                $nestedDir = $this->schemaConfig->outputDir . '/Fragment/' . $name;
             }
 
             $planner->setFragmentType($name, $type);
@@ -702,7 +759,7 @@ final class Planner
         // fragment may itself spread a user fragment.
         $hookDataClassNames = [];
 
-        foreach ($this->config->hooks as $hook) {
+        foreach ($this->schemaConfig->hooks as $hook) {
             Assert::keyNotExists(
                 $hookDataClassNames,
                 $hook->requiresClassName,
@@ -754,7 +811,7 @@ final class Planner
                 $source,
                 $hook->requiresFragment->selectionSet,
                 $type,
-                $this->config->outputDir . '/Hook/' . $hook->requiresClassName,
+                $this->schemaConfig->outputDir . '/Hook/' . $hook->requiresClassName,
                 $hook->requiresFqcn,
                 'fragment',
             );
@@ -762,7 +819,7 @@ final class Planner
             $result->addClass(
                 new DataClassPlan(
                     $source,
-                    $this->config->outputDir . '/Hook/' . $hook->requiresClassName . '.php',
+                    $this->schemaConfig->outputDir . '/Hook/' . $hook->requiresClassName . '.php',
                     $hook->requiresFqcn,
                     $type,
                     $planResult->fields,
@@ -791,17 +848,17 @@ final class Planner
         $result->setOperationsToInject($operationsToInject);
         $result->setUnusedFragments($this->findUnusedFragments($operations, $ordered));
 
-        if ($this->config->hooks !== []) {
+        if ($this->schemaConfig->hooks !== []) {
             $this->propagateUsedHooks($result);
         }
 
         if ($this->anyClassUsesBatchedHook($result)) {
-            $result->addClass(new HookLoaderPlan(path: $this->config->outputDir . '/HookLoader.php'));
+            $result->addClass(new HookLoaderPlan(path: $this->schemaConfig->outputDir . '/HookLoader.php'));
         }
 
-        if ($this->config->dumpOrThrowProperties || $this->anyClassUsesThrowWhenNull($result)) {
+        if ($this->schemaConfig->dumpOrThrowProperties || $this->anyClassUsesThrowWhenNull($result)) {
             $result->addClass(
-                new NodeNotFoundExceptionPlan(path: $this->config->outputDir . '/NodeNotFoundException.php'),
+                new NodeNotFoundExceptionPlan(path: $this->schemaConfig->outputDir . '/NodeNotFoundException.php'),
             );
         }
 
@@ -909,7 +966,7 @@ final class Planner
             }
 
             foreach (array_keys($plan->usedHooks) as $hookName) {
-                if (($this->config->hooks[$hookName] ?? null)?->batched === true) {
+                if (($this->schemaConfig->hooks[$hookName] ?? null)?->batched === true) {
                     return true;
                 }
             }
@@ -1076,8 +1133,8 @@ final class Planner
 
         $validationDocument = $document;
 
-        if ($this->config->hooks !== []) {
-            $validationDocument = new HookFieldInjector($this->config->hooks)->__invoke($validationDocument);
+        if ($this->schemaConfig->hooks !== []) {
+            $validationDocument = new HookFieldInjector($this->schemaConfig->hooks)->__invoke($validationDocument);
         }
 
         $errors = DocumentValidator::validate($this->schema, $validationDocument, $this->validatorRules);
@@ -1124,7 +1181,7 @@ final class Planner
         $operationType = ucfirst($operation->operation);
 
         $extraParameters = [];
-        foreach ($this->config->operationArguments as $operationArgument) {
+        foreach ($this->schemaConfig->operationArguments as $operationArgument) {
             if (
                 $operationArgument->operations !== []
                 && !in_array($operation->operation, $operationArgument->operations, true)
@@ -1142,22 +1199,22 @@ final class Planner
             $extraParameters[] = $operationArgument;
         }
 
-        if ($this->config->indexByDirective) {
+        if ($this->schemaConfig->indexByDirective) {
             $document = new IndexByRemover()->__invoke($document);
         }
 
-        if ($this->config->hooks !== []) {
-            $document = new HookFieldInjector($this->config->hooks)->__invoke($document);
+        if ($this->schemaConfig->hooks !== []) {
+            $document = new HookFieldInjector($this->schemaConfig->hooks)->__invoke($document);
         }
 
-        if ($this->config->throwWhenNullDirective) {
+        if ($this->schemaConfig->throwWhenNullDirective) {
             $document = new ThrowWhenNullRemover()->__invoke($document);
         }
 
         $directiveNames = array_values(array_unique(array_filter(
             array_map(
                 static fn($operationArgument) => $operationArgument->directive,
-                $this->config->operationArguments,
+                $this->schemaConfig->operationArguments,
             ),
             static fn(?string $directive) => $directive !== null,
         )));
@@ -1168,7 +1225,7 @@ final class Planner
 
         $operationDefinition = Printer::doPrint($document);
 
-        $operationDir = Path::join($this->config->outputDir, $operationType, $operationNamespaceName);
+        $operationDir = Path::join($this->schemaConfig->outputDir, $operationType, $operationNamespaceName);
 
         $variables = $this->variableParser->parseVariables($operation);
 
@@ -1230,7 +1287,7 @@ final class Planner
 
         $exceptionClassPlan = null;
 
-        if ($this->config->dumpOrThrowMethods) {
+        if ($this->schemaConfig->dumpOrThrowMethods) {
             $exceptionClassPlan = new ExceptionClassPlan(
                 $operationDir . '/' . $operationName . $operationType . 'FailedException.php',
                 $this->fullyQualified($operationType, $operationNamespaceName),
@@ -1246,12 +1303,12 @@ final class Planner
 
     private function fullyQualified(string $part, string ...$moreParts): string
     {
-        if (str_starts_with($part, $this->config->namespace . '\\')) {
-            $part = substr($part, strlen($this->config->namespace) + 1);
+        if (str_starts_with($part, $this->schemaConfig->namespace . '\\')) {
+            $part = substr($part, strlen($this->schemaConfig->namespace) + 1);
         }
 
         return implode('\\', array_filter(
-            [$this->config->namespace, $part, ...$moreParts],
+            [$this->schemaConfig->namespace, $part, ...$moreParts],
             static fn($part) => $part !== '',
         ));
     }

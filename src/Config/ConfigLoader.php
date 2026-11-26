@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Ruudk\GraphQLCodeGenerator\Config;
 
+use Symfony\Component\Filesystem\Path;
 use Throwable;
 
 final readonly class ConfigLoader
@@ -32,34 +33,56 @@ final readonly class ConfigLoader
                 ));
             }
 
-            if (!$configData instanceof Config && !is_array($configData)) {
+            if (!$configData instanceof Config) {
                 throw new ConfigException(sprintf(
-                    'Failed to load configuration from %s: expected Config object or array of Config objects',
+                    'Failed to load configuration from %s: expected a %s object',
                     $configFile,
+                    Config::class,
                 ));
             }
 
-            // Add configs to our collection
-            if ($configData instanceof Config) {
-                $allConfigs[] = $configData;
-
-                continue;
-            }
-
-            // Validate array items
-            foreach ($configData as $index => $configItem) {
-                if (!$configItem instanceof Config) {
-                    throw new ConfigException(sprintf(
-                        'Invalid configuration at index %s in %s: expected Config object',
-                        $index,
-                        $configFile,
-                    ));
+            foreach ($allConfigs as $otherFile => $other) {
+                if ($otherFile === $configFile) {
+                    continue;
                 }
 
-                $allConfigs[] = $configItem;
+                self::assertReadsOtherDirectories($configData, $configFile, $other, $otherFile);
             }
+
+            $allConfigs[$configFile] = $configData;
         }
 
-        return $allConfigs;
+        return array_values($allConfigs);
+    }
+
+    /**
+     * Only the schemas of one config know about each other. When two configs read the
+     * same directory, each would take the attributes of the other, so that is not allowed.
+     *
+     * @throws ConfigException
+     */
+    private static function assertReadsOtherDirectories(
+        Config $config,
+        string $file,
+        Config $other,
+        string $otherFile,
+    ): void {
+        foreach ($config->processingDirectories() as $directory) {
+            foreach ($other->processingDirectories() as $otherDirectory) {
+                if (
+                    Path::isBasePath(Path::canonicalize($directory), Path::canonicalize($otherDirectory))
+                    || Path::isBasePath(Path::canonicalize($otherDirectory), Path::canonicalize($directory))
+                ) {
+                    throw new ConfigException(sprintf(
+                        'The configs in %s and %s both read "%s". Add the schemas that read the same directories to one config.',
+                        $otherFile,
+                        $file,
+                        Path::isBasePath(Path::canonicalize($directory), Path::canonicalize($otherDirectory))
+                            ? $otherDirectory
+                            : $directory,
+                    ));
+                }
+            }
+        }
     }
 }

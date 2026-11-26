@@ -119,34 +119,38 @@ declare(strict_types=1);
 
 use Http\Discovery\Psr18ClientDiscovery;
 use Ruudk\GraphQLCodeGenerator\Config\Config;
+use Ruudk\GraphQLCodeGenerator\Config\SchemaConfig;
 use Ruudk\GraphQLCodeGenerator\Examples\GitHubClient;
 use Symfony\Component\Dotenv\Dotenv;
 use Webmozart\Assert\Assert;
 
-return Config::create(
-    // https://docs.github.com/public/fpt/schema.docs.graphql
-    schema: __DIR__ . '/schema.docs.graphql',
-    projectDir: __DIR__,
-    outputDir: __DIR__ . '/Generated',
-    namespace: 'Ruudk\GraphQLCodeGenerator\Examples\Generated',
-    client: GitHubClient::class,
-)
-    ->withQueriesDir(__DIR__)
-    ->withIntrospectionClient(function () {
-        $dotenv = new Dotenv();
-        $dotenv->bootEnv(__DIR__ . '/.env.local');
+return Config::create(projectDir: __DIR__)->withSchema(
+    SchemaConfig::create(
+        // https://docs.github.com/public/fpt/schema.docs.graphql
+        schema: __DIR__ . '/schema.docs.graphql',
+        outputDir: __DIR__ . '/Generated',
+        namespace: 'Ruudk\GraphQLCodeGenerator\Examples\Generated',
+        client: GitHubClient::class,
+    )
+        ->withQueriesDir(__DIR__)
+        ->withIntrospectionClient(function () {
+            $dotenv = new Dotenv();
+            $dotenv->bootEnv(__DIR__ . '/.env.local');
 
-        Assert::keyExists($_ENV, 'GITHUB_TOKEN');
-        $token = $_ENV['GITHUB_TOKEN'];
-        Assert::stringNotEmpty($token);
+            Assert::keyExists($_ENV, 'GITHUB_TOKEN');
+            $token = $_ENV['GITHUB_TOKEN'];
+            Assert::stringNotEmpty($token);
 
-        return new GitHubClient(Psr18ClientDiscovery::find(), $token);
-    })
-    ->enableDumpDefinition()
-    ->enableUseNodeNameForEdgeNodes()
-    ->enableUseConnectionNameForConnections()
-    ->enableUseEdgeNameForEdges();
+            return new GitHubClient(Psr18ClientDiscovery::find(), $token);
+        })
+        ->enableDumpDefinition()
+        ->enableUseNodeNameForEdgeNodes()
+        ->enableUseConnectionNameForConnections()
+        ->enableUseEdgeNameForEdges(),
+);
 ```
+
+`Config` describes your codebase: the project directory and the directories every schema reads. `SchemaConfig` describes one schema: where its SDL lives, where its code goes, which client runs it, and how to generate it. A config holds one or more schemas.
 
 **2. Write your GraphQL queries:**
 
@@ -603,6 +607,104 @@ Running `vendor/bin/php-cs-fixer fix` now formats every `<<<'GRAPHQL'` block aut
 
 **Mago:** enable the [Mago extension](#-mago-extension); its `graphql/heredoc-format` lint rule reports unformatted nowdocs and `vendor/bin/mago lint --fix` formats them. The GraphQL is indented to the closing `GRAPHQL` marker, so it works together with Mago's formatter.
 
+### 🗂️ Several Schemas in One Codebase
+
+Talking to more than one GraphQL API? Add a `SchemaConfig` per schema to one `Config`. Each schema has its own SDL, client, namespace and output directory, and once there is more than one, each needs a `name`.
+
+Directories on the `Config` are read by every schema. Directories on a `SchemaConfig` are read by that schema only:
+
+```php
+return Config::create(projectDir: __DIR__)
+    // Read by every schema
+    ->withInlineProcessingDirectory(__DIR__ . '/src/Checkout')
+    ->withSchema(
+        SchemaConfig::create(
+            schema: __DIR__ . '/billing.graphql',
+            outputDir: __DIR__ . '/src/Generated/Billing',
+            namespace: 'App\\Generated\\Billing',
+            client: BillingClient::class,
+            name: 'billing',
+        )
+            // Read by the billing schema only
+            ->withInlineProcessingDirectory(__DIR__ . '/src/Billing'),
+    )
+    ->withSchema(
+        SchemaConfig::create(
+            schema: __DIR__ . '/shipping.graphql',
+            outputDir: __DIR__ . '/src/Generated/Shipping',
+            namespace: 'App\\Generated\\Shipping',
+            client: ShippingClient::class,
+            name: 'shipping',
+        )->withInlineProcessingDirectory(__DIR__ . '/src/Shipping'),
+    );
+```
+
+Whether an attribute has to name its schema depends on the file it is in:
+
+- **One schema reads the file** (`src/Billing`): leave the schema out, like with a single schema.
+- **More than one schema reads the file** (`src/Checkout`): name the schema with `schema:`. Leaving it out, or naming a schema that does not read the file, fails the run with the location of the attribute.
+
+<!-- source: tests/Schemas/Checkout/CheckoutController.php -->
+```php
+<?php
+
+declare(strict_types=1);
+
+namespace Ruudk\GraphQLCodeGenerator\Schemas\Checkout;
+
+use Ruudk\GraphQLCodeGenerator\Attribute\GeneratedGraphQLClient;
+use Ruudk\GraphQLCodeGenerator\Schemas\Generated\Billing\Query\CheckoutViewer0d4a41\CheckoutViewerQuery;
+use Ruudk\GraphQLCodeGenerator\Schemas\Generated\Shipping\Query\CheckoutParcelsaa940f\CheckoutParcelsQuery;
+
+/**
+ * Both schemas read this directory, so every attribute names its schema.
+ */
+final readonly class CheckoutController
+{
+    private const string BILLING = 'billing';
+    private const string VIEWER = <<<'GRAPHQL'
+        query CheckoutViewer {
+          viewer {
+            login
+          }
+        }
+        GRAPHQL;
+    private const string PARCELS = <<<'GRAPHQL'
+        query CheckoutParcels {
+          parcels {
+            trackingCode
+          }
+        }
+        GRAPHQL;
+
+    public function __construct(
+        #[GeneratedGraphQLClient(self::VIEWER, self::BILLING)]
+        public CheckoutViewerQuery $viewer,
+        #[GeneratedGraphQLClient(self::PARCELS, schema: 'shipping')]
+        public CheckoutParcelsQuery $parcels,
+    ) {}
+}
+```
+
+The `schema` argument is a string or a string constant of the same class, because the generator reads it without loading your code. One class can hold clients of different schemas, and moving a client to another schema removes the import of its old class.
+
+Twig templates follow the same rule. Directories added with `withTwigProcessingDirectory()` on the `Config` are read by every schema, and a `{% graphql %}` block in them names its schema:
+
+<!-- source: tests/Schemas/templates/_invoice_row.html.twig -->
+```twig
+{# Both schemas read this directory, so the block names its schema. #}
+{% graphql schema 'billing' %}
+fragment InvoiceRow on Invoice {
+  id
+  total
+}
+{% endgraphql %}
+
+<li>#{{ invoice.id }}: {{ invoice.total }}</li>
+```
+
+All schemas that read the same directories have to be in the same `Config`. Passing several config files that read the same directory fails, because only the schemas of one config know about each other.
+
 ### 🎭 Twig Template Support
 
 Keep your GraphQL fragments next to where they're used in your templates:
@@ -631,6 +733,8 @@ fragment AdminProjectRow on Project {
 ```
 
 The generator extracts fragments from Twig files and creates type-safe classes. Your templates and GraphQL stay together!
+
+Add the directories that hold your templates with `withTwigProcessingDirectory()`. When more than one schema reads a template, name the schema of each block with `{% graphql schema 'billing' %}`, as described in *Several Schemas in One Codebase* above.
 
 #### 🧹 Auto-Format GraphQL in Twig
 
@@ -968,7 +1072,7 @@ hook's return type is inferred from `__invoke`.
 **Step 2 — register the hook** in your config:
 
 ```php
-Config::create(/* ... */)
+SchemaConfig::create(/* ... */)
     ->withHook(App\Hooks\FindUserByIdHook::class);
 ```
 
@@ -1074,7 +1178,7 @@ forwards it positionally to your client's `graphql()` call (right after the oper
 ```php
 use Symfony\Component\TypeInfo\Type;
 
-Config::create(/* ... */)
+SchemaConfig::create(/* ... */)
     ->withOperationArgument(
         name: 'actor',
         type: Type::object(Actor::class),

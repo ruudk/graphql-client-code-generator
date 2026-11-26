@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Ruudk\GraphQLCodeGenerator\Generator;
 
-use Ruudk\GraphQLCodeGenerator\Config\Config;
+use Ruudk\GraphQLCodeGenerator\Config\SchemaConfig;
 use Ruudk\GraphQLCodeGenerator\Type\HookPropertyType;
 use Ruudk\GraphQLCodeGenerator\Type\ScalarType;
 use Symfony\Component\TypeInfo\Type;
@@ -13,7 +13,7 @@ use Webmozart\Assert\Assert;
 abstract class AbstractGenerator
 {
     public function __construct(
-        protected readonly Config $config,
+        protected readonly SchemaConfig $config,
     ) {}
 
     protected function dumpHeader(): string

@@ -11,7 +11,7 @@ use Symfony\Component\TypeInfo\Type\ObjectType;
 
 /**
  * @internal Catch-all fallback owned by `PlanExecutor`. Userland should register
- *           type-specific `TypeInitializer` instances via `Config::withTypeInitializer()`;
+ *           type-specific `TypeInitializer` instances via `SchemaConfig::withTypeInitializer()`;
  *           they run before this one.
  *
  * @implements TypeInitializer<Type\ObjectType<class-string>>

@@ -40,6 +40,36 @@ final class EnsureSyncCommandTest extends TestCase
         self::assertStringContainsString('not used', $output);
     }
 
+    public function testEnsureSyncSucceedsForSchemasThatShareADirectory(): void
+    {
+        $tester = $this->buildTester();
+
+        $exitCode = $tester->execute([
+            '--config' => [__DIR__ . '/Fixtures/with-schemas.php'],
+            '--ensure-sync' => true,
+        ]);
+
+        self::assertSame(Command::SUCCESS, $exitCode, $tester->getDisplay());
+        self::assertStringContainsString('Schema "billing" (1 of 2)', $tester->getDisplay());
+        self::assertStringContainsString('Schema "shipping" (2 of 2)', $tester->getDisplay());
+    }
+
+    public function testEnsureSyncFailsWhenASharedFileDoesNotNameItsSchema(): void
+    {
+        $tester = $this->buildTester();
+
+        $exitCode = $tester->execute([
+            '--config' => [__DIR__ . '/Fixtures/with-schema-not-named.php'],
+            '--ensure-sync' => true,
+        ]);
+
+        self::assertSame(Command::FAILURE, $exitCode, $tester->getDisplay());
+        self::assertStringContainsString(
+            'has to name its schema, because the schemas "billing", "shipping" read it.',
+            (string) preg_replace('/\s+/', ' ', $tester->getDisplay()),
+        );
+    }
+
     private function buildTester(): CommandTester
     {
         $command = new Command('generate');

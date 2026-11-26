@@ -11,7 +11,7 @@ use GraphQL\Type\Definition\UnionType;
 use Ruudk\CodeGenerator\CodeGenerator;
 use Ruudk\CodeGenerator\Group;
 use Ruudk\GraphQLCodeGenerator\Attribute\Generated;
-use Ruudk\GraphQLCodeGenerator\Config\Config;
+use Ruudk\GraphQLCodeGenerator\Config\SchemaConfig;
 use Ruudk\GraphQLCodeGenerator\GraphQL\AST\Printer;
 use Ruudk\GraphQLCodeGenerator\Planner\Plan\DataClassPlan;
 use Ruudk\GraphQLCodeGenerator\Planner\Source\GraphQLFileSource;
@@ -32,7 +32,7 @@ use Webmozart\Assert\InvalidArgumentException;
 final class DataClassGenerator extends AbstractGenerator
 {
     public function __construct(
-        Config $config,
+        SchemaConfig $config,
         private readonly DelegatingTypeInitializer $typeInitializer,
     ) {
         parent::__construct($config);
@@ -70,7 +70,7 @@ final class DataClassGenerator extends AbstractGenerator
     /**
      * Name of the generated method that walks the typed object graph collecting
      * a batched hook's data objects. Hook names are validated as PHP identifiers
-     * by `Config::withHook()`.
+     * by `SchemaConfig::withHook()`.
      */
     private function collectMethodName(string $hookName): string
     {

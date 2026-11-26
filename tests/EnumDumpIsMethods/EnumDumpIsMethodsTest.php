@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Ruudk\GraphQLCodeGenerator\EnumDumpIsMethods;
 
 use Override;
-use Ruudk\GraphQLCodeGenerator\Config\Config;
+use Ruudk\GraphQLCodeGenerator\Config\SchemaConfig;
 use Ruudk\GraphQLCodeGenerator\EnumDumpIsMethods\Generated\Enum\Role;
 use Ruudk\GraphQLCodeGenerator\EnumDumpIsMethods\Generated\Enum\State;
 use Ruudk\GraphQLCodeGenerator\EnumDumpIsMethods\Generated\Query\Test\TestQuery;
@@ -15,7 +15,7 @@ use Symfony\Component\TypeInfo\Type;
 final class EnumDumpIsMethodsTest extends GraphQLTestCase
 {
     #[Override]
-    public function getConfig(): Config
+    public function getConfig(): SchemaConfig
     {
         return parent::getConfig()
             ->enableAddUnknownCaseToEnums()

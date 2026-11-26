@@ -20,23 +20,39 @@ final readonly class GraphQLNodeFinder
     /**
      * @throws SyntaxError
      * @throws InvalidArgumentException
-     * @return list<string>
+     * @return list<GraphQLBlock>
      */
-    public function find(string $content): array
+    public function find(string $content, string $name = ''): array
     {
-        $operations = [];
-        $stream = $this->twig->tokenize(new Source($content, ''));
+        $blocks = [];
+        $stream = $this->twig->tokenize(new Source($content, $name));
 
         while (!$stream->isEOF()) {
-            if ($stream->getCurrent()->test('graphql')) {
+            if ($stream->getCurrent()->test(Token::NAME_TYPE, 'graphql')) {
+                $line = $stream->getCurrent()->getLine();
                 $stream->next();
+
+                $schema = null;
+
+                if ($stream->nextIf(Token::NAME_TYPE, 'schema') !== null) {
+                    $schema = $stream
+                        ->expect(
+                            Token::STRING_TYPE,
+                            null,
+                            'The schema of a graphql block has to be a string, like {% graphql schema \'billing\' %}',
+                        )
+                        ->getValue();
+
+                    Assert::string($schema);
+                }
+
                 $stream->expect(Token::BLOCK_END_TYPE);
 
-                $operation = $stream->expect(Token::TEXT_TYPE)->getValue();
+                $graphql = $stream->expect(Token::TEXT_TYPE)->getValue();
 
-                Assert::stringNotEmpty($operation, 'Expected the graphql operation to be a non-empty string');
+                Assert::stringNotEmpty($graphql, 'Expected the graphql operation to be a non-empty string');
 
-                $operations[] = $operation;
+                $blocks[] = new GraphQLBlock($schema, $graphql, $line);
 
                 $stream->next();
                 $stream->expect(Token::NAME_TYPE);
@@ -47,6 +63,6 @@ final readonly class GraphQLNodeFinder
             $stream->next();
         }
 
-        return $operations;
+        return $blocks;
     }
 }
