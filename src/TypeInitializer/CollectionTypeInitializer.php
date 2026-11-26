@@ -17,9 +17,9 @@ use Symfony\Component\TypeInfo\Type;
 final class CollectionTypeInitializer implements TypeInitializer
 {
     #[Override]
-    public function supports(Type $type) : bool
+    public function supports(Type $type): bool
     {
-        return $type instanceof Type\CollectionType && ! $type instanceof IndexByCollectionType;
+        return $type instanceof Type\CollectionType && !$type instanceof IndexByCollectionType;
     }
 
     /**
@@ -31,7 +31,7 @@ final class CollectionTypeInitializer implements TypeInitializer
         CodeGenerator $generator,
         string $variable,
         DelegatingTypeInitializer $delegator,
-    ) : Generator {
+    ): Generator {
         $inner = $delegator($type->getCollectionValueType(), $generator, '$item');
 
         if ($inner === '$item') {
@@ -40,10 +40,6 @@ final class CollectionTypeInitializer implements TypeInitializer
             return;
         }
 
-        yield from $generator->wrap(
-            'array_map(fn($item) => ',
-            $inner,
-            sprintf(', %s)', $variable),
-        );
+        yield from $generator->wrap('array_map(fn($item) => ', $inner, sprintf(', %s)', $variable));
     }
 }

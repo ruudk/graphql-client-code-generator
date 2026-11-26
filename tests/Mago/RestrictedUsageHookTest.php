@@ -14,7 +14,7 @@ use Ruudk\GraphQLCodeGenerator\Mago\Analyzer\RestrictedUsagePlugin;
 #[CoversClass(RestrictedUsageHook::class)]
 final class RestrictedUsageHookTest extends TestCase
 {
-    public function testReportsRestrictedUsage() : void
+    public function testReportsRestrictedUsage(): void
     {
         $root = dirname(__DIR__, 2);
 

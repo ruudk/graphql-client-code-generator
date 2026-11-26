@@ -7,16 +7,13 @@ namespace Ruudk\GraphQLCodeGenerator\HooksWithCustomTypeInitializer;
 use Ruudk\GraphQLCodeGenerator\Attribute\Hook;
 use Ruudk\GraphQLCodeGenerator\HooksWithCustomTypeInitializer\Generated\Hook\ProjectCreatorId;
 
-#[Hook(
-    name: 'findUserById',
-    requires: <<<'GRAPHQL'
-        fragment ProjectCreatorId on Project {
-          creator {
-            id
-          }
-        }
-        GRAPHQL
-)]
+#[Hook(name: 'findUserById', requires: <<<'GRAPHQL'
+    fragment ProjectCreatorId on Project {
+      creator {
+        id
+      }
+    }
+    GRAPHQL)]
 final readonly class FindUserByIdHook
 {
     /**
@@ -26,7 +23,7 @@ final readonly class FindUserByIdHook
         private array $users = [],
     ) {}
 
-    public function __invoke(ProjectCreatorId $project) : ?User
+    public function __invoke(ProjectCreatorId $project): ?User
     {
         return $this->users[$project->creator->id] ?? null;
     }

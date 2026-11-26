@@ -25,7 +25,7 @@ final readonly class HookDirectiveSchemaExtender
      * @throws InvariantViolation
      * @throws Exception
      */
-    public static function extend(Schema $schema) : Schema
+    public static function extend(Schema $schema): Schema
     {
         $existing = $schema->getDirective('hook');
 
@@ -35,18 +35,17 @@ final readonly class HookDirectiveSchemaExtender
 
             [$name] = $existing->args;
             Assert::eq($name->name, 'name', 'Expected @hook first argument to be named "name"');
-            Assert::eq(Type::nonNull(Type::string()), $name->getType(), 'Expected @hook "name" argument to be a non-null string');
+            Assert::eq(
+                Type::nonNull(Type::string()),
+                $name->getType(),
+                'Expected @hook "name" argument to be a non-null string',
+            );
 
             return $schema;
         }
 
-        return SchemaExtender::extend(
-            $schema,
-            Parser::parse(
-                <<<'GRAPHQL'
-                    directive @hook(name: String!) on FIELD
-                    GRAPHQL,
-            ),
-        );
+        return SchemaExtender::extend($schema, Parser::parse(<<<'GRAPHQL'
+            directive @hook(name: String!) on FIELD
+            GRAPHQL));
     }
 }

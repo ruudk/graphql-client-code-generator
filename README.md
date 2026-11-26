@@ -463,14 +463,11 @@ final readonly class SomeController
         public ProjectsQuery $query,
     ) {}
 
-    public function __invoke() : string
+    public function __invoke(): string
     {
-        return $this->twig->render(
-            'list.html.twig',
-            [
-                'data' => $this->query->executeOrThrow()->adminProjectList,
-            ],
-        );
+        return $this->twig->render('list.html.twig', [
+            'data' => $this->query->executeOrThrow()->adminProjectList,
+        ]);
     }
 }
 ```
@@ -513,14 +510,9 @@ final readonly class UserMapper
      * @param list<UserName> $users
      * @return list<string>
      */
-    public function mapMany(
-        #[GeneratedGraphQLFragment(self::FRAGMENT)]
-        array $users,
-    ) : array {
-        return array_map(
-            fn(UserName $u) => $u->firstName . ' ' . $u->lastName,
-            $users,
-        );
+    public function mapMany(#[GeneratedGraphQLFragment(self::FRAGMENT)] array $users): array
+    {
+        return array_map(static fn(UserName $u) => $u->firstName . ' ' . $u->lastName, $users);
     }
 }
 ```
@@ -557,11 +549,9 @@ final readonly class ListUsersClient
     /**
      * @return list<string>
      */
-    public function getDisplayNames() : array
+    public function getDisplayNames(): array
     {
-        return $this->mapper->mapMany(
-            array_map(fn($user) => $user->userName, $this->query->execute()->users),
-        );
+        return $this->mapper->mapMany(array_map(static fn($user) => $user->userName, $this->query->execute()->users));
     }
 }
 ```
@@ -578,50 +568,34 @@ final readonly class ListUsersClient
 
 #### 🧹 Auto-Format GraphQL in PHP Heredocs
 
-A custom [PHP CS Fixer](https://cs.symfony.com/) fixer ships with this library to keep the GraphQL inside your `<<<'GRAPHQL' ... GRAPHQL` nowdoc strings consistently formatted. It parses the operation and rewrites it with `webonyx/graphql-php`'s `Printer::doPrint()`, indented to match the heredoc. Only single-quoted nowdocs are touched (a heredoc would interpolate GraphQL `$variables` as PHP variables); invalid GraphQL is left untouched.
+This library ships a formatter that keeps the GraphQL inside your `<<<'GRAPHQL' ... GRAPHQL` nowdoc strings consistently formatted. It parses the operation and rewrites it with `webonyx/graphql-php`'s `Printer::doPrint()`, indented to match the nowdoc. Only single-quoted nowdocs are touched (a heredoc would interpolate GraphQL `$variables` as PHP variables); invalid GraphQL is left untouched.
 
-Register `GraphQLHeredocFixer` in your `.php-cs-fixer.php`:
+It is available for both [PHP CS Fixer](https://cs.symfony.com/) and [Mago](https://mago.carthage.software/).
 
-<!-- source: .php-cs-fixer.php -->
+**PHP CS Fixer:** register `GraphQLHeredocFixer` in your `.php-cs-fixer.php`:
+
+<!-- source: examples/Tools/php-cs-fixer.php -->
 ```php
 <?php
 
 declare(strict_types=1);
 
+use PhpCsFixer\Config;
 use PhpCsFixer\Finder;
 use Ruudk\GraphQLCodeGenerator\PhpCsFixer\GraphQLHeredocFixer;
-use Ticketswap\PhpCsFixerConfig\PhpCsFixerConfigFactory;
-use Ticketswap\PhpCsFixerConfig\RuleSet\TicketSwapRuleSet;
 
-$finder = Finder::create()
-    ->in(__DIR__ . '/examples')
-    ->in(__DIR__ . '/src')
-    ->in(__DIR__ . '/tests')
-    ->notPath(['Generated'])
-    ->append([
-        __DIR__ . '/.php-cs-fixer.php',
-        __DIR__ . '/bin/graphql-client-code-generator',
-        __DIR__ . '/composer-dependency-analyser.php',
-        __DIR__ . '/phpstan.php',
+return new Config()
+    ->setFinder(Finder::create()->in(__DIR__ . '/src'))
+    ->registerCustomFixers([new GraphQLHeredocFixer()])
+    ->setRules([
+        '@PER-CS' => true,
+        'Ruudk/graphql_heredoc' => true,
     ]);
-
-$config = PhpCsFixerConfigFactory::create(TicketSwapRuleSet::create())->setFinder($finder);
-
-$config->registerCustomFixers([
-    new GraphQLHeredocFixer(),
-]);
-
-$config->setRules([
-    ...$config->getRules(),
-    'Ruudk/graphql_heredoc' => true,
-]);
-
-return $config;
 ```
 
 Running `vendor/bin/php-cs-fixer fix` now formats every `<<<'GRAPHQL'` block automatically. The fixer runs before `heredoc_indentation`, so the surrounding indentation stays consistent with the rest of your codebase.
 
-Using [Mago](https://mago.carthage.software/) instead? Enable the [Mago extension](#-mago-extension); its `graphql/heredoc-format` lint rule reports unformatted nowdocs and `vendor/bin/mago lint --fix` formats them. The GraphQL is indented to the closing `GRAPHQL` marker, so it works together with Mago's formatter.
+**Mago:** enable the [Mago extension](#-mago-extension); its `graphql/heredoc-format` lint rule reports unformatted nowdocs and `vendor/bin/mago lint --fix` formats them. The GraphQL is indented to the closing `GRAPHQL` marker, so it works together with Mago's formatter.
 
 ### 🎭 Twig Template Support
 
@@ -658,7 +632,7 @@ A [Twig CS Fixer](https://github.com/VincentLanglet/Twig-CS-Fixer) rule ships wi
 
 Register `GraphQLFormatterRule` (and the `GraphQLTokenParser` so Twig CS Fixer understands the tag) in your `.twig-cs-fixer.php`:
 
-<!-- source: .twig-cs-fixer.php -->
+<!-- source: examples/Tools/twig-cs-fixer.php -->
 ```php
 <?php
 
@@ -672,18 +646,13 @@ use TwigCsFixer\Ruleset\Ruleset;
 use TwigCsFixer\Standard\TwigCsFixer;
 
 $ruleset = new Ruleset();
-
 $ruleset->addStandard(new TwigCsFixer());
 $ruleset->addRule(new GraphQLFormatterRule());
 
-$finder = Finder::create()
-    ->in('tests');
-
 $config = new Config();
 $config->allowNonFixableRules();
-$config->setCacheFile(__DIR__ . '/.twig-cs-fixer.cache');
 $config->setRuleset($ruleset);
-$config->setFinder($finder);
+$config->setFinder(Finder::create()->in(__DIR__ . '/templates'));
 $config->addTokenParser(new GraphQLTokenParser());
 
 return $config;
@@ -1443,14 +1412,17 @@ Check out the `examples/` directory for complete working examples:
 ## Contributing
 
 Contributions welcome! This project uses:
-- **PHP-CS-Fixer** for code formatting
+- **Mago** for formatting and linting PHP and Twig
 - **PHPStan** (level 9!) for static analysis
 - **PHPUnit** for testing
 
 Run the quality checks:
 
 ```bash
-vendor/bin/php-cs-fixer fix
+vendor/bin/mago format
+vendor/bin/mago lint
+vendor/bin/mago twig:fmt
+vendor/bin/mago twig:lint
 vendor/bin/phpstan
 vendor/bin/phpunit
 ```

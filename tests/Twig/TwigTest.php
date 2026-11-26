@@ -14,7 +14,7 @@ use Twig\Loader\FilesystemLoader;
 final class TwigTest extends GraphQLTestCase
 {
     #[Override]
-    public function getConfig() : Config
+    public function getConfig(): Config
     {
         return parent::getConfig()
             ->enableGeneratedAttribute()
@@ -25,12 +25,12 @@ final class TwigTest extends GraphQLTestCase
             ->withTwigProcessingDirectory(__DIR__ . '/templates');
     }
 
-    public function testGenerate() : void
+    public function testGenerate(): void
     {
         $this->assertActualMatchesExpected();
     }
 
-    public function testQuery() : void
+    public function testQuery(): void
     {
         $query = new ProjectsQuery($this->getClient([
             'data' => [

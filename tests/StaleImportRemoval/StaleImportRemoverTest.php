@@ -12,7 +12,7 @@ use Ruudk\GraphQLCodeGenerator\PHP\Visitor\StaleImportRemover;
 
 final class StaleImportRemoverTest extends TestCase
 {
-    public function testPatternMatching() : void
+    public function testPatternMatching(): void
     {
         $code = <<<'PHP'
             <?php
@@ -32,10 +32,7 @@ final class StaleImportRemoverTest extends TestCase
 
         self::assertNotNull($stmts);
 
-        $remover = new StaleImportRemover(
-            'App\Generated',
-            ['App\Generated\Query\GetViewer6b9a6d\GetViewerQuery'], // Only this one is valid
-        );
+        $remover = new StaleImportRemover('App\Generated', ['App\Generated\Query\GetViewer6b9a6d\GetViewerQuery']); // Only this one is valid
 
         $traverser = new NodeTraverser();
         $traverser->addVisitor($remover);
@@ -52,7 +49,7 @@ final class StaleImportRemoverTest extends TestCase
         self::assertStringContainsString('SomeOther\Class\NotGenerated', $output, 'Non-generated import should remain');
     }
 
-    public function testRegexPatternDirectly() : void
+    public function testRegexPatternDirectly(): void
     {
         $namespace = 'App\Generated';
         $escapedNamespace = preg_quote($namespace, '/');
@@ -68,7 +65,7 @@ final class StaleImportRemoverTest extends TestCase
         self::assertSame(0, preg_match($pattern, 'App\Generated\Enum\SomeEnum'));
     }
 
-    public function testExactIntegrationScenario() : void
+    public function testExactIntegrationScenario(): void
     {
         // This matches the exact scenario from the integration test
         $namespace = 'Ruudk\GraphQLCodeGenerator\StaleImportRemoval\Generated';
@@ -85,7 +82,7 @@ final class StaleImportRemoverTest extends TestCase
         self::assertSame(1, preg_match($pattern, $correct), 'Correct import should match pattern');
     }
 
-    public function testKeepsSiblingClassesUnderValidOperationNamespace() : void
+    public function testKeepsSiblingClassesUnderValidOperationNamespace(): void
     {
         // Reproduces a bug seen in cosmos: when a Query's import is valid, sibling
         // classes under the SAME operation namespace (e.g. FailedException, Data)
@@ -122,10 +119,7 @@ final class StaleImportRemoverTest extends TestCase
 
         self::assertNotNull($stmts);
 
-        $remover = new StaleImportRemover(
-            'App\Generated',
-            ['App\Generated\Query\GetViewer6b9a6d\GetViewerQuery'],
-        );
+        $remover = new StaleImportRemover('App\Generated', ['App\Generated\Query\GetViewer6b9a6d\GetViewerQuery']);
 
         $traverser = new NodeTraverser();
         $traverser->addVisitor($remover);
@@ -146,7 +140,7 @@ final class StaleImportRemoverTest extends TestCase
         );
     }
 
-    public function testRemovalWithMultipleVisitors() : void
+    public function testRemovalWithMultipleVisitors(): void
     {
         // Simulate what happens in PlanExecutor
         $code = <<<'PHP'
@@ -170,7 +164,10 @@ final class StaleImportRemoverTest extends TestCase
 
         $traverser = new NodeTraverser();
         $traverser->addVisitor(new \PhpParser\NodeVisitor\NodeConnectingVisitor());
-        $traverser->addVisitor(new StaleImportRemover('Ruudk\GraphQLCodeGenerator\StaleImportRemoval\Generated', $fqcns));
+        $traverser->addVisitor(new StaleImportRemover(
+            'Ruudk\GraphQLCodeGenerator\StaleImportRemoval\Generated',
+            $fqcns,
+        ));
         $traverser->addVisitor(new \Ruudk\GraphQLCodeGenerator\PHP\Visitor\UseStatementInserter($fqcns));
         $newStmts = $traverser->traverse($stmts);
 

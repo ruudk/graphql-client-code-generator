@@ -22,7 +22,7 @@ use Symfony\Component\TypeInfo\Type\ObjectType;
 final class MoneyTest extends GraphQLTestCase
 {
     #[Override]
-    public function getConfig() : Config
+    public function getConfig(): Config
     {
         return parent::getConfig()
             ->withScalar('Currency', Type::string(), Type::object(Currency::class))
@@ -43,64 +43,66 @@ final class MoneyTest extends GraphQLTestCase
             )
             ->withIgnoreType('MoneyInput')
             ->withIgnoreType('Money')
-            ->withTypeInitializer(
-                new class implements TypeInitializer {
-                    #[Override]
-                    public function supports(Type $type) : bool
-                    {
-                        return $type instanceof ObjectType && $type->getClassName() === Money::class;
-                    }
+            ->withTypeInitializer(new class implements TypeInitializer {
+                #[Override]
+                public function supports(Type $type): bool
+                {
+                    return $type instanceof ObjectType && $type->getClassName() === Money::class;
+                }
 
-                    /**
-                     * @return Generator<\Ruudk\CodeGenerator\Group|string>
-                     */
-                    #[Override]
-                    public function initialize(Type $type, CodeGenerator $generator, string $variable, DelegatingTypeInitializer $delegator) : Generator
-                    {
-                        yield sprintf('new %s(', $generator->import(Money::class));
-                        yield $generator->indent(function () use ($generator, $variable) {
-                            yield sprintf("%s['amount'],", $variable);
-                            yield sprintf("new %s(%s['currency']),", $generator->import(Currency::class), $variable);
-                        });
-                        yield ')';
-                    }
-                },
-            );
+                /**
+                 * @return Generator<\Ruudk\CodeGenerator\Group|string>
+                 */
+                #[Override]
+                public function initialize(
+                    Type $type,
+                    CodeGenerator $generator,
+                    string $variable,
+                    DelegatingTypeInitializer $delegator,
+                ): Generator {
+                    yield sprintf('new %s(', $generator->import(Money::class));
+                    yield $generator->indent(static function () use ($generator, $variable) {
+                        yield sprintf("%s['amount'],", $variable);
+                        yield sprintf("new %s(%s['currency']),", $generator->import(Currency::class), $variable);
+                    });
+                    yield ')';
+                }
+            });
     }
 
-    public function testGenerate() : void
+    public function testGenerate(): void
     {
         $this->assertActualMatchesExpected();
     }
 
-    public function testConvertMoneyWithMoneyObject() : void
+    public function testConvertMoneyWithMoneyObject(): void
     {
         $inputMoney = Money::EUR('10000');
-        $result = new ConvertMoneyQuery($this->getClient([
-            'data' => [
-                'convertMoney' => [
-                    'amount' => '11000',
-                    'currency' => 'USD',
-                ],
-                'total' => [
-                    'amount' => '100',
-                    'currency' => 'EUR',
-                ],
-                'subtotal' => [
-                    'amount' => '100',
-                    'currency' => 'EUR',
+        $result = new ConvertMoneyQuery($this->getClient(
+            [
+                'data' => [
+                    'convertMoney' => [
+                        'amount' => '11000',
+                        'currency' => 'USD',
+                    ],
+                    'total' => [
+                        'amount' => '100',
+                        'currency' => 'EUR',
+                    ],
+                    'subtotal' => [
+                        'amount' => '100',
+                        'currency' => 'EUR',
+                    ],
                 ],
             ],
-        ], new GraphQLRequestMatcher(
-            variables: [
+            new GraphQLRequestMatcher(variables: [
                 'amount' => [
                     'amount' => '10000',
                     'currency' => 'EUR',
                 ],
                 'targetCurrency' => 'USD',
-            ],
-            operationName: 'ConvertMoney',
-        )))->execute($inputMoney, new Currency('USD'));
+            ], operationName: 'ConvertMoney'),
+        ))->execute($inputMoney, new Currency('USD'));
         // Verify the result is a Money object (type is guaranteed by TypeMapper)
         self::assertSame('11000', $result->convertMoney->amount);
         self::assertSame('USD', $result->convertMoney->currency->code);
@@ -110,37 +112,40 @@ final class MoneyTest extends GraphQLTestCase
         self::assertEquals(Money::EUR('100'), $result->converter->subtotal);
     }
 
-    public function testConvertMoneyWithDifferentCurrencies() : void
+    public function testConvertMoneyWithDifferentCurrencies(): void
     {
         $inputMoney = Money::GBP('50000'); // 500.00 GBP
-        $result = new ConvertMoneyQuery($this->getClient([
-            'data' => [
-                'convertMoney' => [
-                    'amount' => '60000', // 600.00 EUR
-                    'currency' => 'EUR',
+        $result = new ConvertMoneyQuery($this->getClient(
+            [
+                'data' => [
+                    'convertMoney' => [
+                        'amount' => '60000', // 600.00 EUR
+                        'currency' => 'EUR',
+                    ],
                 ],
             ],
-        ], new GraphQLRequestMatcher(
-            variables: [
+            new GraphQLRequestMatcher(variables: [
                 'amount' => [
                     'amount' => '50000',
                     'currency' => 'GBP',
                 ],
                 'targetCurrency' => 'EUR',
-            ],
-            operationName: 'ConvertMoney',
-        )))->execute($inputMoney, Currency::EUR());
+            ], operationName: 'ConvertMoney'),
+        ))->execute($inputMoney, Currency::EUR());
         self::assertSame('60000', $result->convertMoney->amount);
         self::assertSame('EUR', $result->convertMoney->currency->code);
     }
 
-    public function testMoneyJsonSerialization() : void
+    public function testMoneyJsonSerialization(): void
     {
         $money = Money::USD('25000'); // 250.00 USD
         $json = $money->jsonSerialize();
-        self::assertSame([
-            'amount' => '25000',
-            'currency' => 'USD',
-        ], $json);
+        self::assertSame(
+            [
+                'amount' => '25000',
+                'currency' => 'USD',
+            ],
+            $json,
+        );
     }
 }

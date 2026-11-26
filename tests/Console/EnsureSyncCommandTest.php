@@ -11,7 +11,7 @@ use Symfony\Component\Filesystem\Filesystem;
 
 final class EnsureSyncCommandTest extends TestCase
 {
-    public function testEnsureSyncSucceedsWhenAllRegisteredHooksAreUsed() : void
+    public function testEnsureSyncSucceedsWhenAllRegisteredHooksAreUsed(): void
     {
         $tester = $this->buildTester();
 
@@ -24,7 +24,7 @@ final class EnsureSyncCommandTest extends TestCase
         self::assertStringContainsString('Generated code is in sync', $tester->getDisplay());
     }
 
-    public function testEnsureSyncFailsWhenHookIsRegisteredButNotUsed() : void
+    public function testEnsureSyncFailsWhenHookIsRegisteredButNotUsed(): void
     {
         $tester = $this->buildTester();
 
@@ -40,7 +40,7 @@ final class EnsureSyncCommandTest extends TestCase
         self::assertStringContainsString('not used', $output);
     }
 
-    private function buildTester() : CommandTester
+    private function buildTester(): CommandTester
     {
         $command = new Command('generate');
         $command->setCode(new GenerateCommand(new Filesystem()));

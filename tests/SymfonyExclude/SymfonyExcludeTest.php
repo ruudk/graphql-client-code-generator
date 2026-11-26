@@ -15,17 +15,17 @@ use Symfony\Component\DependencyInjection\Attribute\Exclude;
 final class SymfonyExcludeTest extends GraphQLTestCase
 {
     #[Override]
-    public function getConfig() : Config
+    public function getConfig(): Config
     {
         return parent::getConfig()->enableSymfonyExcludeAttribute();
     }
 
-    public function testGenerate() : void
+    public function testGenerate(): void
     {
         $this->assertActualMatchesExpected();
     }
 
-    public function testQuery() : void
+    public function testQuery(): void
     {
         $result = new TestQuery($this->getClient([
             'data' => [
@@ -47,7 +47,7 @@ final class SymfonyExcludeTest extends GraphQLTestCase
         self::assertNull($project->description);
     }
 
-    public function testSymfonyExcludeAttribute() : void
+    public function testSymfonyExcludeAttribute(): void
     {
         $attributes = new ReflectionClass(Data::class)->getAttributes(Exclude::class);
         self::assertCount(1, $attributes, 'The Data class should have the Exclude attribute');

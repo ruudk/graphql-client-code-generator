@@ -7,14 +7,11 @@ namespace Ruudk\GraphQLCodeGenerator\HooksWithListReturn;
 use Ruudk\GraphQLCodeGenerator\Attribute\Hook;
 use Ruudk\GraphQLCodeGenerator\HooksWithListReturn\Generated\Hook\ProjectContributorIds;
 
-#[Hook(
-    name: 'findUsersByIds',
-    requires: <<<'GRAPHQL'
-        fragment ProjectContributorIds on Project {
-          contributorIds
-        }
-        GRAPHQL
-)]
+#[Hook(name: 'findUsersByIds', requires: <<<'GRAPHQL'
+    fragment ProjectContributorIds on Project {
+      contributorIds
+    }
+    GRAPHQL)]
 final readonly class FindUsersByIdsHook
 {
     /**
@@ -27,7 +24,7 @@ final readonly class FindUsersByIdsHook
     /**
      * @return list<User>
      */
-    public function __invoke(ProjectContributorIds $project) : array
+    public function __invoke(ProjectContributorIds $project): array
     {
         $out = [];
 

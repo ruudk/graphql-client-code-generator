@@ -12,19 +12,17 @@ use Ruudk\GraphQLCodeGenerator\IncludeAndSkipDirective\Generated\Query\Test\Test
 final class IncludeAndSkipDirectiveTest extends GraphQLTestCase
 {
     #[Override]
-    public function getConfig() : Config
+    public function getConfig(): Config
     {
-        return parent::getConfig()
-            ->enableDumpOrThrowMethods()
-            ->enableDumpOrThrowProperties();
+        return parent::getConfig()->enableDumpOrThrowMethods()->enableDumpOrThrowProperties();
     }
 
-    public function testGenerate() : void
+    public function testGenerate(): void
     {
         $this->assertActualMatchesExpected();
     }
 
-    public function testQuery() : void
+    public function testQuery(): void
     {
         $result = new TestQuery($this->getClient([
             'data' => [

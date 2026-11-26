@@ -15,13 +15,12 @@ use Symfony\Component\TypeInfo\TypeIdentifier;
 
 final class InputTypeGenerator extends AbstractGenerator
 {
-    public function __construct(
-        Config $config,
-    ) {
+    public function __construct(Config $config)
+    {
         parent::__construct($config);
     }
 
-    public function generate(InputClassPlan $plan) : string
+    public function generate(InputClassPlan $plan): string
     {
         $generator = new CodeGenerator($this->fullyQualified('Input'));
 
@@ -41,13 +40,21 @@ final class InputTypeGenerator extends AbstractGenerator
                 yield from $generator->dumpAttribute('Symfony\Component\DependencyInjection\Attribute\Exclude');
             }
 
-            yield sprintf('final readonly class %s implements %s', $plan->typeName, $generator->import(JsonSerializable::class));
+            yield sprintf(
+                'final readonly class %s implements %s',
+                $plan->typeName,
+                $generator->import(JsonSerializable::class),
+            );
             yield '{';
             yield $generator->indent(function () use ($plan, $generator) {
-                yield from $generator->docComment(function () use ($plan, $generator) {
+                yield from $generator->docComment(static function () use ($plan, $generator) {
                     foreach ($plan->fields as $fieldName => $fieldType) {
                         if ($fieldType instanceof SymfonyType\CollectionType) {
-                            yield sprintf('@param %s $%s', TypeDumper::dump($fieldType, $generator->import(...)), $fieldName);
+                            yield sprintf(
+                                '@param %s $%s',
+                                TypeDumper::dump($fieldType, $generator->import(...)),
+                                $fieldName,
+                            );
                         }
                     }
                 });
@@ -59,7 +66,7 @@ final class InputTypeGenerator extends AbstractGenerator
                             'public %s $%s%s,',
                             $this->dumpPHPType($fieldType, $generator->import(...)),
                             $fieldName,
-                            ! in_array($fieldName, $plan->required, true) ? ' = null' : '',
+                            !in_array($fieldName, $plan->required, true) ? ' = null' : '',
                         );
                     }
                 });
@@ -80,7 +87,7 @@ final class InputTypeGenerator extends AbstractGenerator
                             $fieldName,
                         );
                         yield '{';
-                        yield $generator->indent(function () use ($fieldName) {
+                        yield $generator->indent(static function () use ($fieldName) {
                             yield sprintf('return new self(%s: $%s);', $fieldName, $fieldName);
                         });
                         yield '}';
@@ -88,16 +95,16 @@ final class InputTypeGenerator extends AbstractGenerator
                 }
 
                 yield '';
-                yield from $generator->docComment(sprintf(
-                    '@return %s',
-                    TypeDumper::dump($plan->payloadShape, $generator->import(...)),
-                ));
+                yield from $generator->docComment(sprintf('@return %s', TypeDumper::dump(
+                    $plan->payloadShape,
+                    $generator->import(...),
+                )));
                 yield from $generator->dumpAttribute(Override::class);
                 yield 'public function jsonSerialize() : array';
                 yield '{';
-                yield $generator->indent(function () use ($generator, $plan) {
+                yield $generator->indent(static function () use ($generator, $plan) {
                     yield 'return [';
-                    yield $generator->indent(function () use ($plan) {
+                    yield $generator->indent(static function () use ($plan) {
                         foreach ($plan->fields as $fieldName => $fieldType) {
                             if ($fieldType->isIdentifiedBy(TypeIdentifier::STRING)) {
                                 if ($fieldType instanceof SymfonyType\NullableType) {
@@ -111,20 +118,12 @@ final class InputTypeGenerator extends AbstractGenerator
                                     continue;
                                 }
 
-                                yield sprintf(
-                                    "'%s' => (string) \$this->%s,",
-                                    $fieldName,
-                                    $fieldName,
-                                );
+                                yield sprintf("'%s' => (string) \$this->%s,", $fieldName, $fieldName);
 
                                 continue;
                             }
 
-                            yield sprintf(
-                                "'%s' => \$this->%s,",
-                                $fieldName,
-                                $fieldName,
-                            );
+                            yield sprintf("'%s' => \$this->%s,", $fieldName, $fieldName);
                         }
                     });
                     yield '];';

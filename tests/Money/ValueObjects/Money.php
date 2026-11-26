@@ -20,7 +20,7 @@ final readonly class Money implements JsonSerializable
     /**
      * @param numeric-string $amount
      */
-    public static function EUR(string $amount) : self
+    public static function EUR(string $amount): self
     {
         return new self($amount, Currency::EUR());
     }
@@ -28,7 +28,7 @@ final readonly class Money implements JsonSerializable
     /**
      * @param numeric-string $amount
      */
-    public static function USD(string $amount) : self
+    public static function USD(string $amount): self
     {
         return new self($amount, Currency::USD());
     }
@@ -36,22 +36,21 @@ final readonly class Money implements JsonSerializable
     /**
      * @param numeric-string $amount
      */
-    public static function GBP(string $amount) : self
+    public static function GBP(string $amount): self
     {
         return new self($amount, Currency::GBP());
     }
 
-    public function equals(self $other) : bool
+    public function equals(self $other): bool
     {
-        return $this->amount === $other->amount
-            && $this->currency->equals($other->currency);
+        return $this->amount === $other->amount && $this->currency->equals($other->currency);
     }
 
     /**
      * @return array{amount: string, currency: string}
      */
     #[Override]
-    public function jsonSerialize() : array
+    public function jsonSerialize(): array
     {
         return [
             'amount' => $this->amount,

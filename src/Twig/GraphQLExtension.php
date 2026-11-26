@@ -10,7 +10,7 @@ use Twig\Extension\AbstractExtension;
 final class GraphQLExtension extends AbstractExtension
 {
     #[Override]
-    public function getTokenParsers() : array
+    public function getTokenParsers(): array
     {
         return [
             new GraphQLTokenParser(),

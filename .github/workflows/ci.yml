@@ -82,11 +82,17 @@ jobs:
       - name: Check dependencies
         run: vendor/bin/composer-dependency-analyser
 
-      - name: Run PHP CS Fixer
-        run: vendor/bin/php-cs-fixer check --diff --ansi
+      - name: Check formatting
+        run: vendor/bin/mago format --check
 
-      - name: Run Twig CS Fixer
-        run: vendor/bin/twig-cs-fixer lint --ansi
+      - name: Run Mago linter
+        run: vendor/bin/mago lint --reporting-format=github
+
+      - name: Check Twig formatting
+        run: vendor/bin/mago twig:fmt --check
+
+      - name: Run Mago Twig linter
+        run: vendor/bin/mago twig:lint --reporting-format=github
 
       - name: Run PHPStan
         run: vendor/bin/phpstan analyse --ansi

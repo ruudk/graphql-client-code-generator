@@ -13,13 +13,12 @@ use Ruudk\GraphQLCodeGenerator\Planner;
 final class StaleImportRemovalTest extends GraphQLTestCase
 {
     #[Override]
-    public function getConfig() : Config
+    public function getConfig(): Config
     {
-        return parent::getConfig()
-            ->withInlineProcessingDirectory(__DIR__);
+        return parent::getConfig()->withInlineProcessingDirectory(__DIR__);
     }
 
-    public function testStaleImportsAreRemoved() : void
+    public function testStaleImportsAreRemoved(): void
     {
         // First, create a "stale" version of the controller file with old imports
         $staleContent = <<<'PHP'

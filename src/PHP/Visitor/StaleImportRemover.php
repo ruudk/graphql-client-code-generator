@@ -29,10 +29,8 @@ final class StaleImportRemover extends NodeVisitorAbstract
      * @param string $generatedNamespace The namespace for generated classes (e.g., "App\Generated")
      * @param list<string> $validFqcns The list of valid/current FQCNs to keep
      */
-    public function __construct(
-        string $generatedNamespace,
-        array $validFqcns,
-    ) {
+    public function __construct(string $generatedNamespace, array $validFqcns)
+    {
         $this->validFqcns = array_fill_keys($validFqcns, true);
 
         // Match only the operation's leaf classes we generate and can reason about:
@@ -40,20 +38,23 @@ final class StaleImportRemover extends NodeVisitorAbstract
         // classes (Data\..., Error\...) intentionally fall outside this pattern so
         // we don't remove them — we have no way to tell if they're stale or still in use.
         $escapedNamespace = preg_quote($generatedNamespace, '/');
-        $this->operationClassPattern = '/^' . $escapedNamespace . '\\\\(?:Query|Mutation)\\\\[A-Za-z]+[a-f0-9]{6}\\\\[A-Za-z]+(?:Query|Mutation)(?:FailedException)?$/';
+        $this->operationClassPattern =
+            '/^'
+            . $escapedNamespace
+            . '\\\\(?:Query|Mutation)\\\\[A-Za-z]+[a-f0-9]{6}\\\\[A-Za-z]+(?:Query|Mutation)(?:FailedException)?$/';
     }
 
     #[Override]
-    public function enterNode(Node $node) : ?int
+    public function enterNode(Node $node): ?int
     {
-        if ( ! $node instanceof Use_) {
+        if (!$node instanceof Use_) {
             return null;
         }
 
         foreach ($node->uses as $use) {
             $fqcn = $use->name->toString();
 
-            if (preg_match($this->operationClassPattern, $fqcn) === 1 && ! isset($this->validFqcns[$fqcn])) {
+            if (preg_match($this->operationClassPattern, $fqcn) === 1 && !isset($this->validFqcns[$fqcn])) {
                 return NodeVisitor::REMOVE_NODE;
             }
         }

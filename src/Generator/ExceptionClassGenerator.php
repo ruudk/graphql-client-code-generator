@@ -10,7 +10,7 @@ use Ruudk\GraphQLCodeGenerator\Planner\Plan\ExceptionClassPlan;
 
 final class ExceptionClassGenerator extends AbstractGenerator
 {
-    public function generate(ExceptionClassPlan $plan) : string
+    public function generate(ExceptionClassPlan $plan): string
     {
         $generator = new CodeGenerator($plan->namespace);
 
@@ -20,14 +20,14 @@ final class ExceptionClassGenerator extends AbstractGenerator
             yield '';
             yield sprintf('final class %s extends %s', $plan->className, $generator->import(Exception::class));
             yield '{';
-            yield $generator->indent(function () use ($generator, $plan) {
+            yield $generator->indent(static function () use ($generator, $plan) {
                 yield 'public function __construct(';
-                yield $generator->indent(function () use ($generator) {
+                yield $generator->indent(static function () use ($generator) {
                     yield from $generator->docComment('@api');
                     yield 'public readonly Data $data,';
                 });
                 yield ') {';
-                yield $generator->indent(function () use ($generator, $plan) {
+                yield $generator->indent(static function () use ($generator, $plan) {
                     yield 'parent::__construct(sprintf(';
                     yield $generator->indent([
                         sprintf("'%s failed%%s',", $plan->className),

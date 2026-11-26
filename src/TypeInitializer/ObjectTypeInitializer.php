@@ -23,7 +23,7 @@ final readonly class ObjectTypeInitializer implements TypeInitializer
     ) {}
 
     #[Override]
-    public function supports(Type $type) : bool
+    public function supports(Type $type): bool
     {
         return $type instanceof ObjectType;
     }
@@ -34,7 +34,7 @@ final readonly class ObjectTypeInitializer implements TypeInitializer
         CodeGenerator $generator,
         string $variable,
         DelegatingTypeInitializer $delegator,
-    ) : string {
+    ): string {
         $className = $type->getClassName();
         $arguments = $variable;
 

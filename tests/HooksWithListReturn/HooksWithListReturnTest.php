@@ -12,18 +12,17 @@ use Ruudk\GraphQLCodeGenerator\HooksWithListReturn\Generated\Query\Test\TestQuer
 final class HooksWithListReturnTest extends GraphQLTestCase
 {
     #[Override]
-    public function getConfig() : Config
+    public function getConfig(): Config
     {
-        return parent::getConfig()
-            ->withHook(FindUsersByIdsHook::class);
+        return parent::getConfig()->withHook(FindUsersByIdsHook::class);
     }
 
-    public function testGenerate() : void
+    public function testGenerate(): void
     {
         $this->assertActualMatchesExpected();
     }
 
-    public function testQuery() : void
+    public function testQuery(): void
     {
         $findUsersByIds = new FindUsersByIdsHook([
             'user-123' => new User('user-123', 'Alice'),

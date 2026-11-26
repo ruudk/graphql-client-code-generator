@@ -49,9 +49,8 @@ final class UsedTypesCollector
      */
     private array $processedInputTypes = [];
 
-    public function __construct(
-        Schema $schema,
-    ) {
+    public function __construct(Schema $schema)
+    {
         $this->schema = $schema;
         $this->typeInfo = new TypeInfo($schema);
     }
@@ -60,7 +59,7 @@ final class UsedTypesCollector
      * @throws InvalidArgumentException
      * @throws Exception
      */
-    public function analyze(DocumentNode $doc) : void
+    public function analyze(DocumentNode $doc): void
     {
         $this->indexFragments($doc);
 
@@ -69,11 +68,11 @@ final class UsedTypesCollector
         }
     }
 
-    private function indexFragments(DocumentNode $doc) : void
+    private function indexFragments(DocumentNode $doc): void
     {
         $this->fragments = [];
         foreach ($doc->definitions as $def) {
-            if ( ! $def instanceof FragmentDefinitionNode) {
+            if (!$def instanceof FragmentDefinitionNode) {
                 continue;
             }
 
@@ -86,7 +85,7 @@ final class UsedTypesCollector
      * @throws InvalidArgumentException
      * @throws Exception
      */
-    private function processInputObjectType(InputObjectType $type) : void
+    private function processInputObjectType(InputObjectType $type): void
     {
         // Avoid infinite recursion
         if (isset($this->processedInputTypes[$type->name])) {
@@ -96,7 +95,7 @@ final class UsedTypesCollector
         $this->processedInputTypes[$type->name] = true;
 
         // Add the type itself
-        if ( ! in_array($type->name, $this->usedTypes, true)) {
+        if (!in_array($type->name, $this->usedTypes, true)) {
             $this->usedTypes[] = $type->name;
         }
 
@@ -107,7 +106,7 @@ final class UsedTypesCollector
             if ($fieldType instanceof InputObjectType) {
                 // Recursively process nested input types
                 $this->processInputObjectType($fieldType);
-            } elseif ($fieldType instanceof EnumType && ! in_array($fieldType->name, $this->usedTypes, true)) {
+            } elseif ($fieldType instanceof EnumType && !in_array($fieldType->name, $this->usedTypes, true)) {
                 $this->usedTypes[] = $fieldType->name;
             }
         }
@@ -117,7 +116,7 @@ final class UsedTypesCollector
      * @throws InvalidArgumentException
      * @throws Exception
      */
-    private function visitNode(Node $node) : void
+    private function visitNode(Node $node): void
     {
         $wrapped = Visitor::visitWithTypeInfo($this->typeInfo, [
             'enter' => function (Node $n) {
@@ -128,7 +127,10 @@ final class UsedTypesCollector
                     if ($fieldType !== null) {
                         $named = Type::getNamedType($fieldType);
 
-                        if (($named instanceof EnumType || $named instanceof InputObjectType) && ! in_array($named->name, $this->usedTypes, true)) {
+                        if (
+                            ($named instanceof EnumType || $named instanceof InputObjectType)
+                            && !in_array($named->name, $this->usedTypes, true)
+                        ) {
                             $this->usedTypes[] = $named->name;
                         }
                     }
@@ -145,7 +147,7 @@ final class UsedTypesCollector
 
                         if ($named instanceof InputObjectType) {
                             $this->processInputObjectType($named);
-                        } elseif ($named instanceof EnumType && ! in_array($named->name, $this->usedTypes, true)) {
+                        } elseif ($named instanceof EnumType && !in_array($named->name, $this->usedTypes, true)) {
                             $this->usedTypes[] = $named->name;
                         }
                     }
@@ -157,7 +159,7 @@ final class UsedTypesCollector
                 if ($n instanceof EnumValueNode) {
                     $named = Type::getNamedType($this->typeInfo->getInputType());
 
-                    if ($named instanceof EnumType && ! in_array($named->name, $this->usedTypes, true)) {
+                    if ($named instanceof EnumType && !in_array($named->name, $this->usedTypes, true)) {
                         $this->usedTypes[] = $named->name;
                     }
 
@@ -182,7 +184,10 @@ final class UsedTypesCollector
                     if ($inputType !== null) {
                         $named = Type::getNamedType($inputType);
 
-                        if (($named instanceof EnumType || $named instanceof InputObjectType) && ! in_array($named->name, $this->usedTypes, true)) {
+                        if (
+                            ($named instanceof EnumType || $named instanceof InputObjectType)
+                            && !in_array($named->name, $this->usedTypes, true)
+                        ) {
                             $this->usedTypes[] = $named->name;
                         }
                     }
@@ -197,7 +202,7 @@ final class UsedTypesCollector
 
                     if ($named instanceof InputObjectType) {
                         $this->processInputObjectType($named);
-                    } elseif ($named instanceof EnumType && ! in_array($named->name, $this->usedTypes, true)) {
+                    } elseif ($named instanceof EnumType && !in_array($named->name, $this->usedTypes, true)) {
                         $this->usedTypes[] = $named->name;
                     }
 

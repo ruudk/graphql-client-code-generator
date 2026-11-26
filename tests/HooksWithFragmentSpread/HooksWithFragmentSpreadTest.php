@@ -15,31 +15,26 @@ use Symfony\Component\DependencyInjection\Reference;
 final class HooksWithFragmentSpreadTest extends GraphQLTestCase
 {
     #[Override]
-    public function getConfig() : Config
+    public function getConfig(): Config
     {
-        return parent::getConfig()
-            ->withHook(FindUserByIdHook::class)
-            ->enableSymfonyAutowireHooks();
+        return parent::getConfig()->withHook(FindUserByIdHook::class)->enableSymfonyAutowireHooks();
     }
 
-    public function testGenerate() : void
+    public function testGenerate(): void
     {
         $this->assertActualMatchesExpected();
     }
 
-    public function testQuery() : void
+    public function testQuery(): void
     {
         $findUserById = new FindUserByIdHook([
             'user-123' => new User('user-123', 'https://example.com/avatars/123.png'),
             'user-456' => new User('user-456', 'https://example.com/avatars/456.png'),
         ]);
 
-        $result = new TestQuery(
-            $this->getClient($this->getResponseData()),
-            [
-                'findUserById' => $findUserById,
-            ],
-        )->execute();
+        $result = new TestQuery($this->getClient($this->getResponseData()), [
+            'findUserById' => $findUserById,
+        ])->execute();
 
         $this->assertResult($result);
     }
@@ -50,23 +45,21 @@ final class HooksWithFragmentSpreadTest extends GraphQLTestCase
      * forwarded through the fragment-spread chain, compilation or service
      * resolution fails here.
      */
-    public function testQueryWithContainer() : void
+    public function testQueryWithContainer(): void
     {
         $client = $this->getClient($this->getResponseData());
 
         $container = new ContainerBuilder();
 
-        $container->register(TestClient::class)
-            ->setSynthetic(true)
-            ->setPublic(true);
+        $container->register(TestClient::class)->setSynthetic(true)->setPublic(true);
 
-        $container->register(FindUserByIdHook::class)
-            ->setArgument('$users', [
-                'user-123' => new User('user-123', 'https://example.com/avatars/123.png'),
-                'user-456' => new User('user-456', 'https://example.com/avatars/456.png'),
-            ]);
+        $container->register(FindUserByIdHook::class)->setArgument('$users', [
+            'user-123' => new User('user-123', 'https://example.com/avatars/123.png'),
+            'user-456' => new User('user-456', 'https://example.com/avatars/456.png'),
+        ]);
 
-        $container->register(TestQuery::class)
+        $container
+            ->register(TestQuery::class)
             ->setArgument('$client', new Reference(TestClient::class))
             ->setAutowired(true)
             ->setPublic(true);
@@ -83,7 +76,7 @@ final class HooksWithFragmentSpreadTest extends GraphQLTestCase
     /**
      * @return array<string, mixed>
      */
-    private function getResponseData() : array
+    private function getResponseData(): array
     {
         return [
             'data' => [
@@ -110,7 +103,7 @@ final class HooksWithFragmentSpreadTest extends GraphQLTestCase
         ];
     }
 
-    private function assertResult(Generated\Query\Test\Data $result) : void
+    private function assertResult(Generated\Query\Test\Data $result): void
     {
         self::assertSame('ruudk', $result->viewer->login);
         self::assertCount(2, $result->viewer->projects);

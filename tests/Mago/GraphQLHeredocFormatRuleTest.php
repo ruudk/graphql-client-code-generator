@@ -15,10 +15,11 @@ use Symfony\Component\Filesystem\Filesystem;
 final class GraphQLHeredocFormatRuleTest extends TestCase
 {
     private const string FIXTURES = __DIR__ . '/../GraphQLHeredocFixer/fixtures';
+
     private string $workspace;
 
     #[Override]
-    protected function setUp() : void
+    protected function setUp(): void
     {
         $this->workspace = sys_get_temp_dir() . '/graphql-heredoc-format-' . bin2hex(random_bytes(4));
 
@@ -34,7 +35,7 @@ final class GraphQLHeredocFormatRuleTest extends TestCase
     }
 
     #[Override]
-    protected function tearDown() : void
+    protected function tearDown(): void
     {
         new Filesystem()->remove($this->workspace);
     }
@@ -42,7 +43,7 @@ final class GraphQLHeredocFormatRuleTest extends TestCase
     /**
      * @return iterable<string, array{string, string}>
      */
-    public static function provideFixtures() : iterable
+    public static function provideFixtures(): iterable
     {
         yield 'unformatted nowdoc is formatted' => ['unformatted.php.fixture', 'formatted.php.fixture'];
         yield 'formatted nowdoc is left unchanged' => ['formatted.php.fixture', 'formatted.php.fixture'];
@@ -51,7 +52,7 @@ final class GraphQLHeredocFormatRuleTest extends TestCase
     }
 
     #[DataProvider('provideFixtures')]
-    public function testFix(string $input, string $expected) : void
+    public function testFix(string $input, string $expected): void
     {
         copy(self::FIXTURES . '/' . $input, $this->workspace . '/Example.php');
 

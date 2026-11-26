@@ -14,10 +14,10 @@ use SplFileInfo;
 
 final class NestedFragmentPayloadShapeTest extends TestCase
 {
-    private function createTestConfig(string $schema, string $queries) : Config
+    private function createTestConfig(string $schema, string $queries): Config
     {
         $tempDir = sys_get_temp_dir() . '/graphql-test-' . uniqid();
-        mkdir($tempDir, 0777, true);
+        mkdir($tempDir, 0o777, true);
         file_put_contents($tempDir . '/schema.graphql', $schema);
         file_put_contents($tempDir . '/query.graphql', $queries);
         $config = Config::create(
@@ -27,7 +27,7 @@ final class NestedFragmentPayloadShapeTest extends TestCase
             namespace: 'Test\\Generated',
             client: 'TestClient',
         )->withQueriesDir($tempDir);
-        register_shutdown_function(function () use ($tempDir) : void {
+        register_shutdown_function(static function () use ($tempDir): void {
             // Clean up temp files
             $files = new RecursiveIteratorIterator(
                 new RecursiveDirectoryIterator($tempDir, RecursiveDirectoryIterator::SKIP_DOTS),
@@ -46,7 +46,7 @@ final class NestedFragmentPayloadShapeTest extends TestCase
         return $config;
     }
 
-    public function testFragmentSpreadFieldsShouldMergeInNestedPayloadShapes() : void
+    public function testFragmentSpreadFieldsShouldMergeInNestedPayloadShapes(): void
     {
         $schema = '
             type Query { item: Item }
@@ -96,7 +96,7 @@ final class NestedFragmentPayloadShapeTest extends TestCase
         );
     }
 
-    public function testNestedFragmentReversalsFieldMerging() : void
+    public function testNestedFragmentReversalsFieldMerging(): void
     {
         $schema = '
             type Query { payment: Payment }

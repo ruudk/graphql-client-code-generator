@@ -12,22 +12,20 @@ use PHPUnit\Framework\TestCase;
 
 final class FragmentFinderTest extends TestCase
 {
-    public function testFindsFragmentOnRegularMethod() : void
+    public function testFindsFragmentOnRegularMethod(): void
     {
-        $finder = $this->collect(
-            <<<'PHP'
-                <?php
-                namespace App;
-                use Ruudk\GraphQLCodeGenerator\Attribute\GeneratedGraphQLFragment;
-                final class UserMapper {
-                    private const string FRAGMENT = 'fragment UserName on User { id }';
-                    public function mapMany(
-                        #[GeneratedGraphQLFragment(self::FRAGMENT)]
-                        array $users,
-                    ) : void {}
-                }
-                PHP,
-        );
+        $finder = $this->collect(<<<'PHP'
+            <?php
+            namespace App;
+            use Ruudk\GraphQLCodeGenerator\Attribute\GeneratedGraphQLFragment;
+            final class UserMapper {
+                private const string FRAGMENT = 'fragment UserName on User { id }';
+                public function mapMany(
+                    #[GeneratedGraphQLFragment(self::FRAGMENT)]
+                    array $users,
+                ) : void {}
+            }
+            PHP);
 
         self::assertSame(
             [
@@ -41,30 +39,32 @@ final class FragmentFinderTest extends TestCase
         );
     }
 
-    public function testThrowsWhenUsedOnConstructorParameter() : void
+    public function testThrowsWhenUsedOnConstructorParameter(): void
     {
         $this->expectException(InvalidArgumentException::class);
-        $this->expectExceptionMessageIsOrContains('The #[GeneratedGraphQLFragment] attribute cannot be used on constructor parameters. Found on "App\UserMapper::__construct::$data". Use it on a non-constructor method parameter instead.');
-
-        $this->collect(
-            <<<'PHP'
-                <?php
-                namespace App;
-                use Ruudk\GraphQLCodeGenerator\Attribute\GeneratedGraphQLFragment;
-                final class UserMapper {
-                    private const string FRAGMENT = 'fragment UserName on User { id }';
-                    public function __construct(
-                        #[GeneratedGraphQLFragment(self::FRAGMENT)]
-                        private object $data,
-                    ) {}
-                }
-                PHP,
+        $this->expectExceptionMessageIsOrContains(
+            'The #[GeneratedGraphQLFragment] attribute cannot be used on constructor parameters. Found on "App\UserMapper::__construct::$data". Use it on a non-constructor method parameter instead.',
         );
+
+        $this->collect(<<<'PHP'
+            <?php
+            namespace App;
+            use Ruudk\GraphQLCodeGenerator\Attribute\GeneratedGraphQLFragment;
+            final class UserMapper {
+                private const string FRAGMENT = 'fragment UserName on User { id }';
+                public function __construct(
+                    #[GeneratedGraphQLFragment(self::FRAGMENT)]
+                    private object $data,
+                ) {}
+            }
+            PHP);
     }
 
-    private function collect(string $code) : FragmentFinder
+    private function collect(string $code): FragmentFinder
     {
-        $stmts = new ParserFactory()->createForNewestSupportedVersion()->parse($code);
+        $stmts = new ParserFactory()
+            ->createForNewestSupportedVersion()
+            ->parse($code);
         self::assertNotNull($stmts);
 
         $classConstants = new ClassConstantFinder();

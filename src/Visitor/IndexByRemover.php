@@ -23,10 +23,10 @@ final readonly class IndexByRemover
      * @throws Exception
      * @return T
      */
-    public function __invoke(Node $node) : Node
+    public function __invoke(Node $node): Node
     {
         $new = Visitor::visit($node, [
-            NodeKind::DIRECTIVE => function (Node $node) : ?VisitorRemoveNode {
+            NodeKind::DIRECTIVE => static function (Node $node): ?VisitorRemoveNode {
                 Assert::isInstanceOf($node, DirectiveNode::class);
 
                 if ($node->name->value !== 'indexBy') {

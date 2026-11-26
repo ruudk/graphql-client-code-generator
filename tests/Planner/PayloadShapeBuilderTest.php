@@ -27,7 +27,7 @@ final class PayloadShapeBuilderTest extends TestCase
     private PayloadShapeBuilder $builder;
 
     #[Override]
-    protected function setUp() : void
+    protected function setUp(): void
     {
         $schema = <<<'GRAPHQL'
             scalar DateTime
@@ -164,117 +164,90 @@ final class PayloadShapeBuilderTest extends TestCase
             [], // inputObjectTypes
             [], // objectTypes
         );
-        $this->builder = new PayloadShapeBuilder(
-            $this->schema,
-            $typeMapper,
-        );
+        $this->builder = new PayloadShapeBuilder($this->schema, $typeMapper);
     }
 
-    public function testSimpleDirectSelection() : void
+    public function testSimpleDirectSelection(): void
     {
         $queryType = $this->schema->getQueryType();
         self::assertNotNull($queryType);
-        $shape = $this->builder->buildPayloadShape(
-            $this->parseSelectionSet(<<<'GRAPHQL'
-                {
-                  id
-                }
-                GRAPHQL),
-            $queryType,
-        );
-        self::assertSame(
-            <<<'PHPDOC'
-                array{
+        $shape = $this->builder->buildPayloadShape($this->parseSelectionSet(<<<'GRAPHQL'
+            {
+              id
+            }
+            GRAPHQL), $queryType);
+        self::assertSame(<<<'PHPDOC'
+            array{
+                'id': string,
+                ...,
+            }
+            PHPDOC, TypeDumper::dump($shape->toArrayShape()));
+    }
+
+    public function testNestedSelection(): void
+    {
+        $queryType = $this->schema->getQueryType();
+        self::assertNotNull($queryType);
+        $shape = $this->builder->buildPayloadShape($this->parseSelectionSet(<<<'GRAPHQL'
+            {
+              id
+              user {
+                name
+                email
+              }
+            }
+            GRAPHQL), $queryType);
+        self::assertSame(<<<'PHPDOC'
+            array{
+                'id': string,
+                'user': null|array{
+                    'email': null|string,
+                    'name': string,
+                    ...,
+                },
+                ...,
+            }
+            PHPDOC, TypeDumper::dump($shape->toArrayShape()));
+    }
+
+    public function testListField(): void
+    {
+        $queryType = $this->schema->getQueryType();
+        self::assertNotNull($queryType);
+        $shape = $this->builder->buildPayloadShape($this->parseSelectionSet(<<<'GRAPHQL'
+            {
+              users {
+                id
+                name
+              }
+            }
+            GRAPHQL), $queryType);
+        self::assertSame(<<<'PHPDOC'
+            array{
+                'users': list<array{
                     'id': string,
+                    'name': string,
                     ...,
-                }
-                PHPDOC,
-            TypeDumper::dump($shape->toArrayShape()),
-        );
+                }>,
+                ...,
+            }
+            PHPDOC, TypeDumper::dump($shape->toArrayShape()));
     }
 
-    public function testNestedSelection() : void
-    {
-        $queryType = $this->schema->getQueryType();
-        self::assertNotNull($queryType);
-        $shape = $this->builder->buildPayloadShape(
-            $this->parseSelectionSet(
-                <<<'GRAPHQL'
-                    {
-                      id
-                      user {
-                        name
-                        email
-                      }
-                    }
-                    GRAPHQL
-            ),
-            $queryType,
-        );
-        self::assertSame(
-            <<<'PHPDOC'
-                array{
-                    'id': string,
-                    'user': null|array{
-                        'email': null|string,
-                        'name': string,
-                        ...,
-                    },
-                    ...,
-                }
-                PHPDOC,
-            TypeDumper::dump($shape->toArrayShape()),
-        );
-    }
-
-    public function testListField() : void
-    {
-        $queryType = $this->schema->getQueryType();
-        self::assertNotNull($queryType);
-        $shape = $this->builder->buildPayloadShape(
-            $this->parseSelectionSet(
-                <<<'GRAPHQL'
-                    {
-                      users {
-                        id
-                        name
-                      }
-                    }
-                    GRAPHQL
-            ),
-            $queryType,
-        );
-        self::assertSame(
-            <<<'PHPDOC'
-                array{
-                    'users': list<array{
-                        'id': string,
-                        'name': string,
-                        ...,
-                    }>,
-                    ...,
-                }
-                PHPDOC,
-            TypeDumper::dump($shape->toArrayShape()),
-        );
-    }
-
-    public function testDirectSelectionAndFragmentWithSameField() : void
+    public function testDirectSelectionAndFragmentWithSameField(): void
     {
         // Define fragments
-        $fragments = $this->parseFragments(
-            <<<'GRAPHQL'
-                fragment TransactionDetails on Transaction {
-                  transfers {
-                    id
-                    canBeCollected
-                    transferReversals {
-                      id
-                    }
-                  }
+        $fragments = $this->parseFragments(<<<'GRAPHQL'
+            fragment TransactionDetails on Transaction {
+              transfers {
+                id
+                canBeCollected
+                transferReversals {
+                  id
                 }
-                GRAPHQL
-        );
+              }
+            }
+            GRAPHQL);
         $builder = new PayloadShapeBuilder(
             $this->schema,
             new TypeMapper(
@@ -293,21 +266,19 @@ final class PayloadShapeBuilderTest extends TestCase
             $fragments['definitions'],
             $fragments['types'],
         );
-        $selectionSet = $this->parseSelectionSet(
-            <<<'GRAPHQL'
-                {
-                  transaction {
-                    transfers {
-                      id
-                      customer {
-                        id
-                      }
-                    }
-                    ...TransactionDetails
+        $selectionSet = $this->parseSelectionSet(<<<'GRAPHQL'
+            {
+              transaction {
+                transfers {
+                  id
+                  customer {
+                    id
                   }
                 }
-                GRAPHQL
-        );
+                ...TransactionDetails
+              }
+            }
+            GRAPHQL);
         $transactionType = $this->schema->getType('Transaction');
         self::assertNotNull($transactionType);
         $transactionField = $selectionSet->selections[0];
@@ -316,48 +287,43 @@ final class PayloadShapeBuilderTest extends TestCase
         self::assertNotNull($transactionSelectionSet);
         $shape = $builder->buildPayloadShape($transactionSelectionSet, $transactionType);
         // The payload shape should contain ALL fields from both selections
-        self::assertSame(
-            <<<'PHPDOC'
-                array{
-                    'transfers': list<array{
-                        'canBeCollected': bool,
-                        'customer': null|array{
-                            'id': string,
-                            ...,
-                        },
+        self::assertSame(<<<'PHPDOC'
+            array{
+                'transfers': list<array{
+                    'canBeCollected': bool,
+                    'customer': null|array{
                         'id': string,
-                        'transferReversals': list<array{
-                            'id': string,
-                            ...,
-                        }>,
+                        ...,
+                    },
+                    'id': string,
+                    'transferReversals': list<array{
+                        'id': string,
                         ...,
                     }>,
                     ...,
-                }
-                PHPDOC,
-            TypeDumper::dump($shape->toArrayShape()),
-        );
+                }>,
+                ...,
+            }
+            PHPDOC, TypeDumper::dump($shape->toArrayShape()));
     }
 
-    public function testInlineFragmentsOnInterface() : void
+    public function testInlineFragmentsOnInterface(): void
     {
-        $selectionSet = $this->parseSelectionSet(
-            <<<'GRAPHQL'
-                {
-                  viewer {
-                    id
-                    ... on UserViewer {
-                      email
-                      address
-                    }
-                    ... on AdminViewer {
-                      email
-                      role
-                    }
-                  }
+        $selectionSet = $this->parseSelectionSet(<<<'GRAPHQL'
+            {
+              viewer {
+                id
+                ... on UserViewer {
+                  email
+                  address
                 }
-                GRAPHQL
-        );
+                ... on AdminViewer {
+                  email
+                  role
+                }
+              }
+            }
+            GRAPHQL);
         $viewerType = $this->schema->getType('Viewer');
         self::assertNotNull($viewerType);
         $viewerField = $selectionSet->selections[0];
@@ -365,39 +331,34 @@ final class PayloadShapeBuilderTest extends TestCase
         $viewerSelectionSet = $viewerField->selectionSet;
         self::assertNotNull($viewerSelectionSet);
         $shape = $this->builder->buildPayloadShape($viewerSelectionSet, $viewerType);
-        self::assertSame(
-            <<<'PHPDOC'
-                array{
-                    'address'?: null|string,
-                    'email'?: string,
-                    'id': string,
-                    'role'?: string,
-                    ...,
-                }
-                PHPDOC,
-            TypeDumper::dump($shape->toArrayShape()),
-        );
+        self::assertSame(<<<'PHPDOC'
+            array{
+                'address'?: null|string,
+                'email'?: string,
+                'id': string,
+                'role'?: string,
+                ...,
+            }
+            PHPDOC, TypeDumper::dump($shape->toArrayShape()));
     }
 
-    public function testMultipleFragmentsSelectingSameField() : void
+    public function testMultipleFragmentsSelectingSameField(): void
     {
-        $fragments = $this->parseFragments(
-            <<<'GRAPHQL'
-                fragment FragmentA on User {
-                  profile {
-                    name
-                    age
-                  }
-                }
+        $fragments = $this->parseFragments(<<<'GRAPHQL'
+            fragment FragmentA on User {
+              profile {
+                name
+                age
+              }
+            }
 
-                fragment FragmentB on User {
-                  profile {
-                    name
-                    email
-                  }
-                }
-                GRAPHQL
-        );
+            fragment FragmentB on User {
+              profile {
+                name
+                email
+              }
+            }
+            GRAPHQL);
         $builder = new PayloadShapeBuilder(
             $this->schema,
             new TypeMapper(
@@ -416,114 +377,88 @@ final class PayloadShapeBuilderTest extends TestCase
             $fragments['definitions'],
             $fragments['types'],
         );
-        $shape = $builder->buildPayloadShape(
-            $this->parseSelectionSet(
-                <<<'GRAPHQL'
-                    {
-                      ...FragmentA
-                      ...FragmentB
-                    }
-                    GRAPHQL
-            ),
-            $this->schema->getType('User') ?? throw new RuntimeException('User type not found'),
-        );
-        self::assertSame(
-            <<<'PHPDOC'
-                array{
-                    'profile': null|array{
-                        'age': null|int,
-                        'email': null|string,
-                        'name': string,
-                        ...,
-                    },
+        $shape = $builder->buildPayloadShape($this->parseSelectionSet(<<<'GRAPHQL'
+            {
+              ...FragmentA
+              ...FragmentB
+            }
+            GRAPHQL), $this->schema->getType('User') ?? throw new RuntimeException('User type not found'));
+        self::assertSame(<<<'PHPDOC'
+            array{
+                'profile': null|array{
+                    'age': null|int,
+                    'email': null|string,
+                    'name': string,
                     ...,
-                }
-                PHPDOC,
-            TypeDumper::dump($shape->toArrayShape()),
-        );
+                },
+                ...,
+            }
+            PHPDOC, TypeDumper::dump($shape->toArrayShape()));
     }
 
-    public function testTypenameField() : void
+    public function testTypenameField(): void
     {
         $queryType = $this->schema->getQueryType();
         self::assertNotNull($queryType);
-        $shape = $this->builder->buildPayloadShape(
-            $this->parseSelectionSet(
-                <<<'GRAPHQL'
-                    {
-                      __typename
-                      id
-                    }
-                    GRAPHQL
-            ),
-            $queryType,
-        );
-        self::assertSame(
-            <<<'PHPDOC'
-                array{
-                    '__typename': string,
+        $shape = $this->builder->buildPayloadShape($this->parseSelectionSet(<<<'GRAPHQL'
+            {
+              __typename
+              id
+            }
+            GRAPHQL), $queryType);
+        self::assertSame(<<<'PHPDOC'
+            array{
+                '__typename': string,
+                'id': string,
+                ...,
+            }
+            PHPDOC, TypeDumper::dump($shape->toArrayShape()));
+    }
+
+    public function testCustomScalars(): void
+    {
+        $queryType = $this->schema->getQueryType();
+        self::assertNotNull($queryType);
+        $shape = $this->builder->buildPayloadShape($this->parseSelectionSet(<<<'GRAPHQL'
+            {
+              user {
+                id
+                name
+                metadata
+                lastSeen
+                createdAt
+              }
+            }
+            GRAPHQL), $queryType);
+        self::assertSame(<<<'PHPDOC'
+            array{
+                'user': null|array{
+                    'createdAt': scalar,
                     'id': string,
+                    'lastSeen': null|scalar,
+                    'metadata': null|scalar,
+                    'name': string,
                     ...,
-                }
-                PHPDOC,
-            TypeDumper::dump($shape->toArrayShape()),
-        );
+                },
+                ...,
+            }
+            PHPDOC, TypeDumper::dump($shape->toArrayShape()));
     }
 
-    public function testCustomScalars() : void
+    public function testComplexNestedMerging(): void
     {
-        $queryType = $this->schema->getQueryType();
-        self::assertNotNull($queryType);
-        $shape = $this->builder->buildPayloadShape(
-            $this->parseSelectionSet(
-                <<<'GRAPHQL'
-                    {
-                      user {
-                        id
-                        name
-                        metadata
-                        lastSeen
-                        createdAt
-                      }
-                    }
-                    GRAPHQL
-            ),
-            $queryType,
-        );
-        self::assertSame(
-            <<<'PHPDOC'
-                array{
-                    'user': null|array{
-                        'createdAt': scalar,
-                        'id': string,
-                        'lastSeen': null|scalar,
-                        'metadata': null|scalar,
-                        'name': string,
-                        ...,
-                    },
-                    ...,
+        $fragments = $this->parseFragments(<<<'GRAPHQL'
+            fragment TransactionDetails on Transaction {
+              transfers {
+                id
+                state
+                createdAt
+                customer {
+                  name
                 }
-                PHPDOC,
-            TypeDumper::dump($shape->toArrayShape()),
-        );
-    }
-
-    public function testComplexNestedMerging() : void
-    {
-        $fragments = $this->parseFragments(
-            <<<'GRAPHQL'
-                fragment TransactionDetails on Transaction {
-                  transfers {
-                    id
-                    state
-                    createdAt
-                    customer {
-                      name
-                    }
-                  }
-                }
-                GRAPHQL
-        );
+              }
+            }
+            GRAPHQL);
         $builder = new PayloadShapeBuilder(
             $this->schema,
             new TypeMapper(
@@ -542,19 +477,17 @@ final class PayloadShapeBuilderTest extends TestCase
             $fragments['definitions'],
             $fragments['types'],
         );
-        $selectionSet = $this->parseSelectionSet(
-            <<<'GRAPHQL'
-                {
-                  transaction {
-                    transfers {
-                      id
-                      state
-                    }
-                    ...TransactionDetails
-                  }
+        $selectionSet = $this->parseSelectionSet(<<<'GRAPHQL'
+            {
+              transaction {
+                transfers {
+                  id
+                  state
                 }
-                GRAPHQL
-        );
+                ...TransactionDetails
+              }
+            }
+            GRAPHQL);
         $transactionType = $this->schema->getType('Transaction');
         self::assertNotNull($transactionType);
         $transactionField = $selectionSet->selections[0];
@@ -563,40 +496,35 @@ final class PayloadShapeBuilderTest extends TestCase
         self::assertNotNull($transactionSelectionSet);
         $shape = $builder->buildPayloadShape($transactionSelectionSet, $transactionType);
         // Should merge all fields from direct and fragment selection
-        self::assertSame(
-            <<<'PHPDOC'
-                array{
-                    'transfers': list<array{
-                        'createdAt': string,
-                        'customer': null|array{
-                            'name': string,
-                            ...,
-                        },
-                        'id': string,
-                        'state': string,
+        self::assertSame(<<<'PHPDOC'
+            array{
+                'transfers': list<array{
+                    'createdAt': string,
+                    'customer': null|array{
+                        'name': string,
                         ...,
-                    }>,
+                    },
+                    'id': string,
+                    'state': string,
                     ...,
-                }
-                PHPDOC,
-            TypeDumper::dump($shape->toArrayShape()),
-        );
+                }>,
+                ...,
+            }
+            PHPDOC, TypeDumper::dump($shape->toArrayShape()));
     }
 
-    public function testUnionWithFragmentSpreads() : void
+    public function testUnionWithFragmentSpreads(): void
     {
         // Test that fragment spreads inside inline fragments on unions work correctly
-        $fragments = $this->parseFragments(
-            <<<'GRAPHQL'
-                fragment TransactionFields on Transaction {
-                  id
-                  transfers {
-                    id
-                    state
-                  }
-                }
-                GRAPHQL
-        );
+        $fragments = $this->parseFragments(<<<'GRAPHQL'
+            fragment TransactionFields on Transaction {
+              id
+              transfers {
+                id
+                state
+              }
+            }
+            GRAPHQL);
         $builder = new PayloadShapeBuilder(
             $this->schema,
             new TypeMapper(
@@ -617,45 +545,37 @@ final class PayloadShapeBuilderTest extends TestCase
         );
         $queryType = $this->schema->getQueryType();
         self::assertNotNull($queryType);
-        $shape = $builder->buildPayloadShape(
-            $this->parseSelectionSet(
-                <<<'GRAPHQL'
-                    {
-                      search(query: "test") {
-                        ... on Transaction {
-                          ...TransactionFields
-                          transfers {
-                            canBeCollected
-                          }
-                        }
-                      }
-                    }
-                    GRAPHQL
-            ),
-            $queryType,
-        );
+        $shape = $builder->buildPayloadShape($this->parseSelectionSet(<<<'GRAPHQL'
+            {
+              search(query: "test") {
+                ... on Transaction {
+                  ...TransactionFields
+                  transfers {
+                    canBeCollected
+                  }
+                }
+              }
+            }
+            GRAPHQL), $queryType);
         // The payload should contain all fields from the fragment AND the direct selection
-        self::assertSame(
-            <<<'PHPDOC'
-                array{
-                    'search': list<array{
-                        'id'?: string,
-                        'transfers'?: list<array{
-                            'canBeCollected': bool,
-                            'id': string,
-                            'state': string,
-                            ...,
-                        }>,
+        self::assertSame(<<<'PHPDOC'
+            array{
+                'search': list<array{
+                    'id'?: string,
+                    'transfers'?: list<array{
+                        'canBeCollected': bool,
+                        'id': string,
+                        'state': string,
                         ...,
                     }>,
                     ...,
-                }
-                PHPDOC,
-            TypeDumper::dump($shape->toArrayShape()),
-        );
+                }>,
+                ...,
+            }
+            PHPDOC, TypeDumper::dump($shape->toArrayShape()));
     }
 
-    public function testDeeplyNestedWithLists() : void
+    public function testDeeplyNestedWithLists(): void
     {
         // This test pushes the boundaries with:
         // 1. Lists of unions with fragments (search returns list of SearchResult union)
@@ -664,57 +584,55 @@ final class PayloadShapeBuilderTest extends TestCase
         // 4. Same fragment used in both list and single object contexts
         // 5. Complex merging scenarios with lists of objects
         // 6. Testing nullability at different levels (nullable Customer, non-null lists)
-        $fragments = $this->parseFragments(
-            <<<'GRAPHQL'
-                fragment Level4Customer on Customer {
-                  id
-                  name
-                }
+        $fragments = $this->parseFragments(<<<'GRAPHQL'
+            fragment Level4Customer on Customer {
+              id
+              name
+            }
 
-                fragment Level3TransferReversal on TransferReversal {
-                  id
-                }
+            fragment Level3TransferReversal on TransferReversal {
+              id
+            }
 
-                fragment Level2Transfer on Transfer {
-                  id
-                  state
-                  customer {
-                    ...Level4Customer
-                  }
-                  transferReversals {
-                    ...Level3TransferReversal
-                  }
-                }
+            fragment Level2Transfer on Transfer {
+              id
+              state
+              customer {
+                ...Level4Customer
+              }
+              transferReversals {
+                ...Level3TransferReversal
+              }
+            }
 
-                fragment Level1Transaction on Transaction {
-                  id
-                  transfers {
-                    ...Level2Transfer
-                    canBeCollected
-                  }
-                }
+            fragment Level1Transaction on Transaction {
+              id
+              transfers {
+                ...Level2Transfer
+                canBeCollected
+              }
+            }
 
-                fragment SearchFields on SearchResult {
-                  ... on User {
-                    id
-                    name
-                    email
-                  }
-                  ... on Transaction {
-                    ...Level1Transaction
-                  }
-                  ... on Customer {
-                    ...Level4Customer
-                  }
-                }
+            fragment SearchFields on SearchResult {
+              ... on User {
+                id
+                name
+                email
+              }
+              ... on Transaction {
+                ...Level1Transaction
+              }
+              ... on Customer {
+                ...Level4Customer
+              }
+            }
 
-                fragment UserFields on User {
-                  id
-                  name
-                  email
-                }
-                GRAPHQL
-        );
+            fragment UserFields on User {
+              id
+              name
+              email
+            }
+            GRAPHQL);
         $builder = new PayloadShapeBuilder(
             $this->schema,
             new TypeMapper(
@@ -735,42 +653,37 @@ final class PayloadShapeBuilderTest extends TestCase
         );
         $queryType = $this->schema->getQueryType();
         self::assertNotNull($queryType);
-        $shape = $builder->buildPayloadShape(
-            $this->parseSelectionSet(
-                <<<'GRAPHQL'
-                    {
-                      search(query: "nested") {
-                        ...SearchFields
-                        ... on Transaction {
-                          transfers {
-                            createdAt
-                            transferReversals {
-                              id
-                            }
-                          }
-                        }
-                      }
-                      user {
-                        ...UserFields
-                      }
-                      users {
-                        ...UserFields
-                        id
-                      }
-                      transaction {
-                        ...Level1Transaction
-                        transfers {
-                          createdAt
-                          customer {
-                            id
-                          }
-                        }
-                      }
+        $shape = $builder->buildPayloadShape($this->parseSelectionSet(<<<'GRAPHQL'
+            {
+              search(query: "nested") {
+                ...SearchFields
+                ... on Transaction {
+                  transfers {
+                    createdAt
+                    transferReversals {
+                      id
                     }
-                    GRAPHQL
-            ),
-            $queryType,
-        );
+                  }
+                }
+              }
+              user {
+                ...UserFields
+              }
+              users {
+                ...UserFields
+                id
+              }
+              transaction {
+                ...Level1Transaction
+                transfers {
+                  createdAt
+                  customer {
+                    id
+                  }
+                }
+              }
+            }
+            GRAPHQL), $queryType);
         // This should properly merge all deeply nested fragments
         // Testing:
         // - 4 levels of nesting: search -> Transaction -> transfers -> transferReversals
@@ -778,71 +691,68 @@ final class PayloadShapeBuilderTest extends TestCase
         // - Non-null lists: transfers, transferReversals, users, search results
         // - Union type with optional fields for each type
         // - Fragment merging (Level1Transaction + direct transfer fields)
-        self::assertSame(
-            <<<'PHPDOC'
-                array{
-                    'search': list<array{
-                        'email'?: null|string,
-                        'id'?: string,
-                        'name'?: string,
-                        'transfers'?: list<array{
-                            'canBeCollected': bool,
-                            'createdAt': string,
-                            'customer': null|array{
-                                'id': string,
-                                'name': string,
-                                ...,
-                            },
+        self::assertSame(<<<'PHPDOC'
+            array{
+                'search': list<array{
+                    'email'?: null|string,
+                    'id'?: string,
+                    'name'?: string,
+                    'transfers'?: list<array{
+                        'canBeCollected': bool,
+                        'createdAt': string,
+                        'customer': null|array{
                             'id': string,
-                            'state': string,
-                            'transferReversals': list<array{
-                                'id': string,
-                                ...,
-                            }>,
+                            'name': string,
+                            ...,
+                        },
+                        'id': string,
+                        'state': string,
+                        'transferReversals': list<array{
+                            'id': string,
                             ...,
                         }>,
-                        ...,
-                    }>,
-                    'transaction': null|array{
-                        'id': string,
-                        'transfers': list<array{
-                            'canBeCollected': bool,
-                            'createdAt': string,
-                            'customer': null|array{
-                                'id': string,
-                                'name': string,
-                                ...,
-                            },
-                            'id': string,
-                            'state': string,
-                            'transferReversals': list<array{
-                                'id': string,
-                                ...,
-                            }>,
-                            ...,
-                        }>,
-                        ...,
-                    },
-                    'user': null|array{
-                        'email': null|string,
-                        'id': string,
-                        'name': string,
-                        ...,
-                    },
-                    'users': list<array{
-                        'email': null|string,
-                        'id': string,
-                        'name': string,
                         ...,
                     }>,
                     ...,
-                }
-                PHPDOC,
-            TypeDumper::dump($shape->toArrayShape()),
-        );
+                }>,
+                'transaction': null|array{
+                    'id': string,
+                    'transfers': list<array{
+                        'canBeCollected': bool,
+                        'createdAt': string,
+                        'customer': null|array{
+                            'id': string,
+                            'name': string,
+                            ...,
+                        },
+                        'id': string,
+                        'state': string,
+                        'transferReversals': list<array{
+                            'id': string,
+                            ...,
+                        }>,
+                        ...,
+                    }>,
+                    ...,
+                },
+                'user': null|array{
+                    'email': null|string,
+                    'id': string,
+                    'name': string,
+                    ...,
+                },
+                'users': list<array{
+                    'email': null|string,
+                    'id': string,
+                    'name': string,
+                    ...,
+                }>,
+                ...,
+            }
+            PHPDOC, TypeDumper::dump($shape->toArrayShape()));
     }
 
-    public function testIncludeDirective() : void
+    public function testIncludeDirective(): void
     {
         // @include(if: $var) should make fields nullable since they might not be included
         $builder = new PayloadShapeBuilder(
@@ -863,58 +773,50 @@ final class PayloadShapeBuilderTest extends TestCase
         );
         $queryType = $this->schema->getQueryType();
         self::assertNotNull($queryType);
-        $shape = $builder->buildPayloadShape(
-            $this->parseSelectionSet(
-                <<<'GRAPHQL'
-                    {
-                      id
-                      user @include(if: $includeUser) {
-                        id
-                        name
-                        email
-                      }
-                      transaction {
-                        id
-                        transfers @include(if: $includeTransfers) {
-                          id
-                          state
-                        }
-                      }
-                    }
-                    GRAPHQL
-            ),
-            $queryType,
-        );
+        $shape = $builder->buildPayloadShape($this->parseSelectionSet(<<<'GRAPHQL'
+            {
+              id
+              user @include(if: $includeUser) {
+                id
+                name
+                email
+              }
+              transaction {
+                id
+                transfers @include(if: $includeTransfers) {
+                  id
+                  state
+                }
+              }
+            }
+            GRAPHQL), $queryType);
         // User field should be optional because of @include (might not be in response)
         // Transaction field is always included (no directive)
         // Transaction.transfers should be optional because of @include (might not be in response)
-        self::assertSame(
-            <<<'PHPDOC'
-                array{
+        self::assertSame(<<<'PHPDOC'
+            array{
+                'id': string,
+                'transaction': null|array{
                     'id': string,
-                    'transaction': null|array{
+                    'transfers'?: list<array{
                         'id': string,
-                        'transfers'?: list<array{
-                            'id': string,
-                            'state': string,
-                            ...,
-                        }>,
+                        'state': string,
                         ...,
-                    },
-                    'user'?: null|array{
-                        'email': null|string,
-                        'id': string,
-                        'name': string,
-                        ...,
-                    },
+                    }>,
                     ...,
-                }
-                PHPDOC,
-            TypeDumper::dump($shape->toArrayShape()),
-        );
+                },
+                'user'?: null|array{
+                    'email': null|string,
+                    'id': string,
+                    'name': string,
+                    ...,
+                },
+                ...,
+            }
+            PHPDOC, TypeDumper::dump($shape->toArrayShape()));
     }
 
-    public function testSkipDirective() : void
+    public function testSkipDirective(): void
     {
         // @skip(if: $var) should make fields nullable since they might be skipped
         $builder = new PayloadShapeBuilder(
@@ -935,61 +837,51 @@ final class PayloadShapeBuilderTest extends TestCase
         );
         $queryType = $this->schema->getQueryType();
         self::assertNotNull($queryType);
-        $shape = $builder->buildPayloadShape(
-            $this->parseSelectionSet(
-                <<<'GRAPHQL'
-                    {
-                      id
-                      user @skip(if: $skipUser) {
-                        id
-                        name
-                        email @skip(if: $skipEmail)
-                      }
-                      users @skip(if: $skipUsers) {
-                        id
-                        name
-                      }
-                    }
-                    GRAPHQL
-            ),
-            $queryType,
-        );
+        $shape = $builder->buildPayloadShape($this->parseSelectionSet(<<<'GRAPHQL'
+            {
+              id
+              user @skip(if: $skipUser) {
+                id
+                name
+                email @skip(if: $skipEmail)
+              }
+              users @skip(if: $skipUsers) {
+                id
+                name
+              }
+            }
+            GRAPHQL), $queryType);
         // User and users fields should be optional because of @skip (might not be in response)
         // Note: email inside user should also be optional due to nested @skip
-        self::assertSame(
-            <<<'PHPDOC'
-                array{
+        self::assertSame(<<<'PHPDOC'
+            array{
+                'id': string,
+                'user'?: null|array{
+                    'email'?: null|string,
                     'id': string,
-                    'user'?: null|array{
-                        'email'?: null|string,
-                        'id': string,
-                        'name': string,
-                        ...,
-                    },
-                    'users'?: list<array{
-                        'id': string,
-                        'name': string,
-                        ...,
-                    }>,
+                    'name': string,
                     ...,
-                }
-                PHPDOC,
-            TypeDumper::dump($shape->toArrayShape()),
-        );
+                },
+                'users'?: list<array{
+                    'id': string,
+                    'name': string,
+                    ...,
+                }>,
+                ...,
+            }
+            PHPDOC, TypeDumper::dump($shape->toArrayShape()));
     }
 
-    public function testDirectivesWithFragments() : void
+    public function testDirectivesWithFragments(): void
     {
         // Test directives combined with fragments
-        $fragments = $this->parseFragments(
-            <<<'GRAPHQL'
-                fragment UserFields on User {
-                  id
-                  name
-                  email @include(if: $includeEmail)
-                }
-                GRAPHQL
-        );
+        $fragments = $this->parseFragments(<<<'GRAPHQL'
+            fragment UserFields on User {
+              id
+              name
+              email @include(if: $includeEmail)
+            }
+            GRAPHQL);
         $builder = new PayloadShapeBuilder(
             $this->schema,
             new TypeMapper(
@@ -1010,56 +902,48 @@ final class PayloadShapeBuilderTest extends TestCase
         );
         $queryType = $this->schema->getQueryType();
         self::assertNotNull($queryType);
-        $shape = $builder->buildPayloadShape(
-            $this->parseSelectionSet(
-                <<<'GRAPHQL'
-                    {
-                      user {
-                        ...UserFields @skip(if: $skipUserFields)
-                        id
-                      }
-                      transaction @include(if: $includeTransaction) {
-                        id
-                        transfers {
-                          id
-                          state @skip(if: $skipState)
-                        }
-                      }
-                    }
-                    GRAPHQL
-            ),
-            $queryType,
-        );
+        $shape = $builder->buildPayloadShape($this->parseSelectionSet(<<<'GRAPHQL'
+            {
+              user {
+                ...UserFields @skip(if: $skipUserFields)
+                id
+              }
+              transaction @include(if: $includeTransaction) {
+                id
+                transfers {
+                  id
+                  state @skip(if: $skipState)
+                }
+              }
+            }
+            GRAPHQL), $queryType);
         // The fragment fields should be optional due to @skip/@include directives
         // email within the fragment should be optional due to @include within the fragment
         // transaction should be optional due to @include
         // state should be optional due to @skip
-        self::assertSame(
-            <<<'PHPDOC'
-                array{
-                    'transaction'?: null|array{
+        self::assertSame(<<<'PHPDOC'
+            array{
+                'transaction'?: null|array{
+                    'id': string,
+                    'transfers': list<array{
                         'id': string,
-                        'transfers': list<array{
-                            'id': string,
-                            'state'?: string,
-                            ...,
-                        }>,
+                        'state'?: string,
                         ...,
-                    },
-                    'user': null|array{
-                        'email'?: null|string,
-                        'id': string,
-                        'name'?: string,
-                        ...,
-                    },
+                    }>,
                     ...,
-                }
-                PHPDOC,
-            TypeDumper::dump($shape->toArrayShape()),
-        );
+                },
+                'user': null|array{
+                    'email'?: null|string,
+                    'id': string,
+                    'name'?: string,
+                    ...,
+                },
+                ...,
+            }
+            PHPDOC, TypeDumper::dump($shape->toArrayShape()));
     }
 
-    public function testComplexQueryWithAllFeatures() : void
+    public function testComplexQueryWithAllFeatures(): void
     {
         // This comprehensive test covers:
         // 1. Direct field selection
@@ -1070,58 +954,56 @@ final class PayloadShapeBuilderTest extends TestCase
         // 6. Duplicate inline fragments (inline fragments on UserViewer/AdminViewer duplicate ViewerDetails content)
         // 7. Fields selected both directly and in fragments (user.id, user.profile)
         // 8. Custom scalars (DateTime, JSON)
-        $fragments = $this->parseFragments(
-            <<<'GRAPHQL'
-                fragment BaseUserFields on User {
-                  id
-                  name
-                }
+        $fragments = $this->parseFragments(<<<'GRAPHQL'
+            fragment BaseUserFields on User {
+              id
+              name
+            }
 
-                fragment ExtendedUserFields on User {
-                  ...BaseUserFields
-                  email
-                  metadata
-                  profile {
-                    name
-                    age
-                  }
-                }
+            fragment ExtendedUserFields on User {
+              ...BaseUserFields
+              email
+              metadata
+              profile {
+                name
+                age
+              }
+            }
 
-                fragment ViewerDetails on Viewer {
-                  id
-                  ... on UserViewer {
-                    email
-                    address
-                  }
-                  ... on AdminViewer {
-                    email
-                    role
-                  }
-                }
+            fragment ViewerDetails on Viewer {
+              id
+              ... on UserViewer {
+                email
+                address
+              }
+              ... on AdminViewer {
+                email
+                role
+              }
+            }
 
-                fragment TransactionInfo on Transaction {
-                  id
-                  transfers {
-                    id
-                    state
-                  }
-                }
+            fragment TransactionInfo on Transaction {
+              id
+              transfers {
+                id
+                state
+              }
+            }
 
-                fragment SearchResultItem on SearchResult {
-                  ... on User {
-                    ...BaseUserFields
-                    createdAt
-                  }
-                  ... on Transaction {
-                    ...TransactionInfo
-                  }
-                  ... on Customer {
-                    id
-                    name
-                  }
-                }
-                GRAPHQL
-        );
+            fragment SearchResultItem on SearchResult {
+              ... on User {
+                ...BaseUserFields
+                createdAt
+              }
+              ... on Transaction {
+                ...TransactionInfo
+              }
+              ... on Customer {
+                id
+                name
+              }
+            }
+            GRAPHQL);
         $builder = new PayloadShapeBuilder(
             $this->schema,
             new TypeMapper(
@@ -1142,191 +1024,173 @@ final class PayloadShapeBuilderTest extends TestCase
         );
         $queryType = $this->schema->getQueryType();
         self::assertNotNull($queryType);
-        $shape = $builder->buildPayloadShape(
-            $this->parseSelectionSet(
-                <<<'GRAPHQL'
-                    {
+        $shape = $builder->buildPayloadShape($this->parseSelectionSet(<<<'GRAPHQL'
+            {
+              id
+              user {
+                id
+                lastSeen
+                ...ExtendedUserFields
+                profile {
+                  email
+                }
+              }
+              viewer {
+                ...ViewerDetails
+                ... on UserViewer {
+                  email
+                }
+                ... on AdminViewer {
+                  email
+                }
+              }
+              search(query: "test") {
+                ...SearchResultItem
+                ... on User {
+                  email
+                  lastSeen
+                }
+                ... on Transaction {
+                  transfers {
+                    canBeCollected
+                    customer {
                       id
-                      user {
-                        id
-                        lastSeen
-                        ...ExtendedUserFields
-                        profile {
-                          email
-                        }
-                      }
-                      viewer {
-                        ...ViewerDetails
-                        ... on UserViewer {
-                          email
-                        }
-                        ... on AdminViewer {
-                          email
-                        }
-                      }
-                      search(query: "test") {
-                        ...SearchResultItem
-                        ... on User {
-                          email
-                          lastSeen
-                        }
-                        ... on Transaction {
-                          transfers {
-                            canBeCollected
-                            customer {
-                              id
-                            }
-                          }
-                        }
-                      }
                     }
-                    GRAPHQL
-            ),
-            $queryType,
-        );
+                  }
+                }
+              }
+            }
+            GRAPHQL), $queryType);
         // The payload shape should contain ALL fields from all selections merged
         // This includes:
         // - Fields from SearchResultItem fragment which has inline fragments on User/Transaction/Customer
         // - Fields from nested BaseUserFields fragment (id, name) inside SearchResultItem
         // - Fields from nested TransactionInfo fragment (id, transfers with id and state) inside SearchResultItem
         // - Additional fields from inline fragments in the query itself
-        self::assertSame(
-            <<<'PHPDOC'
-                array{
-                    'id': string,
-                    'search': list<array{
-                        'createdAt'?: scalar,
-                        'email'?: null|string,
-                        'id'?: string,
-                        'lastSeen'?: null|scalar,
-                        'name'?: string,
-                        'transfers'?: list<array{
-                            'canBeCollected': bool,
-                            'customer': null|array{
-                                'id': string,
-                                ...,
-                            },
+        self::assertSame(<<<'PHPDOC'
+            array{
+                'id': string,
+                'search': list<array{
+                    'createdAt'?: scalar,
+                    'email'?: null|string,
+                    'id'?: string,
+                    'lastSeen'?: null|scalar,
+                    'name'?: string,
+                    'transfers'?: list<array{
+                        'canBeCollected': bool,
+                        'customer': null|array{
                             'id': string,
-                            'state': string,
-                            ...,
-                        }>,
-                        ...,
-                    }>,
-                    'user': null|array{
-                        'email': null|string,
-                        'id': string,
-                        'lastSeen': null|scalar,
-                        'metadata': null|scalar,
-                        'name': string,
-                        'profile': null|array{
-                            'age': null|int,
-                            'email': null|string,
-                            'name': string,
                             ...,
                         },
-                        ...,
-                    },
-                    'viewer': null|array{
-                        'address'?: null|string,
-                        'email'?: string,
                         'id': string,
-                        'role'?: string,
+                        'state': string,
+                        ...,
+                    }>,
+                    ...,
+                }>,
+                'user': null|array{
+                    'email': null|string,
+                    'id': string,
+                    'lastSeen': null|scalar,
+                    'metadata': null|scalar,
+                    'name': string,
+                    'profile': null|array{
+                        'age': null|int,
+                        'email': null|string,
+                        'name': string,
                         ...,
                     },
                     ...,
-                }
-                PHPDOC,
-            TypeDumper::dump($shape->toArrayShape()),
-        );
+                },
+                'viewer': null|array{
+                    'address'?: null|string,
+                    'email'?: string,
+                    'id': string,
+                    'role'?: string,
+                    ...,
+                },
+                ...,
+            }
+            PHPDOC, TypeDumper::dump($shape->toArrayShape()));
     }
 
-    public function testInterfaceInheritance() : void
+    public function testInterfaceInheritance(): void
     {
         // Test basic interface inheritance with inline fragments
         $queryType = $this->schema->getQueryType();
         self::assertNotNull($queryType);
-        $shape = $this->builder->buildPayloadShape(
-            $this->parseSelectionSet(
-                <<<'GRAPHQL'
-                    {
-                      actors {
-                        id
-                        ... on Actor {
-                          createdAt
-                        }
-                        ... on Person {
-                          firstName
-                          lastName
-                        }
-                        ... on Employee {
-                          role
-                          department
-                        }
-                        ... on RegularUser {
-                          email
-                        }
-                        ... on Manager {
-                          teamSize
-                        }
-                        ... on Developer {
-                          languages
-                        }
-                      }
-                    }
-                    GRAPHQL
-            ),
-            $queryType,
-        );
-        self::assertSame(
-            <<<'PHPDOC'
-                array{
-                    'actors': list<array{
-                        'createdAt'?: scalar,
-                        'department'?: null|string,
-                        'email'?: string,
-                        'firstName'?: string,
-                        'id': string,
-                        'languages'?: list<string>,
-                        'lastName'?: string,
-                        'role'?: string,
-                        'teamSize'?: int,
-                        ...,
-                    }>,
-                    ...,
-                }
-                PHPDOC,
-            TypeDumper::dump($shape->toArrayShape()),
-        );
-    }
-
-    public function testNestedInterfaceInheritanceWithFragments() : void
-    {
-        // Test interface inheritance with named fragments
-        $fragments = $this->parseFragments(
-            <<<'GRAPHQL'
-                fragment ActorFields on Actor {
-                  id
+        $shape = $this->builder->buildPayloadShape($this->parseSelectionSet(<<<'GRAPHQL'
+            {
+              actors {
+                id
+                ... on Actor {
                   createdAt
                 }
-
-                fragment PersonFields on Person {
-                  ...ActorFields
+                ... on Person {
                   firstName
                   lastName
                 }
-
-                fragment EmployeeFields on Employee {
-                  ...PersonFields
+                ... on Employee {
                   role
                   department
                 }
-
-                fragment ManagerFields on Manager {
-                  ...EmployeeFields
+                ... on RegularUser {
+                  email
+                }
+                ... on Manager {
                   teamSize
                 }
-                GRAPHQL
-        );
+                ... on Developer {
+                  languages
+                }
+              }
+            }
+            GRAPHQL), $queryType);
+        self::assertSame(<<<'PHPDOC'
+            array{
+                'actors': list<array{
+                    'createdAt'?: scalar,
+                    'department'?: null|string,
+                    'email'?: string,
+                    'firstName'?: string,
+                    'id': string,
+                    'languages'?: list<string>,
+                    'lastName'?: string,
+                    'role'?: string,
+                    'teamSize'?: int,
+                    ...,
+                }>,
+                ...,
+            }
+            PHPDOC, TypeDumper::dump($shape->toArrayShape()));
+    }
+
+    public function testNestedInterfaceInheritanceWithFragments(): void
+    {
+        // Test interface inheritance with named fragments
+        $fragments = $this->parseFragments(<<<'GRAPHQL'
+            fragment ActorFields on Actor {
+              id
+              createdAt
+            }
+
+            fragment PersonFields on Person {
+              ...ActorFields
+              firstName
+              lastName
+            }
+
+            fragment EmployeeFields on Employee {
+              ...PersonFields
+              role
+              department
+            }
+
+            fragment ManagerFields on Manager {
+              ...EmployeeFields
+              teamSize
+            }
+            GRAPHQL);
         $builder = new PayloadShapeBuilder(
             $this->schema,
             new TypeMapper(
@@ -1347,127 +1211,109 @@ final class PayloadShapeBuilderTest extends TestCase
         );
         $queryType = $this->schema->getQueryType();
         self::assertNotNull($queryType);
-        $shape = $builder->buildPayloadShape(
-            $this->parseSelectionSet(
-                <<<'GRAPHQL'
-                    {
-                      actors {
-                        ... on Manager {
-                          ...ManagerFields
-                        }
-                        ... on Developer {
-                          ...EmployeeFields
-                          languages
-                        }
-                        ... on RegularUser {
-                          ...PersonFields
-                          email
-                        }
-                      }
-                    }
-                    GRAPHQL
-            ),
-            $queryType,
-        );
-        // All fields should be optional since they're type-specific
-        self::assertSame(
-            <<<'PHPDOC'
-                array{
-                    'actors': list<array{
-                        'createdAt'?: scalar,
-                        'department'?: null|string,
-                        'email'?: string,
-                        'firstName'?: string,
-                        'id'?: string,
-                        'languages'?: list<string>,
-                        'lastName'?: string,
-                        'role'?: string,
-                        'teamSize'?: int,
-                        ...,
-                    }>,
-                    ...,
+        $shape = $builder->buildPayloadShape($this->parseSelectionSet(<<<'GRAPHQL'
+            {
+              actors {
+                ... on Manager {
+                  ...ManagerFields
                 }
-                PHPDOC,
-            TypeDumper::dump($shape->toArrayShape()),
-        );
+                ... on Developer {
+                  ...EmployeeFields
+                  languages
+                }
+                ... on RegularUser {
+                  ...PersonFields
+                  email
+                }
+              }
+            }
+            GRAPHQL), $queryType);
+        // All fields should be optional since they're type-specific
+        self::assertSame(<<<'PHPDOC'
+            array{
+                'actors': list<array{
+                    'createdAt'?: scalar,
+                    'department'?: null|string,
+                    'email'?: string,
+                    'firstName'?: string,
+                    'id'?: string,
+                    'languages'?: list<string>,
+                    'lastName'?: string,
+                    'role'?: string,
+                    'teamSize'?: int,
+                    ...,
+                }>,
+                ...,
+            }
+            PHPDOC, TypeDumper::dump($shape->toArrayShape()));
     }
 
-    public function testMixedInterfaceAndDirectSelection() : void
+    public function testMixedInterfaceAndDirectSelection(): void
     {
         // Test mixing direct selection with interface fragments
         $queryType = $this->schema->getQueryType();
         self::assertNotNull($queryType);
-        $shape = $this->builder->buildPayloadShape(
-            $this->parseSelectionSet(
-                <<<'GRAPHQL'
-                    {
-                      actors {
-                        id
-                        ... on Person {
-                          firstName
-                          lastName
-                          ... on Employee {
-                            role
-                          }
-                        }
-                        ... on Manager {
-                          department
-                          teamSize
-                        }
-                      }
-                    }
-                    GRAPHQL
-            ),
-            $queryType,
-        );
-        self::assertSame(
-            <<<'PHPDOC'
-                array{
-                    'actors': list<array{
-                        'department'?: null|string,
-                        'firstName'?: string,
-                        'id': string,
-                        'lastName'?: string,
-                        'role'?: string,
-                        'teamSize'?: int,
-                        ...,
-                    }>,
-                    ...,
-                }
-                PHPDOC,
-            TypeDumper::dump($shape->toArrayShape()),
-        );
-    }
-
-    public function testComplexInterfaceInheritanceWithConditionalFragments() : void
-    {
-        // Test complex scenario with interface inheritance, fragments, and directives
-        $fragments = $this->parseFragments(
-            <<<'GRAPHQL'
-                fragment CommonActorFields on Actor {
-                  id
-                  createdAt
-                  ... on Person {
-                    firstName
-                    lastName
-                  }
+        $shape = $this->builder->buildPayloadShape($this->parseSelectionSet(<<<'GRAPHQL'
+            {
+              actors {
+                id
+                ... on Person {
+                  firstName
+                  lastName
                   ... on Employee {
                     role
-                    department
                   }
                 }
+                ... on Manager {
+                  department
+                  teamSize
+                }
+              }
+            }
+            GRAPHQL), $queryType);
+        self::assertSame(<<<'PHPDOC'
+            array{
+                'actors': list<array{
+                    'department'?: null|string,
+                    'firstName'?: string,
+                    'id': string,
+                    'lastName'?: string,
+                    'role'?: string,
+                    'teamSize'?: int,
+                    ...,
+                }>,
+                ...,
+            }
+            PHPDOC, TypeDumper::dump($shape->toArrayShape()));
+    }
 
-                fragment DetailedEmployee on Employee {
-                  ...CommonActorFields
-                  ... on Manager {
-                    teamSize
-                  }
-                  ... on Developer {
-                    languages
-                  }
-                }
-                GRAPHQL
-        );
+    public function testComplexInterfaceInheritanceWithConditionalFragments(): void
+    {
+        // Test complex scenario with interface inheritance, fragments, and directives
+        $fragments = $this->parseFragments(<<<'GRAPHQL'
+            fragment CommonActorFields on Actor {
+              id
+              createdAt
+              ... on Person {
+                firstName
+                lastName
+              }
+              ... on Employee {
+                role
+                department
+              }
+            }
+
+            fragment DetailedEmployee on Employee {
+              ...CommonActorFields
+              ... on Manager {
+                teamSize
+              }
+              ... on Developer {
+                languages
+              }
+            }
+            GRAPHQL);
         $builder = new PayloadShapeBuilder(
             $this->schema,
             new TypeMapper(
@@ -1488,67 +1334,57 @@ final class PayloadShapeBuilderTest extends TestCase
         );
         $queryType = $this->schema->getQueryType();
         self::assertNotNull($queryType);
-        $shape = $builder->buildPayloadShape(
-            $this->parseSelectionSet(
-                <<<'GRAPHQL'
-                    {
-                      actors {
-                        __typename
-                        ...CommonActorFields @include(if: $includeCommon)
-                        ... on Employee {
-                          ...DetailedEmployee @skip(if: $skipDetails)
-                        }
-                        ... on RegularUser {
-                          email
-                          firstName @include(if: $includeName)
-                        }
-                      }
-                    }
-                    GRAPHQL
-            ),
-            $queryType,
-        );
+        $shape = $builder->buildPayloadShape($this->parseSelectionSet(<<<'GRAPHQL'
+            {
+              actors {
+                __typename
+                ...CommonActorFields @include(if: $includeCommon)
+                ... on Employee {
+                  ...DetailedEmployee @skip(if: $skipDetails)
+                }
+                ... on RegularUser {
+                  email
+                  firstName @include(if: $includeName)
+                }
+              }
+            }
+            GRAPHQL), $queryType);
         // Fields with directives should be optional
         // __typename is always present
-        self::assertSame(
-            <<<'PHPDOC'
-                array{
-                    'actors': list<array{
-                        '__typename': string,
-                        'createdAt'?: scalar,
-                        'department'?: null|string,
-                        'email'?: string,
-                        'firstName'?: string,
-                        'id'?: string,
-                        'languages'?: list<string>,
-                        'lastName'?: string,
-                        'role'?: string,
-                        'teamSize'?: int,
-                        ...,
-                    }>,
+        self::assertSame(<<<'PHPDOC'
+            array{
+                'actors': list<array{
+                    '__typename': string,
+                    'createdAt'?: scalar,
+                    'department'?: null|string,
+                    'email'?: string,
+                    'firstName'?: string,
+                    'id'?: string,
+                    'languages'?: list<string>,
+                    'lastName'?: string,
+                    'role'?: string,
+                    'teamSize'?: int,
                     ...,
-                }
-                PHPDOC,
-            TypeDumper::dump($shape->toArrayShape()),
-        );
+                }>,
+                ...,
+            }
+            PHPDOC, TypeDumper::dump($shape->toArrayShape()));
     }
 
-    public function testNestedFragmentSpreadMerging() : void
+    public function testNestedFragmentSpreadMerging(): void
     {
-        $fragments = $this->parseFragments(
-            <<<'GRAPHQL'
-                fragment TransferStateFields on Transfer {
-                  transferReversals {
-                    id
-                  }
-                }
+        $fragments = $this->parseFragments(<<<'GRAPHQL'
+            fragment TransferStateFields on Transfer {
+              transferReversals {
+                id
+              }
+            }
 
-                fragment TransferRowFields on Transfer {
-                  canBeCollected
-                  ...TransferStateFields
-                }
-                GRAPHQL
-        );
+            fragment TransferRowFields on Transfer {
+              canBeCollected
+              ...TransferStateFields
+            }
+            GRAPHQL);
         $builder = new PayloadShapeBuilder(
             $this->schema,
             new TypeMapper(
@@ -1570,46 +1406,36 @@ final class PayloadShapeBuilderTest extends TestCase
         $transferType = $this->schema->getType('Transfer');
         self::assertNotNull($transferType);
         // Test that TransferRowFields includes fields from TransferStateFields
-        $shape = $builder->buildPayloadShape(
-            $this->parseSelectionSet(
-                <<<'GRAPHQL'
-                    {
-                      ...TransferRowFields
-                    }
-                    GRAPHQL
-            ),
-            $transferType,
-        );
+        $shape = $builder->buildPayloadShape($this->parseSelectionSet(<<<'GRAPHQL'
+            {
+              ...TransferRowFields
+            }
+            GRAPHQL), $transferType);
         // The payload shape should contain fields from BOTH fragments
-        self::assertSame(
-            <<<'PHPDOC'
-                array{
-                    'canBeCollected': bool,
-                    'transferReversals': list<array{
-                        'id': string,
-                        ...,
-                    }>,
+        self::assertSame(<<<'PHPDOC'
+            array{
+                'canBeCollected': bool,
+                'transferReversals': list<array{
+                    'id': string,
                     ...,
-                }
-                PHPDOC,
-            TypeDumper::dump($shape->toArrayShape()),
-        );
+                }>,
+                ...,
+            }
+            PHPDOC, TypeDumper::dump($shape->toArrayShape()));
     }
 
-    public function testFragmentSpreadIncludedInPayloadShape() : void
+    public function testFragmentSpreadIncludedInPayloadShape(): void
     {
-        $fragments = $this->parseFragments(
-            <<<'GRAPHQL'
-                fragment TransactionFlowFields on Transaction {
-                  transfers {
-                    id
-                    customer {
-                      id
-                    }
-                  }
+        $fragments = $this->parseFragments(<<<'GRAPHQL'
+            fragment TransactionFlowFields on Transaction {
+              transfers {
+                id
+                customer {
+                  id
                 }
-                GRAPHQL
-        );
+              }
+            }
+            GRAPHQL);
         $builder = new PayloadShapeBuilder(
             $this->schema,
             new TypeMapper(
@@ -1631,67 +1457,51 @@ final class PayloadShapeBuilderTest extends TestCase
         $transactionType = $this->schema->getType('Transaction');
         self::assertNotNull($transactionType);
         // Test 1: Fragment spread only
-        $shape = $builder->buildPayloadShape(
-            $this->parseSelectionSet(
-                <<<'GRAPHQL'
-                    {
-                      ...TransactionFlowFields
-                    }
-                    GRAPHQL
-            ),
-            $transactionType,
-        );
+        $shape = $builder->buildPayloadShape($this->parseSelectionSet(<<<'GRAPHQL'
+            {
+              ...TransactionFlowFields
+            }
+            GRAPHQL), $transactionType);
         // The payload shape should contain the fields from the fragment spread
-        self::assertSame(
-            <<<'PHPDOC'
-                array{
-                    'transfers': list<array{
-                        'customer': null|array{
-                            'id': string,
-                            ...,
-                        },
+        self::assertSame(<<<'PHPDOC'
+            array{
+                'transfers': list<array{
+                    'customer': null|array{
                         'id': string,
                         ...,
-                    }>,
-                    ...,
-                }
-                PHPDOC,
-            TypeDumper::dump($shape->toArrayShape()),
-        );
-        $shape2 = $builder->buildPayloadShape(
-            $this->parseSelectionSet(
-                <<<'GRAPHQL'
-                    {
-                      id
-                      transfers {
-                        id
-                        canBeCollected
-                      }
-                      ...TransactionFlowFields
-                    }
-                    GRAPHQL
-            ),
-            $transactionType,
-        );
-        // The payload shape should contain ALL fields from both direct selection and fragment
-        self::assertSame(
-            <<<'PHPDOC'
-                array{
+                    },
                     'id': string,
-                    'transfers': list<array{
-                        'canBeCollected': bool,
-                        'customer': null|array{
-                            'id': string,
-                            ...,
-                        },
+                    ...,
+                }>,
+                ...,
+            }
+            PHPDOC, TypeDumper::dump($shape->toArrayShape()));
+        $shape2 = $builder->buildPayloadShape($this->parseSelectionSet(<<<'GRAPHQL'
+            {
+              id
+              transfers {
+                id
+                canBeCollected
+              }
+              ...TransactionFlowFields
+            }
+            GRAPHQL), $transactionType);
+        // The payload shape should contain ALL fields from both direct selection and fragment
+        self::assertSame(<<<'PHPDOC'
+            array{
+                'id': string,
+                'transfers': list<array{
+                    'canBeCollected': bool,
+                    'customer': null|array{
                         'id': string,
                         ...,
-                    }>,
+                    },
+                    'id': string,
                     ...,
-                }
-                PHPDOC,
-            TypeDumper::dump($shape2->toArrayShape()),
-        );
+                }>,
+                ...,
+            }
+            PHPDOC, TypeDumper::dump($shape2->toArrayShape()));
     }
 
     /**
@@ -1699,7 +1509,7 @@ final class PayloadShapeBuilderTest extends TestCase
      * @throws \GraphQL\Error\SyntaxError
      * @throws JsonException
      */
-    private function parseSelectionSet(string $selection) : SelectionSetNode
+    private function parseSelectionSet(string $selection): SelectionSetNode
     {
         $document = Parser::parse($selection);
         $operation = $document->definitions[0];
@@ -1715,12 +1525,12 @@ final class PayloadShapeBuilderTest extends TestCase
      * @throws \GraphQL\Error\InvariantViolation
      * @return array{definitions: array<string, array{FragmentDefinitionNode, list<string>}>, types: array<string, Type&NamedType>}
      */
-    private function parseFragments(string $fragmentsSource) : array
+    private function parseFragments(string $fragmentsSource): array
     {
         $definitions = [];
         $types = [];
         foreach (Parser::parse($fragmentsSource)->definitions as $definition) {
-            if ( ! $definition instanceof FragmentDefinitionNode) {
+            if (!$definition instanceof FragmentDefinitionNode) {
                 continue;
             }
 

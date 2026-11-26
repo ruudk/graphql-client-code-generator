@@ -10,7 +10,7 @@ use PHPUnit\Framework\TestCase;
 #[CoversClass(RestrictedUsageExtension::class)]
 final class RestrictedUsageExtensionTest extends TestCase
 {
-    public function testExtension() : void
+    public function testExtension(): void
     {
         $command = sprintf(
             '%s analyse --configuration=%s --no-progress --error-format=json 2>/dev/null',

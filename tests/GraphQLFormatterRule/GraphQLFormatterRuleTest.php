@@ -19,7 +19,7 @@ final class GraphQLFormatterRuleTest extends TestCase
 {
     private const string TEMPLATES = __DIR__ . '/templates';
 
-    public function testFixesUnformattedGraphQLBlocks() : void
+    public function testFixesUnformattedGraphQLBlocks(): void
     {
         $unformatted = (string) file_get_contents(self::TEMPLATES . '/unformatted.html.twig.fixture');
         $expected = (string) file_get_contents(self::TEMPLATES . '/formatted.html.twig.fixture');
@@ -27,7 +27,7 @@ final class GraphQLFormatterRuleTest extends TestCase
         self::assertSame($expected, $this->fix($unformatted));
     }
 
-    public function testAlreadyFormattedBlocksAreLeftUnchanged() : void
+    public function testAlreadyFormattedBlocksAreLeftUnchanged(): void
     {
         $formatted = (string) file_get_contents(self::TEMPLATES . '/formatted.html.twig.fixture');
 
@@ -35,7 +35,7 @@ final class GraphQLFormatterRuleTest extends TestCase
         self::assertSame([], $this->lint(self::TEMPLATES . '/formatted.html.twig.fixture')->getViolations());
     }
 
-    public function testReportsViolationForUnformattedBlock() : void
+    public function testReportsViolationForUnformattedBlock(): void
     {
         $violations = $this->lint(self::TEMPLATES . '/unformatted.html.twig.fixture')->getViolations();
 
@@ -44,7 +44,7 @@ final class GraphQLFormatterRuleTest extends TestCase
         self::assertSame('The GraphQL operation is not correctly formatted.', $violations[0]->getMessage());
     }
 
-    public function testReportsErrorForInvalidGraphQL() : void
+    public function testReportsErrorForInvalidGraphQL(): void
     {
         $invalid = (string) file_get_contents(self::TEMPLATES . '/invalid.html.twig.fixture');
 
@@ -57,14 +57,14 @@ final class GraphQLFormatterRuleTest extends TestCase
         self::assertStringContainsString('Unable to parse GraphQL', $violations[0]->getMessage());
     }
 
-    private function fix(string $content) : string
+    private function fix(string $content): string
     {
         $fixer = new Fixer(new Tokenizer(new StubbedEnvironment()));
 
         return $fixer->fixFile($content, $this->ruleset());
     }
 
-    private function lint(string $filePath) : Report
+    private function lint(string $filePath): Report
     {
         $env = new StubbedEnvironment();
         $linter = new Linter($env, new Tokenizer($env));
@@ -72,7 +72,7 @@ final class GraphQLFormatterRuleTest extends TestCase
         return $linter->run([new SplFileInfo($filePath)], $this->ruleset());
     }
 
-    private function ruleset() : Ruleset
+    private function ruleset(): Ruleset
     {
         $ruleset = new Ruleset();
         $ruleset->addRule(new GraphQLFormatterRule());

@@ -32,7 +32,7 @@ final class GraphQLExtension
      * @param list<string> $configs paths to the code generator config files, used to find the generated namespaces
      * @throws ConfigException
      */
-    public static function create(array $configs = []) : Extension
+    public static function create(array $configs = []): Extension
     {
         $analyzerPlugins = [];
 

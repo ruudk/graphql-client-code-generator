@@ -11,7 +11,7 @@ use Symfony\Component\TypeInfo\Type;
 
 final class ErrorClassGenerator extends AbstractGenerator
 {
-    public function generate(ErrorClassPlan $plan) : string
+    public function generate(ErrorClassPlan $plan): string
     {
         $generator = new CodeGenerator($plan->namespace);
 
@@ -26,20 +26,23 @@ final class ErrorClassGenerator extends AbstractGenerator
 
             yield 'final readonly class Error';
             yield '{';
-            yield $generator->indent(function () use ($generator) {
+            yield $generator->indent(static function () use ($generator) {
                 yield 'public string $message;';
 
                 yield '';
-                yield from $generator->docComment(sprintf('@param %s $error', TypeDumper::dump(Type::arrayShape([
-                    'message' => Type::string(),
-                    'debugMessage' => [
-                        'type' => Type::string(),
-                        'optional' => true,
-                    ],
-                ], sealed: false), $generator->import(...))));
+                yield from $generator->docComment(sprintf('@param %s $error', TypeDumper::dump(
+                    Type::arrayShape([
+                        'message' => Type::string(),
+                        'debugMessage' => [
+                            'type' => Type::string(),
+                            'optional' => true,
+                        ],
+                    ], sealed: false),
+                    $generator->import(...),
+                )));
                 yield 'public function __construct(array $error)';
                 yield '{';
-                yield $generator->indent(function () {
+                yield $generator->indent(static function () {
                     yield "\$this->message = \$error['debugMessage'] ?? \$error['message'];";
                 });
                 yield '}';

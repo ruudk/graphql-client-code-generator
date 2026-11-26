@@ -18,7 +18,7 @@ use Symfony\Component\TypeInfo\Type\ObjectType;
 final class HooksWithCustomTypeInitializerTest extends GraphQLTestCase
 {
     #[Override]
-    public function getConfig() : Config
+    public function getConfig(): Config
     {
         return parent::getConfig()
             ->withHook(FindUserByIdHook::class)
@@ -33,44 +33,43 @@ final class HooksWithCustomTypeInitializerTest extends GraphQLTestCase
                 Type::object(Url::class),
             )
             ->withIgnoreType('Url')
-            ->withTypeInitializer(
-                new class implements TypeInitializer {
-                    #[Override]
-                    public function supports(Type $type) : bool
-                    {
-                        return $type instanceof ObjectType && $type->getClassName() === Url::class;
-                    }
+            ->withTypeInitializer(new class implements TypeInitializer {
+                #[Override]
+                public function supports(Type $type): bool
+                {
+                    return $type instanceof ObjectType && $type->getClassName() === Url::class;
+                }
 
-                    /**
-                     * @return Generator<string>
-                     */
-                    #[Override]
-                    public function initialize(Type $type, CodeGenerator $generator, string $variable, DelegatingTypeInitializer $delegator) : Generator
-                    {
-                        yield sprintf('new %s(%s[\'href\'])', $generator->import(Url::class), $variable);
-                    }
-                },
-            );
+                /**
+                 * @return Generator<string>
+                 */
+                #[Override]
+                public function initialize(
+                    Type $type,
+                    CodeGenerator $generator,
+                    string $variable,
+                    DelegatingTypeInitializer $delegator,
+                ): Generator {
+                    yield sprintf('new %s(%s[\'href\'])', $generator->import(Url::class), $variable);
+                }
+            });
     }
 
-    public function testGenerate() : void
+    public function testGenerate(): void
     {
         $this->assertActualMatchesExpected();
     }
 
-    public function testQuery() : void
+    public function testQuery(): void
     {
         $findUserById = new FindUserByIdHook([
             'user-123' => new User('user-123', 'Alice'),
             'user-456' => new User('user-456', 'Bob'),
         ]);
 
-        $result = new TestQuery(
-            $this->getClient($this->getResponseData()),
-            [
-                'findUserById' => $findUserById,
-            ],
-        )->execute();
+        $result = new TestQuery($this->getClient($this->getResponseData()), [
+            'findUserById' => $findUserById,
+        ])->execute();
 
         self::assertSame('ruudk', $result->viewer->login);
         self::assertSame('https://example.com', $result->viewer->homepage->href);
@@ -92,7 +91,7 @@ final class HooksWithCustomTypeInitializerTest extends GraphQLTestCase
     /**
      * @return array<string, mixed>
      */
-    private function getResponseData() : array
+    private function getResponseData(): array
     {
         return [
             'data' => [

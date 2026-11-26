@@ -12,19 +12,17 @@ use Ruudk\GraphQLCodeGenerator\HooksThroughSoleFragmentSpread\Generated\Query\Te
 final class HooksThroughSoleFragmentSpreadTest extends GraphQLTestCase
 {
     #[Override]
-    public function getConfig() : Config
+    public function getConfig(): Config
     {
-        return parent::getConfig()
-            ->enableThrowWhenNullDirective()
-            ->withHook(FindDiscountCodeByIdHook::class);
+        return parent::getConfig()->enableThrowWhenNullDirective()->withHook(FindDiscountCodeByIdHook::class);
     }
 
-    public function testGenerate() : void
+    public function testGenerate(): void
     {
         $this->assertActualMatchesExpected();
     }
 
-    public function testQuery() : void
+    public function testQuery(): void
     {
         $findDiscountCodeById = new FindDiscountCodeByIdHook([
             'discount-1' => new DiscountCode('discount-1'),

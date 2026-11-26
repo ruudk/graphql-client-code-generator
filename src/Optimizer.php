@@ -40,7 +40,7 @@ final readonly class Optimizer
      * @throws Exception
      * @return T
      */
-    public function optimize(Node $node, array $fragmentDefinitions) : Node
+    public function optimize(Node $node, array $fragmentDefinitions): Node
     {
         foreach ($this->visitors as $visitor) {
             $node = $visitor($node, $fragmentDefinitions);

@@ -39,7 +39,7 @@ final readonly class Config
      * @param list<OperationArgument> $operationArguments
      */
     private function __construct(
-        public Schema | string $schema,
+        public Schema|string $schema,
         public string $projectDir,
         public string $outputDir,
         public string $namespace,
@@ -74,12 +74,12 @@ final readonly class Config
     ) {}
 
     public static function create(
-        Schema | string $schema,
+        Schema|string $schema,
         string $projectDir,
         string $outputDir,
         string $namespace,
         string $client,
-    ) : self {
+    ): self {
         return new self(
             schema: $schema,
             projectDir: $projectDir,
@@ -89,100 +89,100 @@ final readonly class Config
         );
     }
 
-    public function enableDumpOrThrowMethods() : self
+    public function enableDumpOrThrowMethods(): self
     {
-        return clone ($this, [
+        return clone($this, [
             'dumpOrThrowMethods' => true,
         ]);
     }
 
-    public function enableDumpOrThrowProperties() : self
+    public function enableDumpOrThrowProperties(): self
     {
-        return clone ($this, [
+        return clone($this, [
             'dumpOrThrowProperties' => true,
         ]);
     }
 
-    public function enableDumpDefinition() : self
+    public function enableDumpDefinition(): self
     {
-        return clone ($this, [
+        return clone($this, [
             'dumpDefinition' => true,
         ]);
     }
 
-    public function enableUseNodeNameForEdgeNodes() : self
+    public function enableUseNodeNameForEdgeNodes(): self
     {
-        return clone ($this, [
+        return clone($this, [
             'useNodeNameForEdgeNodes' => true,
         ]);
     }
 
-    public function enableUseConnectionNameForConnections() : self
+    public function enableUseConnectionNameForConnections(): self
     {
-        return clone ($this, [
+        return clone($this, [
             'useConnectionNameForConnections' => true,
         ]);
     }
 
-    public function enableUseEdgeNameForEdges() : self
+    public function enableUseEdgeNameForEdges(): self
     {
-        return clone ($this, [
+        return clone($this, [
             'useEdgeNameForEdges' => true,
         ]);
     }
 
-    public function enableAddNodesOnConnections() : self
+    public function enableAddNodesOnConnections(): self
     {
-        return clone ($this, [
+        return clone($this, [
             'addNodesOnConnections' => true,
         ]);
     }
 
-    public function enableSymfonyExcludeAttribute() : self
+    public function enableSymfonyExcludeAttribute(): self
     {
-        return clone ($this, [
+        return clone($this, [
             'addSymfonyExcludeAttribute' => true,
         ]);
     }
 
-    public function enableGeneratedAttribute() : self
+    public function enableGeneratedAttribute(): self
     {
-        return clone ($this, [
+        return clone($this, [
             'addGeneratedAttribute' => true,
         ]);
     }
 
-    public function enableIndexByDirective() : self
+    public function enableIndexByDirective(): self
     {
-        return clone ($this, [
+        return clone($this, [
             'indexByDirective' => true,
         ]);
     }
 
-    public function enableThrowWhenNullDirective() : self
+    public function enableThrowWhenNullDirective(): self
     {
-        return clone ($this, [
+        return clone($this, [
             'throwWhenNullDirective' => true,
         ]);
     }
 
-    public function enableAddUnknownCaseToEnums() : self
+    public function enableAddUnknownCaseToEnums(): self
     {
-        return clone ($this, [
+        return clone($this, [
             'addUnknownCaseToEnums' => true,
         ]);
     }
 
-    public function enableDumpEnumIsMethods() : self
+    public function enableDumpEnumIsMethods(): self
     {
-        return clone ($this, [
+        return clone($this, [
             'dumpEnumIsMethods' => true,
         ]);
     }
 
-    public function enableFormatOperationFiles() : self
+    public function enableFormatOperationFiles(): self
     {
-        return clone ($this, [
+        return clone($this, [
             'formatOperationFiles' => true,
         ]);
     }
@@ -191,98 +191,106 @@ final readonly class Config
      * Emit Symfony `#[Autowire([...])]` on the generated query class's `$hooks`
      * constructor argument so the DI container can inject each hook service by class name.
      */
-    public function enableSymfonyAutowireHooks() : self
+    public function enableSymfonyAutowireHooks(): self
     {
-        return clone ($this, [
+        return clone($this, [
             'symfonyAutowireHooks' => true,
         ]);
     }
 
-    public function withScalar(string $name, Type $type, ?Type $payloadType = null) : self
+    public function withScalar(string $name, Type $type, ?Type $payloadType = null): self
     {
         $scalars = $this->scalars;
         $scalars[$name] = [$type, $payloadType ?? $type];
 
-        return clone ($this, [
+        return clone($this, [
             'scalars' => $scalars,
         ]);
     }
 
-    public function withInputObjectType(string $name, Type $type) : self
+    public function withInputObjectType(string $name, Type $type): self
     {
         $inputObjectTypes = $this->inputObjectTypes;
         $inputObjectTypes[$name] = $type;
 
-        return clone ($this, [
+        return clone($this, [
             'inputObjectTypes' => $inputObjectTypes,
         ]);
     }
 
-    public function withObjectType(string $name, Type $payloadShape, Type $payloadType) : self
+    public function withObjectType(string $name, Type $payloadShape, Type $payloadType): self
     {
         $objectTypes = $this->objectTypes;
         $objectTypes[$name] = [$payloadShape, $payloadType];
 
-        return clone ($this, [
+        return clone($this, [
             'objectTypes' => $objectTypes,
         ]);
     }
 
-    public function withEnumType(string $name, Type $type) : self
+    public function withEnumType(string $name, Type $type): self
     {
         $enumTypes = $this->enumTypes;
         $enumTypes[$name] = $type;
 
-        return clone ($this, [
+        return clone($this, [
             'enumTypes' => $enumTypes,
         ]);
     }
 
-    public function withIgnoreType(string $type) : self
+    public function withIgnoreType(string $type): self
     {
         $ignoreTypes = $this->ignoreTypes;
         $ignoreTypes[] = $type;
 
-        return clone ($this, [
+        return clone($this, [
             'ignoreTypes' => $ignoreTypes,
         ]);
     }
 
-    public function withTypeInitializer(TypeInitializer\TypeInitializer $typeInitializer) : self
+    public function withTypeInitializer(TypeInitializer\TypeInitializer $typeInitializer): self
     {
         $typeInitializers = $this->typeInitializers;
         $typeInitializers[] = $typeInitializer;
 
-        return clone ($this, [
+        return clone($this, [
             'typeInitializers' => $typeInitializers,
         ]);
     }
 
-    public function withIntrospectionClient(object $client) : self
+    public function withIntrospectionClient(object $client): self
     {
-        return clone ($this, [
+        return clone($this, [
             'introspectionClient' => $client,
         ]);
     }
 
-    public function withQueriesDir(string $queriesDir) : self
+    public function withQueriesDir(string $queriesDir): self
     {
-        return clone ($this, [
+        return clone($this, [
             'queriesDir' => $queriesDir,
         ]);
     }
 
-    public function withInlineProcessingDirectory(string $directory, string ...$directories) : self
+    public function withInlineProcessingDirectory(string $directory, string ...$directories): self
     {
-        return clone ($this, [
-            'inlineProcessingDirectories' => array_merge($this->inlineProcessingDirectories, [$directory], array_values($directories)),
+        return clone($this, [
+            'inlineProcessingDirectories' => array_merge(
+                $this->inlineProcessingDirectories,
+                [$directory],
+                array_values($directories),
+            ),
         ]);
     }
 
-    public function withTwigProcessingDirectory(string $directory, string ...$directories) : self
+    public function withTwigProcessingDirectory(string $directory, string ...$directories): self
     {
-        return clone ($this, [
-            'twigProcessingDirectories' => array_merge($this->twigProcessingDirectories, [$directory], array_values($directories)),
+        return clone($this, [
+            'twigProcessingDirectories' => array_merge(
+                $this->twigProcessingDirectories,
+                [$directory],
+                array_values($directories),
+            ),
         ]);
     }
 
@@ -305,27 +313,28 @@ final readonly class Config
      * @throws ReflectionException
      * @throws JsonException
      */
-    public function withHook(string $class) : self
+    public function withHook(string $class): self
     {
         Assert::classExists($class, sprintf('Hook class "%s" does not exist.', $class));
-        Assert::methodExists($class, '__invoke', sprintf('Hook class "%s" must be invokable (define __invoke).', $class));
+        Assert::methodExists(
+            $class,
+            '__invoke',
+            sprintf('Hook class "%s" must be invokable (define __invoke).', $class),
+        );
 
         $attributes = new ReflectionClass($class)->getAttributes(Hook::class);
 
-        Assert::notEmpty($attributes, sprintf(
-            'Hook class "%s" must carry a #[Hook(name: "...")] attribute.',
-            $class,
-        ));
+        Assert::notEmpty($attributes, sprintf('Hook class "%s" must carry a #[Hook(name: "...")] attribute.', $class));
 
         $hook = $attributes[0]->newInstance();
         $hookName = $hook->name;
         $batched = $hook->batched;
 
-        Assert::regex($hookName, '/^[a-zA-Z_][a-zA-Z0-9_]*$/', sprintf(
-            'Hook name "%s" (on %s) must be a valid PHP identifier.',
+        Assert::regex(
             $hookName,
-            $class,
-        ));
+            '/^[a-zA-Z_][a-zA-Z0-9_]*$/',
+            sprintf('Hook name "%s" (on %s) must be a valid PHP identifier.', $hookName, $class),
+        );
 
         try {
             $document = Parser::parse($hook->requires);
@@ -336,39 +345,46 @@ final readonly class Config
             );
         }
 
-        Assert::count($document->definitions, 1, sprintf(
-            'The `requires` of hook "%s" (%s) must contain exactly one named fragment.',
-            $hookName,
-            $class,
-        ));
+        Assert::count(
+            $document->definitions,
+            1,
+            sprintf('The `requires` of hook "%s" (%s) must contain exactly one named fragment.', $hookName, $class),
+        );
 
         $fragment = $document->definitions[0];
 
-        Assert::isInstanceOf($fragment, FragmentDefinitionNode::class, sprintf(
-            'The `requires` of hook "%s" (%s) must be a named fragment '
-            . '(fragment Name on Type { ... }).',
-            $hookName,
-            $class,
-        ));
+        Assert::isInstanceOf(
+            $fragment,
+            FragmentDefinitionNode::class,
+            sprintf(
+                'The `requires` of hook "%s" (%s) must be a named fragment (fragment Name on Type { ... }).',
+                $hookName,
+                $class,
+            ),
+        );
 
         $requiresClassName = $fragment->name->value;
 
-        Assert::regex($requiresClassName, '/^[A-Z][a-zA-Z0-9_]*$/', sprintf(
-            'The `requires` fragment name "%s" of hook "%s" must be a valid PHP class name.',
+        Assert::regex(
             $requiresClassName,
-            $hookName,
-        ));
+            '/^[A-Z][a-zA-Z0-9_]*$/',
+            sprintf(
+                'The `requires` fragment name "%s" of hook "%s" must be a valid PHP class name.',
+                $requiresClassName,
+                $hookName,
+            ),
+        );
 
         $requiresTypeCondition = $fragment->typeCondition->name->value;
         $requiresFqcn = $this->namespace . '\\Hook\\' . $requiresClassName;
 
         $method = new ReflectionMethod($class, '__invoke');
 
-        Assert::keyNotExists($this->hooks, $hookName, sprintf(
-            'Hook "%s" is already registered (at %s).',
+        Assert::keyNotExists(
+            $this->hooks,
             $hookName,
-            $this->hooks[$hookName]->class ?? '?',
-        ));
+            sprintf('Hook "%s" is already registered (at %s).', $hookName, $this->hooks[$hookName]->class ?? '?'),
+        );
 
         try {
             $returnType = TypeResolver::create()->resolve($method);
@@ -386,7 +402,7 @@ final readonly class Config
         if ($batched) {
             $parameters = $method->getParameters();
 
-            if (count($parameters) !== 1 || ! $this->isArrayHookParameter($parameters[0])) {
+            if (count($parameters) !== 1 || !$this->isArrayHookParameter($parameters[0])) {
                 throw new InvalidArgumentException(sprintf(
                     'Batched hook "%s" (%s::__invoke) must accept exactly one array argument: '
                     . 'public function __invoke(array $inputs): iterable. Each entry of $inputs is '
@@ -397,7 +413,7 @@ final readonly class Config
                 ));
             }
 
-            if ( ! $returnType instanceof Type\CollectionType) {
+            if (!$returnType instanceof Type\CollectionType) {
                 throw new InvalidArgumentException(sprintf(
                     'Batched hook "%s" (%s::__invoke) must return an iterable; declare '
                     . '@return iterable<int, V> so the value type can be inferred.',
@@ -421,7 +437,7 @@ final readonly class Config
             $requiresTypeCondition,
         );
 
-        return clone ($this, [
+        return clone($this, [
             'hooks' => $hooks,
         ]);
     }
@@ -447,23 +463,25 @@ final readonly class Config
         Type $type,
         ?string $directive = null,
         array $operations = [],
-    ) : self {
-        Assert::regex($name, '/^[a-zA-Z_][a-zA-Z0-9_]*$/', sprintf(
-            'Operation argument name "%s" must be a valid PHP identifier.',
+    ): self {
+        Assert::regex(
             $name,
-        ));
+            '/^[a-zA-Z_][a-zA-Z0-9_]*$/',
+            sprintf('Operation argument name "%s" must be a valid PHP identifier.', $name),
+        );
 
         if ($directive !== null) {
-            Assert::regex($directive, '/^[a-zA-Z_][a-zA-Z0-9_]*$/', sprintf(
-                'Operation argument directive "%s" must be a valid GraphQL directive name.',
+            Assert::regex(
                 $directive,
-            ));
+                '/^[a-zA-Z_][a-zA-Z0-9_]*$/',
+                sprintf('Operation argument directive "%s" must be a valid GraphQL directive name.', $directive),
+            );
         }
 
         $operationArguments = $this->operationArguments;
         $operationArguments[] = new OperationArgument($name, $type, $directive, $operations);
 
-        return clone ($this, [
+        return clone($this, [
             'operationArguments' => $operationArguments,
         ]);
     }
@@ -472,7 +490,7 @@ final readonly class Config
      * A batched hook's single parameter must be `array` (or `iterable`/untyped) — it
      * receives the whole batch of input tuples.
      */
-    private function isArrayHookParameter(ReflectionParameter $parameter) : bool
+    private function isArrayHookParameter(ReflectionParameter $parameter): bool
     {
         $type = $parameter->getType();
 
@@ -480,7 +498,6 @@ final readonly class Config
             return true;
         }
 
-        return $type instanceof ReflectionNamedType
-            && in_array($type->getName(), ['array', 'iterable'], true);
+        return $type instanceof ReflectionNamedType && in_array($type->getName(), ['array', 'iterable'], true);
     }
 }

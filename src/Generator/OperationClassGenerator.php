@@ -27,7 +27,7 @@ final class OperationClassGenerator extends AbstractGenerator
     /**
      * @throws JsonException
      */
-    public function generate(OperationClassPlan $plan) : string
+    public function generate(OperationClassPlan $plan): string
     {
         $namespace = $this->fullyQualified($plan->operationType, $plan->operationNamepaceName);
         $failedException = $this->fullyQualified(
@@ -47,7 +47,7 @@ final class OperationClassGenerator extends AbstractGenerator
             yield '';
 
             if ($this->config->addGeneratedAttribute) {
-                yield from $generator->dumpAttribute(Generated::class, function () use ($generator, $plan) {
+                yield from $generator->dumpAttribute(Generated::class, static function () use ($generator, $plan) {
                     if ($plan->source instanceof GraphQLFileSource) {
                         yield sprintf('source: %s', var_export($plan->source->relativeFilePath, true));
 
@@ -60,128 +60,108 @@ final class OperationClassGenerator extends AbstractGenerator
             }
 
             yield sprintf('final readonly class %s {', $plan->className);
-            yield $generator->indent(
-                function () use ($plan, $failedException, $namespace, $generator, $usedHooks) {
-                    yield sprintf('public const string OPERATION_NAME = %s;', var_export($plan->operationName, true));
-                    yield sprintf(
-                        'public const string OPERATION_DEFINITION = %s;',
-                        $generator->maybeNowDoc($plan->operationDefinition, 'GRAPHQL'),
-                    );
+            yield $generator->indent(function () use ($plan, $failedException, $namespace, $generator, $usedHooks) {
+                yield sprintf('public const string OPERATION_NAME = %s;', var_export($plan->operationName, true));
+                yield sprintf('public const string OPERATION_DEFINITION = %s;', $generator->maybeNowDoc(
+                    $plan->operationDefinition,
+                    'GRAPHQL',
+                ));
 
-                    yield '';
+                yield '';
 
-                    if ($usedHooks !== []) {
-                        yield from $generator->docComment(function () use ($usedHooks, $generator) {
-                            yield sprintf(
-                                '@param %s $hooks',
-                                TypeDumper::dump($this->buildHooksShape($usedHooks), $generator->import(...)),
-                            );
-                        });
+                if ($usedHooks !== []) {
+                    yield from $generator->docComment(function () use ($usedHooks, $generator) {
+                        yield sprintf('@param %s $hooks', TypeDumper::dump(
+                            $this->buildHooksShape($usedHooks),
+                            $generator->import(...),
+                        ));
+                    });
+                }
+
+                yield 'public function __construct(';
+                yield $generator->indent(function () use ($generator, $usedHooks) {
+                    yield sprintf('private %s $client,', $generator->import($this->config->client));
+
+                    if ($usedHooks === []) {
+                        return;
                     }
 
-                    yield 'public function __construct(';
-                    yield $generator->indent(function () use ($generator, $usedHooks) {
-                        yield sprintf('private %s $client,', $generator->import($this->config->client));
-
-                        if ($usedHooks === []) {
-                            return;
-                        }
-
-                        if ($this->config->symfonyAutowireHooks) {
-                            $autowire = $generator->import('Symfony\Component\DependencyInjection\Attribute\Autowire');
-                            yield sprintf('#[%s([', $autowire);
-                            yield $generator->indent(function () use ($usedHooks, $autowire, $generator) {
-                                $lines = [];
-                                foreach (array_keys($usedHooks) as $name) {
-                                    $lines[] = sprintf(
-                                        '%s => new %s(service: %s::class)',
-                                        var_export($name, true),
-                                        $autowire,
-                                        $generator->import($this->config->hooks[$name]->class),
-                                    );
-                                }
-
-                                yield implode(",\n", $lines);
-                            });
-                            yield '])]';
-                        }
-
-                        yield 'private array $hooks,';
-                    });
-                    yield ') {}';
-
-                    $parameters = $generator->indent(function () use ($plan, $generator) {
-                        foreach ($plan->extraParameters as $extraParameter) {
-                            yield sprintf(
-                                '%s $%s,',
-                                $this->dumpPHPType($extraParameter->type, $generator->import(...)),
-                                $extraParameter->name,
-                            );
-                        }
-
-                        foreach ($plan->variables as $name => $phpType) {
-                            yield sprintf(
-                                '%s $%s%s,',
-                                $this->dumpPHPType($phpType, $generator->import(...)),
-                                $name,
-                                $phpType instanceof SymfonyType\NullableType ? ' = null' : '',
-                            );
-                        }
-                    });
-
-                    yield '';
-                    yield from $generator->docComment(function () use ($plan, $generator) {
-                        yield '@api';
-
-                        foreach ($plan->variables as $name => $phpType) {
-                            if ( ! $phpType instanceof SymfonyType\CollectionType) {
-                                continue;
+                    if ($this->config->symfonyAutowireHooks) {
+                        $autowire = $generator->import('Symfony\Component\DependencyInjection\Attribute\Autowire');
+                        yield sprintf('#[%s([', $autowire);
+                        yield $generator->indent(function () use ($usedHooks, $autowire, $generator) {
+                            $lines = [];
+                            foreach (array_keys($usedHooks) as $name) {
+                                $lines[] = sprintf(
+                                    '%s => new %s(service: %s::class)',
+                                    var_export($name, true),
+                                    $autowire,
+                                    $generator->import($this->config->hooks[$name]->class),
+                                );
                             }
 
-                            yield sprintf(
-                                '@param %s $%s',
-                                TypeDumper::dump($phpType, $generator->import(...)),
-                                $name,
-                            );
-                        }
-                    });
-
-                    if ($plan->variables !== [] || $plan->extraParameters !== []) {
-                        yield 'public function execute(';
-                        yield $parameters;
-                        yield sprintf(
-                            ') : %s {',
-                            $generator->import($namespace . '\\Data'),
-                        );
-                    } else {
-                        yield sprintf(
-                            'public function execute() : %s',
-                            $generator->import($namespace . '\\Data'),
-                        );
-                        yield '{';
+                            yield implode(",\n", $lines);
+                        });
+                        yield '])]';
                     }
 
-                    yield $generator->indent(function () use ($plan, $generator, $usedHooks) {
-                        yield '$data = $this->client->graphql(';
-                        yield $generator->indent(function () use ($plan, $generator) {
-                            yield 'self::OPERATION_DEFINITION,';
-                            yield '[';
-                            yield $generator->indent(function () use ($plan) {
-                                foreach ($plan->variables as $name => $phpType) {
-                                    if ($phpType->isIdentifiedBy(TypeIdentifier::STRING)) {
-                                        if ($phpType instanceof SymfonyType\NullableType) {
-                                            yield sprintf(
-                                                "'%s' => \$%s !== null ? (string) \$%s : null,",
-                                                $name,
-                                                $name,
-                                                $name,
-                                            );
+                    yield 'private array $hooks,';
+                });
+                yield ') {}';
 
-                                            continue;
-                                        }
+                $parameters = $generator->indent(function () use ($plan, $generator) {
+                    foreach ($plan->extraParameters as $extraParameter) {
+                        yield sprintf(
+                            '%s $%s,',
+                            $this->dumpPHPType($extraParameter->type, $generator->import(...)),
+                            $extraParameter->name,
+                        );
+                    }
 
+                    foreach ($plan->variables as $name => $phpType) {
+                        yield sprintf(
+                            '%s $%s%s,',
+                            $this->dumpPHPType($phpType, $generator->import(...)),
+                            $name,
+                            $phpType instanceof SymfonyType\NullableType ? ' = null' : '',
+                        );
+                    }
+                });
+
+                yield '';
+                yield from $generator->docComment(static function () use ($plan, $generator) {
+                    yield '@api';
+
+                    foreach ($plan->variables as $name => $phpType) {
+                        if (!$phpType instanceof SymfonyType\CollectionType) {
+                            continue;
+                        }
+
+                        yield sprintf('@param %s $%s', TypeDumper::dump($phpType, $generator->import(...)), $name);
+                    }
+                });
+
+                if ($plan->variables !== [] || $plan->extraParameters !== []) {
+                    yield 'public function execute(';
+                    yield $parameters;
+                    yield sprintf(') : %s {', $generator->import($namespace . '\\Data'));
+                } else {
+                    yield sprintf('public function execute() : %s', $generator->import($namespace . '\\Data'));
+                    yield '{';
+                }
+
+                yield $generator->indent(static function () use ($plan, $generator, $usedHooks) {
+                    yield '$data = $this->client->graphql(';
+                    yield $generator->indent(static function () use ($plan, $generator) {
+                        yield 'self::OPERATION_DEFINITION,';
+                        yield '[';
+                        yield $generator->indent(static function () use ($plan) {
+                            foreach ($plan->variables as $name => $phpType) {
+                                if ($phpType->isIdentifiedBy(TypeIdentifier::STRING)) {
+                                    if ($phpType instanceof SymfonyType\NullableType) {
                                         yield sprintf(
-                                            "'%s' => (string) \$%s,",
+                                            "'%s' => \$%s !== null ? (string) \$%s : null,",
+                                            $name,
                                             $name,
                                             $name,
                                         );
@@ -189,98 +169,92 @@ final class OperationClassGenerator extends AbstractGenerator
                                         continue;
                                     }
 
-                                    yield sprintf("'%s' => \$%s,", $name, $name);
-                                }
-                            });
-                            yield '],';
-                            yield 'self::OPERATION_NAME,';
+                                    yield sprintf("'%s' => (string) \$%s,", $name, $name);
 
-                            foreach ($plan->extraParameters as $extraParameter) {
-                                yield sprintf('%s: $%s,', $extraParameter->name, $extraParameter->name);
-                            }
-                        });
-                        yield ');';
-                        yield '';
-                        yield '// @mago-expect analysis:mixed-argument(2)';
-                        yield 'return new Data(';
-                        $trailingComma = $usedHooks !== [] ? ',' : '';
-                        yield $generator->indent(function () use ($trailingComma, $usedHooks) {
-                            yield "\$data['data'] ?? [], // @phpstan-ignore argument.type";
-                            yield sprintf(
-                                "\$data['errors'] ?? []%s // @phpstan-ignore argument.type",
-                                $trailingComma,
-                            );
-
-                            if ($usedHooks !== []) {
-                                yield '$this->hooks,';
-                            }
-                        });
-                        yield ');';
-                    });
-                    yield '}';
-
-                    if ($this->config->dumpOrThrowMethods) {
-                        yield '';
-                        yield from $generator->docComment(function () use ($plan, $failedException, $generator) {
-                            yield '@api';
-
-                            foreach ($plan->variables as $name => $phpType) {
-                                if ( ! $phpType instanceof SymfonyType\CollectionType) {
                                     continue;
                                 }
 
-                                yield sprintf(
-                                    '@param %s $%s',
-                                    TypeDumper::dump($phpType, $generator->import(...)),
-                                    $name,
-                                );
+                                yield sprintf("'%s' => \$%s,", $name, $name);
+                            }
+                        });
+                        yield '],';
+                        yield 'self::OPERATION_NAME,';
+
+                        foreach ($plan->extraParameters as $extraParameter) {
+                            yield sprintf('%s: $%s,', $extraParameter->name, $extraParameter->name);
+                        }
+                    });
+                    yield ');';
+                    yield '';
+                    yield '// @mago-expect analysis:mixed-argument(2)';
+                    yield 'return new Data(';
+                    $trailingComma = $usedHooks !== [] ? ',' : '';
+                    yield $generator->indent(static function () use ($trailingComma, $usedHooks) {
+                        yield "\$data['data'] ?? [], // @phpstan-ignore argument.type";
+                        yield sprintf("\$data['errors'] ?? []%s // @phpstan-ignore argument.type", $trailingComma);
+
+                        if ($usedHooks !== []) {
+                            yield '$this->hooks,';
+                        }
+                    });
+                    yield ');';
+                });
+                yield '}';
+
+                if ($this->config->dumpOrThrowMethods) {
+                    yield '';
+                    yield from $generator->docComment(static function () use ($plan, $failedException, $generator) {
+                        yield '@api';
+
+                        foreach ($plan->variables as $name => $phpType) {
+                            if (!$phpType instanceof SymfonyType\CollectionType) {
+                                continue;
                             }
 
-                            yield sprintf('@throws %s', $generator->import($failedException));
-                        });
-
-                        if ($plan->variables !== [] || $plan->extraParameters !== []) {
-                            yield 'public function executeOrThrow(';
-                            yield $parameters;
-                            yield sprintf(
-                                ') : %s {',
-                                $generator->import($namespace . '\\Data'),
-                            );
-                        } else {
-                            yield sprintf(
-                                'public function executeOrThrow() : %s',
-                                $generator->import($namespace . '\\Data'),
-                            );
-                            yield '{';
+                            yield sprintf('@param %s $%s', TypeDumper::dump($phpType, $generator->import(...)), $name);
                         }
 
-                        yield $generator->indent(function () use ($plan, $failedException, $generator) {
-                            yield '$data = $this->execute(';
-                            yield $generator->indent(function () use ($plan) {
-                                foreach ($plan->extraParameters as $extraParameter) {
-                                    yield sprintf('$%s,', $extraParameter->name);
-                                }
+                        yield sprintf('@throws %s', $generator->import($failedException));
+                    });
 
-                                foreach ($plan->variables as $name => $phpType) {
-                                    yield sprintf('$%s,', $name);
-                                }
-                            });
-                            yield ');';
-
-                            yield '';
-                            yield 'if ($data->errors !== []) {';
-                            yield $generator->indent([
-                                sprintf('throw new %s($data);', $generator->import($failedException)),
-                            ]);
-                            yield '}';
-
-                            yield '';
-                            yield 'return $data;';
-                        });
-                        yield '}';
+                    if ($plan->variables !== [] || $plan->extraParameters !== []) {
+                        yield 'public function executeOrThrow(';
+                        yield $parameters;
+                        yield sprintf(') : %s {', $generator->import($namespace . '\\Data'));
+                    } else {
+                        yield sprintf(
+                            'public function executeOrThrow() : %s',
+                            $generator->import($namespace . '\\Data'),
+                        );
+                        yield '{';
                     }
-                },
-            );
+
+                    yield $generator->indent(static function () use ($plan, $failedException, $generator) {
+                        yield '$data = $this->execute(';
+                        yield $generator->indent(static function () use ($plan) {
+                            foreach ($plan->extraParameters as $extraParameter) {
+                                yield sprintf('$%s,', $extraParameter->name);
+                            }
+
+                            foreach ($plan->variables as $name => $phpType) {
+                                yield sprintf('$%s,', $name);
+                            }
+                        });
+                        yield ');';
+
+                        yield '';
+                        yield 'if ($data->errors !== []) {';
+                        yield $generator->indent([
+                            sprintf('throw new %s($data);', $generator->import($failedException)),
+                        ]);
+                        yield '}';
+
+                        yield '';
+                        yield 'return $data;';
+                    });
+                    yield '}';
+                }
+            });
             yield '}';
         });
     }

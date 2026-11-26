@@ -9,12 +9,12 @@ use Ruudk\GraphQLCodeGenerator\GraphQLTestCase;
 
 final class FragmentsTest extends GraphQLTestCase
 {
-    public function testGenerate() : void
+    public function testGenerate(): void
     {
         $this->assertActualMatchesExpected();
     }
 
-    public function testQuery() : void
+    public function testQuery(): void
     {
         $result = new TestQuery($this->getClient([
             'data' => [
@@ -53,7 +53,7 @@ final class FragmentsTest extends GraphQLTestCase
         self::assertStringContainsString('fragment UserDetails on User', $this->getLastOperation());
     }
 
-    public function testApplicationViewer() : void
+    public function testApplicationViewer(): void
     {
         $result = new TestQuery($this->getClient([
             'data' => [
@@ -75,7 +75,7 @@ final class FragmentsTest extends GraphQLTestCase
         self::assertSame('https://example', $result->viewer->applicationDetails->url);
     }
 
-    public function testNullWhenViewerIsDifferentType() : void
+    public function testNullWhenViewerIsDifferentType(): void
     {
         $result = new TestQuery($this->getClient([
             'data' => [

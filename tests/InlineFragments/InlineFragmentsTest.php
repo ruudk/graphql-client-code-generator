@@ -19,7 +19,7 @@ final class InlineFragmentsTest extends GraphQLTestCase
      * value must NOT leak as a public property even though discrimination
      * (isUser/asUser) still reads it from $this->data['__typename'].
      */
-    public function testInjectedTypenameIsNotExposedAsProperty() : void
+    public function testInjectedTypenameIsNotExposedAsProperty(): void
     {
         self::assertFalse(
             new ReflectionClass(Viewer::class)->hasProperty('__typename'),
@@ -48,7 +48,7 @@ final class InlineFragmentsTest extends GraphQLTestCase
      * `... on Type { ... }`. To read `name` on a variant it must be
      * selected within that variant.
      */
-    public function testParentFieldsAreNotMergedIntoVariantClasses() : void
+    public function testParentFieldsAreNotMergedIntoVariantClasses(): void
     {
         $asUser = new ReflectionClass(AsUser::class);
         self::assertTrue($asUser->hasProperty('login'));
@@ -59,12 +59,12 @@ final class InlineFragmentsTest extends GraphQLTestCase
         self::assertFalse($asApplication->hasProperty('name'), 'Parent field "name" must not leak into AsApplication');
     }
 
-    public function testGenerate() : void
+    public function testGenerate(): void
     {
         $this->assertActualMatchesExpected();
     }
 
-    public function testQuery() : void
+    public function testQuery(): void
     {
         $result = new TestQuery($this->getClient([
             'data' => [
@@ -93,7 +93,7 @@ final class InlineFragmentsTest extends GraphQLTestCase
         self::assertSame('Hello, World!', $project->description);
     }
 
-    public function testApplicationViewer() : void
+    public function testApplicationViewer(): void
     {
         $result = new TestQuery($this->getClient([
             'data' => [
@@ -113,7 +113,7 @@ final class InlineFragmentsTest extends GraphQLTestCase
         self::assertSame('https://example', $result->viewer->asApplication->url);
     }
 
-    public function testNullWhenViewerIsDifferentType() : void
+    public function testNullWhenViewerIsDifferentType(): void
     {
         $result = new TestQuery($this->getClient([
             'data' => [

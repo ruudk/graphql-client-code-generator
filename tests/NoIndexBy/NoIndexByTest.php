@@ -12,7 +12,7 @@ use Ruudk\GraphQLCodeGenerator\NoIndexBy\Generated\Query\Test\TestQuery;
 final class NoIndexByTest extends GraphQLTestCase
 {
     #[Override]
-    public function getConfig() : Config
+    public function getConfig(): Config
     {
         return parent::getConfig()
             ->enableSymfonyExcludeAttribute()
@@ -20,12 +20,12 @@ final class NoIndexByTest extends GraphQLTestCase
             ->enableAddNodesOnConnections();
     }
 
-    public function testGenerate() : void
+    public function testGenerate(): void
     {
         $this->assertActualMatchesExpected();
     }
 
-    public function testItemsShouldNotBeIndexedWhenNoDirective() : void
+    public function testItemsShouldNotBeIndexedWhenNoDirective(): void
     {
         $result = new TestQuery($this->getClient([
             'data' => [

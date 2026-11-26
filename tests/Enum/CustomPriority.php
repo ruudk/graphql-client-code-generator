@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Ruudk\GraphQLCodeGenerator\Enum;
 
-enum CustomPriority : string
+enum CustomPriority: string
 {
     case Low = 'LOW';
     case Medium = 'MEDIUM';

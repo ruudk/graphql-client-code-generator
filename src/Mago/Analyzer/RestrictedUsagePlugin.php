@@ -28,7 +28,7 @@ final readonly class RestrictedUsagePlugin implements Plugin
     ) {}
 
     #[Override]
-    public function getDefinition() : PluginDefinition
+    public function getDefinition(): PluginDefinition
     {
         return new PluginDefinition(
             identifier: self::IDENTIFIER,
@@ -38,7 +38,7 @@ final readonly class RestrictedUsagePlugin implements Plugin
     }
 
     #[Override]
-    public function register(PluginRegistry $registry) : void
+    public function register(PluginRegistry $registry): void
     {
         $registry->registerAfterFileAnalysisHook(new RestrictedUsageHook($this->namespaces));
     }

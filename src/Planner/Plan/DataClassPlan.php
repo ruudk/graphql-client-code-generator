@@ -31,14 +31,14 @@ final class DataClassPlan
      * @param array<string, list<string>> $inlineFragmentRequiredFields
      */
     public function __construct(
-        public readonly GraphQLFileSource | HookInputSource | InlineFragmentSource | InlineSource | TwigFileSource $source,
+        public readonly GraphQLFileSource|HookInputSource|InlineFragmentSource|InlineSource|TwigFileSource $source,
         public readonly string $path,
         public readonly string $fqcn,
-        public readonly NamedType & Type $parentType,
+        public readonly NamedType&Type $parentType,
         public readonly SymfonyType $fields,
         public readonly SymfonyType $payloadShape,
         public readonly array $possibleTypes,
-        public readonly null | FragmentDefinitionNode | InlineFragmentNode | OperationDefinitionNode $definitionNode,
+        public readonly FragmentDefinitionNode|InlineFragmentNode|OperationDefinitionNode|null $definitionNode,
         public readonly ?SymfonyType $nodesType,
         public readonly array $inlineFragmentRequiredFields,
         public readonly bool $isData,

@@ -23,18 +23,17 @@ use Symfony\Component\TypeInfo\Type;
 final class ListScalarTest extends GraphQLTestCase
 {
     #[Override]
-    public function getConfig() : Config
+    public function getConfig(): Config
     {
-        return parent::getConfig()
-            ->withScalar('Currency', Type::string(), Type::object(Currency::class));
+        return parent::getConfig()->withScalar('Currency', Type::string(), Type::object(Currency::class));
     }
 
-    public function testGenerate() : void
+    public function testGenerate(): void
     {
         $this->assertActualMatchesExpected();
     }
 
-    public function testQueryWithListOfScalars() : void
+    public function testQueryWithListOfScalars(): void
     {
         $result = new TestQuery($this->getClient([
             'data' => [

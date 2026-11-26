@@ -59,7 +59,7 @@ final readonly class RestrictedUsageHook implements AfterFileAnalysisHook
     ) {}
 
     #[Override]
-    public function getRequirements() : array
+    public function getRequirements(): array
     {
         return [];
     }
@@ -68,7 +68,7 @@ final readonly class RestrictedUsageHook implements AfterFileAnalysisHook
      * @throws CancelledException
      */
     #[Override]
-    public function afterFileAnalysis(AfterFileAnalysisContext $context) : void
+    public function afterFileAnalysis(AfterFileAnalysisContext $context): void
     {
         $source = $context->analysis->getSourceFile();
 
@@ -100,11 +100,11 @@ final readonly class RestrictedUsageHook implements AfterFileAnalysisHook
 
             $attribute = $generated[strtolower($usage->class)] ?? null;
 
-            if ($attribute === null || ! $attribute->restricted) {
+            if ($attribute === null || !$attribute->restricted) {
                 continue;
             }
 
-            if ($usage->kind === RestrictedUsageKind::Instantiation && ! $attribute->restrictInstantiation) {
+            if ($usage->kind === RestrictedUsageKind::Instantiation && !$attribute->restrictInstantiation) {
                 continue;
             }
 
@@ -132,7 +132,7 @@ final readonly class RestrictedUsageHook implements AfterFileAnalysisHook
     /**
      * @return list<RestrictedUsage>
      */
-    private function findClassNameUsages(SourceFile $source) : array
+    private function findClassNameUsages(SourceFile $source): array
     {
         $usages = [];
 
@@ -140,7 +140,7 @@ final readonly class RestrictedUsageHook implements AfterFileAnalysisHook
             foreach ($source->getNodes($kind) as $node) {
                 $resolved = $source->getResolvedName($node);
 
-                if ($resolved === null || ! $this->isGenerated($resolved->name)) {
+                if ($resolved === null || !$this->isGenerated($resolved->name)) {
                     continue;
                 }
 
@@ -181,7 +181,7 @@ final readonly class RestrictedUsageHook implements AfterFileAnalysisHook
     /**
      * @return list<RestrictedUsage>
      */
-    private function findMemberUsages(AfterFileAnalysisContext $context, SourceFile $source) : array
+    private function findMemberUsages(AfterFileAnalysisContext $context, SourceFile $source): array
     {
         $accesses = [];
 
@@ -225,7 +225,7 @@ final readonly class RestrictedUsageHook implements AfterFileAnalysisHook
 
         foreach ($accesses as $index => [$kind, , $identifier, $member]) {
             foreach ($types[$index]->atomicTypes ?? [] as $atomic) {
-                if ( ! $atomic instanceof NamedObjectType || ! $this->isGenerated($atomic->name)) {
+                if (!$atomic instanceof NamedObjectType || !$this->isGenerated($atomic->name)) {
                     continue;
                 }
 
@@ -239,14 +239,14 @@ final readonly class RestrictedUsageHook implements AfterFileAnalysisHook
     /**
      * @param array<int, null|string> $classLikeNames cache of class-like node ids to their name
      */
-    private function findEnclosingClassLike(SourceFile $source, Node $node, array &$classLikeNames) : ?string
+    private function findEnclosingClassLike(SourceFile $source, Node $node, array &$classLikeNames): ?string
     {
         foreach ($source->getAncestors($node) as $ancestor) {
-            if ( ! in_array($ancestor->kind, self::CLASS_LIKE_KINDS, true)) {
+            if (!in_array($ancestor->kind, self::CLASS_LIKE_KINDS, true)) {
                 continue;
             }
 
-            if ( ! array_key_exists($ancestor->id, $classLikeNames)) {
+            if (!array_key_exists($ancestor->id, $classLikeNames)) {
                 $name = null;
 
                 foreach ($source->getChildren($ancestor) as $child) {
@@ -266,7 +266,7 @@ final readonly class RestrictedUsageHook implements AfterFileAnalysisHook
         return null;
     }
 
-    private function isGenerated(string $class) : bool
+    private function isGenerated(string $class): bool
     {
         $class = ltrim($class, '\\');
 
@@ -276,7 +276,7 @@ final readonly class RestrictedUsageHook implements AfterFileAnalysisHook
         ));
     }
 
-    private static function getGeneratedAttribute(ClassLikeMetadata $metadata) : ?Generated
+    private static function getGeneratedAttribute(ClassLikeMetadata $metadata): ?Generated
     {
         foreach ($metadata->attributes as $attribute) {
             if (strcasecmp(ltrim($attribute->name, '\\'), Generated::class) !== 0) {
@@ -300,7 +300,7 @@ final readonly class RestrictedUsageHook implements AfterFileAnalysisHook
         return null;
     }
 
-    private static function getBoolArgument(AttributeMetadata $attribute, int $position, string $name) : bool
+    private static function getBoolArgument(AttributeMetadata $attribute, int $position, string $name): bool
     {
         return $attribute->getArgument($position, $name)?->valueType?->getLiteralBool() ?? false;
     }

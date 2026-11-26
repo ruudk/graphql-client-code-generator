@@ -30,13 +30,13 @@ final readonly class OperationArgumentDirectiveRemover
      * @throws Exception
      * @return T
      */
-    public function __invoke(Node $node) : Node
+    public function __invoke(Node $node): Node
     {
         $new = Visitor::visit($node, [
-            NodeKind::DIRECTIVE => function (Node $node) : ?VisitorRemoveNode {
+            NodeKind::DIRECTIVE => function (Node $node): ?VisitorRemoveNode {
                 Assert::isInstanceOf($node, DirectiveNode::class);
 
-                if ( ! in_array($node->name->value, $this->directiveNames, true)) {
+                if (!in_array($node->name->value, $this->directiveNames, true)) {
                     return null;
                 }
 

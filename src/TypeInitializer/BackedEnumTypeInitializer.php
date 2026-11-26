@@ -19,7 +19,7 @@ final readonly class BackedEnumTypeInitializer implements TypeInitializer
     ) {}
 
     #[Override]
-    public function supports(Type $type) : bool
+    public function supports(Type $type): bool
     {
         return $type instanceof Type\BackedEnumType;
     }
@@ -30,7 +30,7 @@ final readonly class BackedEnumTypeInitializer implements TypeInitializer
         CodeGenerator $generator,
         string $variable,
         DelegatingTypeInitializer $delegator,
-    ) : string {
+    ): string {
         if ($this->addUnknownCaseToEnums && str_starts_with($type->getClassName(), $this->namespace)) {
             return sprintf(
                 '%s::tryFrom(%s) ?? %s::Unknown__',
@@ -40,10 +40,6 @@ final readonly class BackedEnumTypeInitializer implements TypeInitializer
             );
         }
 
-        return sprintf(
-            '%s::from(%s)',
-            $generator->import($type->getClassName()),
-            $variable,
-        );
+        return sprintf('%s::from(%s)', $generator->import($type->getClassName()), $variable);
     }
 }

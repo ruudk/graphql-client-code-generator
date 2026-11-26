@@ -12,7 +12,7 @@ use Ruudk\GraphQLCodeGenerator\ListTypename\Generated\Query\Test\Data\Field\Sole
 
 final class ListTypenameTest extends GraphQLTestCase
 {
-    public function testGenerate() : void
+    public function testGenerate(): void
     {
         $this->assertActualMatchesExpected();
     }
@@ -22,7 +22,7 @@ final class ListTypenameTest extends GraphQLTestCase
      * GraphQL forces at least one field; the value is never read, so the
      * property is tagged @api.
      */
-    public function testSoleTypenameOnListIsApi() : void
+    public function testSoleTypenameOnListIsApi(): void
     {
         $docComment = new ReflectionClass(SoleList::class)
             ->getProperty('__typename')
@@ -36,7 +36,7 @@ final class ListTypenameTest extends GraphQLTestCase
      * Other fields are selected alongside __typename, so the caller does
      * read the list items: it must NOT be tagged @api.
      */
-    public function testTypenameWithSiblingFieldsOnListIsNotApi() : void
+    public function testTypenameWithSiblingFieldsOnListIsNotApi(): void
     {
         $docComment = new ReflectionClass(MultiList::class)
             ->getProperty('__typename')
@@ -50,7 +50,7 @@ final class ListTypenameTest extends GraphQLTestCase
      * because GraphQL forces at least one field (probing presence/non-null);
      * the value is never read, so it is tagged @api too.
      */
-    public function testSoleTypenameOnSingleObjectIsApi() : void
+    public function testSoleTypenameOnSingleObjectIsApi(): void
     {
         $docComment = new ReflectionClass(Single::class)
             ->getProperty('__typename')

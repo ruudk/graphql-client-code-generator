@@ -7,14 +7,11 @@ namespace Ruudk\GraphQLCodeGenerator\HooksInterface;
 use Ruudk\GraphQLCodeGenerator\Attribute\Hook;
 use Ruudk\GraphQLCodeGenerator\HooksInterface\Generated\Hook\ProjectOwnerId;
 
-#[Hook(
-    name: 'findOwner',
-    requires: <<<'GRAPHQL'
-        fragment ProjectOwnerId on Project {
-          ownerId
-        }
-        GRAPHQL
-)]
+#[Hook(name: 'findOwner', requires: <<<'GRAPHQL'
+    fragment ProjectOwnerId on Project {
+      ownerId
+    }
+    GRAPHQL)]
 final readonly class FindOwnerHook
 {
     /**
@@ -24,7 +21,7 @@ final readonly class FindOwnerHook
         private array $users = [],
     ) {}
 
-    public function __invoke(ProjectOwnerId $project) : ?User
+    public function __invoke(ProjectOwnerId $project): ?User
     {
         return $this->users[$project->ownerId] ?? null;
     }

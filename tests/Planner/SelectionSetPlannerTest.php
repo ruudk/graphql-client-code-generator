@@ -20,7 +20,7 @@ use Symfony\Component\TypeInfo\Type as SymfonyType;
 
 final class SelectionSetPlannerTest extends TestCase
 {
-    public function testFragmentSpreadFieldsMergeInNestedClasses() : void
+    public function testFragmentSpreadFieldsMergeInNestedClasses(): void
     {
         $schema = BuildSchema::build('
             type Query { item: Item }
@@ -136,7 +136,7 @@ final class SelectionSetPlannerTest extends TestCase
         );
     }
 
-    public function testNestedFragmentPayloadShapeMerging() : void
+    public function testNestedFragmentPayloadShapeMerging(): void
     {
         $schema = BuildSchema::build('
             type Query { payment: Payment }

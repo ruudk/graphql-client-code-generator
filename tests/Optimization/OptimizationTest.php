@@ -9,12 +9,12 @@ use Ruudk\GraphQLCodeGenerator\Optimization\Generated\Query\Test\TestQuery;
 
 final class OptimizationTest extends GraphQLTestCase
 {
-    public function testGenerate() : void
+    public function testGenerate(): void
     {
         $this->assertActualMatchesExpected();
     }
 
-    public function testQuery() : void
+    public function testQuery(): void
     {
         $result = new TestQuery($this->getClient([
             'data' => [

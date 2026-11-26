@@ -26,18 +26,18 @@ final readonly class DuplicateFieldOptimizer
      * @throws Exception
      * @return T
      */
-    public function __invoke(Node $node, array $fragmentDefinitions) : Node
+    public function __invoke(Node $node, array $fragmentDefinitions): Node
     {
         $new = Visitor::visit($node, [
             NodeKind::SELECTION_SET => [
-                'enter' => function (Node $node) {
+                'enter' => static function (Node $node) {
                     Assert::isInstanceOf($node, SelectionSetNode::class);
 
                     $selected = [];
                     $list = [];
                     $changed = false;
                     foreach ($node->selections as $selection) {
-                        if ( ! $selection instanceof FieldNode) {
+                        if (!$selection instanceof FieldNode) {
                             $list[] = $selection;
 
                             continue;
@@ -55,7 +55,7 @@ final readonly class DuplicateFieldOptimizer
                         $selected[] = $name;
                     }
 
-                    if ( ! $changed) {
+                    if (!$changed) {
                         return null;
                     }
 

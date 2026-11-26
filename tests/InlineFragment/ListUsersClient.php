@@ -26,10 +26,8 @@ final readonly class ListUsersClient
     /**
      * @return list<string>
      */
-    public function getDisplayNames() : array
+    public function getDisplayNames(): array
     {
-        return $this->mapper->mapMany(
-            array_map(fn($user) => $user->userName, $this->query->execute()->users),
-        );
+        return $this->mapper->mapMany(array_map(static fn($user) => $user->userName, $this->query->execute()->users));
     }
 }

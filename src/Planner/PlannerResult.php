@@ -48,7 +48,7 @@ final class PlannerResult
     /**
      * @param object $class A plan object with a path property
      */
-    public function addClass(object $class) : void
+    public function addClass(object $class): void
     {
         /**
          * @var object{path: string} $class
@@ -56,7 +56,7 @@ final class PlannerResult
         $this->classes[$class->path] = $class;
     }
 
-    public function addOperation(OperationPlan $operation) : void
+    public function addOperation(OperationPlan $operation): void
     {
         $this->operations[$operation->operationName] = $operation;
     }
@@ -64,7 +64,7 @@ final class PlannerResult
     /**
      * @param array<string, SymfonyType> $enumTypes
      */
-    public function setDiscoveredEnumTypes(array $enumTypes) : void
+    public function setDiscoveredEnumTypes(array $enumTypes): void
     {
         $this->discoveredEnumTypes = $enumTypes;
     }
@@ -72,7 +72,7 @@ final class PlannerResult
     /**
      * @param array<string, SymfonyType> $inputObjectTypes
      */
-    public function setDiscoveredInputObjectTypes(array $inputObjectTypes) : void
+    public function setDiscoveredInputObjectTypes(array $inputObjectTypes): void
     {
         $this->discoveredInputObjectTypes = $inputObjectTypes;
     }
@@ -80,7 +80,7 @@ final class PlannerResult
     /**
      * @param array<string, array<string, array<string, string>>> $operationsToInject
      */
-    public function setOperationsToInject(array $operationsToInject) : void
+    public function setOperationsToInject(array $operationsToInject): void
     {
         $this->operationsToInject = $operationsToInject;
     }
@@ -88,7 +88,7 @@ final class PlannerResult
     /**
      * @param array<string, string> $unusedFragments
      */
-    public function setUnusedFragments(array $unusedFragments) : void
+    public function setUnusedFragments(array $unusedFragments): void
     {
         $this->unusedFragments = $unusedFragments;
     }

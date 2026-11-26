@@ -32,14 +32,14 @@ final readonly class InlineFragmentOptimizer
      * @throws Exception
      * @return T
      */
-    public function __invoke(Node $node, array $fragmentDefinitions) : Node
+    public function __invoke(Node $node, array $fragmentDefinitions): Node
     {
         $typeInfo = new TypeInfo($this->schema);
 
         // @phpstan-ignore argument.type
         $wrapped = Visitor::visitWithTypeInfo($typeInfo, [
             NodeKind::INLINE_FRAGMENT => [
-                'leave' => function (Node $node) use ($typeInfo) : ?NodeList {
+                'leave' => static function (Node $node) use ($typeInfo): ?NodeList {
                     Assert::isInstanceOf($node, InlineFragmentNode::class);
 
                     $type = Type::getNamedType($typeInfo->getParentType());

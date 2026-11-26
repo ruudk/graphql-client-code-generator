@@ -15,19 +15,19 @@ use Symfony\Component\TypeInfo\Type;
 final class EnumTest extends GraphQLTestCase
 {
     #[Override]
-    public function getConfig() : Config
+    public function getConfig(): Config
     {
         return parent::getConfig()
             ->enableAddUnknownCaseToEnums()
             ->withEnumType('Priority', Type::enum(CustomPriority::class));
     }
 
-    public function testGenerate() : void
+    public function testGenerate(): void
     {
         $this->assertActualMatchesExpected();
     }
 
-    public function testQuery() : void
+    public function testQuery(): void
     {
         $result = new TestQuery($this->getClient([
             'data' => [
@@ -43,7 +43,7 @@ final class EnumTest extends GraphQLTestCase
         self::assertSame(CustomPriority::High, $result->priority);
     }
 
-    public function testCustomEnumMapping() : void
+    public function testCustomEnumMapping(): void
     {
         $result = new TestQuery($this->getClient([
             'data' => [

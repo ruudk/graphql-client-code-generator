@@ -16,7 +16,7 @@ final class FragmentObjectType extends SymfonyType\ObjectType
     public function __construct(
         string $className,
         public readonly string $fragmentName,
-        public readonly NamedType & Type $fragmentType,
+        public readonly NamedType&Type $fragmentType,
     ) {
         parent::__construct($className);
     }

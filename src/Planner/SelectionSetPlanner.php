@@ -100,7 +100,7 @@ final class SelectionSetPlanner
      * @throws LogicException
      */
     public function plan(
-        GraphQLFileSource | HookInputSource | InlineFragmentSource | InlineSource | TwigFileSource $source,
+        GraphQLFileSource|HookInputSource|InlineFragmentSource|InlineSource|TwigFileSource $source,
         SelectionSetNode $selectionSet,
         Type $parent,
         string $outputDirectory,
@@ -109,7 +109,7 @@ final class SelectionSetPlanner
         ?bool $nullable = null,
         ?array $indexByType = null,
         array $indexBy = [],
-    ) : SelectionSetPlanResult {
+    ): SelectionSetPlanResult {
         $context = new PlanningContext(
             outputDirectory: $outputDirectory,
             fqcn: $fqcn,
@@ -118,13 +118,7 @@ final class SelectionSetPlanner
             indexBy: $indexBy,
         );
 
-        $result = $this->planSelectionSet(
-            $source,
-            $selectionSet,
-            $parent,
-            $context,
-            $nullable,
-        );
+        $result = $this->planSelectionSet($source, $selectionSet, $parent, $context, $nullable);
 
         return new SelectionSetPlanResult(
             fields: $result->fields->toArrayShape(),
@@ -143,28 +137,22 @@ final class SelectionSetPlanner
      * @throws LogicException
      */
     public function planSelectionSet(
-        GraphQLFileSource | HookInputSource | InlineFragmentSource | InlineSource | TwigFileSource $source,
+        GraphQLFileSource|HookInputSource|InlineFragmentSource|InlineSource|TwigFileSource $source,
         SelectionSetNode $selectionSet,
         Type $type,
         PlanningContext $context,
         ?bool $nullable = null,
-    ) : SelectionSetResult {
+    ): SelectionSetResult {
         // Handle wrapper types
         if ($type instanceof ListOfType) {
             $innerContext = $context->withPath($context->path . '.*');
             $wrappedType = $type->getWrappedType();
 
             // Check if items in the list are nullable
-            $itemsNullable = ! ($wrappedType instanceof NonNull);
+            $itemsNullable = !$wrappedType instanceof NonNull;
 
             // Plan the inner type
-            $innerResult = $this->planSelectionSet(
-                $source,
-                $selectionSet,
-                $wrappedType,
-                $innerContext,
-                true,
-            );
+            $innerResult = $this->planSelectionSet($source, $selectionSet, $wrappedType, $innerContext, true);
 
             // If items are nullable, wrap the result type in nullable
             if ($itemsNullable) {
@@ -182,37 +170,18 @@ final class SelectionSetPlanner
         }
 
         if ($type instanceof NonNull) {
-            $innerResult = $this->planSelectionSet(
-                $source,
-                $selectionSet,
-                $type->getWrappedType(),
-                $context,
-                false,
-            );
-
-            return $innerResult; // NonNull doesn't change the structure
+            return $this->planSelectionSet($source, $selectionSet, $type->getWrappedType(), $context, false); // NonNull doesn't change the structure
         }
 
         if ($type instanceof NullableType && $nullable === null) {
-            $innerResult = $this->planSelectionSet(
-                $source,
-                $selectionSet,
-                $type,
-                $context,
-                true,
-            );
+            $innerResult = $this->planSelectionSet($source, $selectionSet, $type, $context, true);
 
             return $this->wrapInNullable($innerResult);
         }
 
         Assert::isInstanceOf($type, NamedType::class, 'Parent type must be a named type');
 
-        return $this->planNamedTypeSelectionSet(
-            $source,
-            $selectionSet,
-            $type,
-            $context,
-        );
+        return $this->planNamedTypeSelectionSet($source, $selectionSet, $type, $context);
     }
 
     /**
@@ -221,11 +190,11 @@ final class SelectionSetPlanner
      * @throws LogicException
      */
     private function planNamedTypeSelectionSet(
-        GraphQLFileSource | HookInputSource | InlineFragmentSource | InlineSource | TwigFileSource $source,
+        GraphQLFileSource|HookInputSource|InlineFragmentSource|InlineSource|TwigFileSource $source,
         SelectionSetNode $selectionSet,
-        NamedType & Type $type,
+        NamedType&Type $type,
         PlanningContext $context,
-    ) : SelectionSetResult {
+    ): SelectionSetResult {
         $fields = new FieldCollection();
         $pathFields = new PathFieldMap();
 
@@ -239,7 +208,7 @@ final class SelectionSetPlanner
         );
         $payloadShape = $payloadShapeBuilder->buildPayloadShape($selectionSet, $type);
 
-        // TODO This should not be part of the GraphQL operation, done by a visitor/optimizer.
+        // TODO(@ruudk) This should not be part of the GraphQL operation, done by a visitor/optimizer.
         // Check if we need to implicitly add __typename
         if ($this->needsImplicitTypename($selectionSet, $type)) {
             // Only the payload shape needs __typename here so the generated
@@ -271,35 +240,20 @@ final class SelectionSetPlanner
 
         // Process inline fragments
         foreach ($selectionSet->selections as $selection) {
-            if ( ! $selection instanceof InlineFragmentNode) {
+            if (!$selection instanceof InlineFragmentNode) {
                 continue;
             }
 
-            $this->processInlineFragment(
-                $source,
-                $selection,
-                $type,
-                $context,
-                $fields,
-                $pathFields,
-                $payloadShape,
-            );
+            $this->processInlineFragment($source, $selection, $type, $context, $fields, $pathFields, $payloadShape);
         }
 
         // Process fragment spreads
         foreach ($selectionSet->selections as $selection) {
-            if ( ! $selection instanceof FragmentSpreadNode) {
+            if (!$selection instanceof FragmentSpreadNode) {
                 continue;
             }
 
-            $this->processFragmentSpread(
-                $selection,
-                $type,
-                $context,
-                $fields,
-                $pathFields,
-                $payloadShape,
-            );
+            $this->processFragmentSpread($selection, $type, $context, $fields, $pathFields, $payloadShape);
         }
 
         return new SelectionSetResult(
@@ -316,14 +270,14 @@ final class SelectionSetPlanner
      * @throws LogicException
      */
     private function processFieldSelection(
-        GraphQLFileSource | HookInputSource | InlineFragmentSource | InlineSource | TwigFileSource $source,
+        GraphQLFileSource|HookInputSource|InlineFragmentSource|InlineSource|TwigFileSource $source,
         FieldNode $selection,
         Type $parent,
         PlanningContext $context,
         FieldCollection $fields,
         PathFieldMap $pathFields,
         PayloadShape $payloadShape,
-    ) : void {
+    ): void {
         $fieldName = $selection->alias->value ?? $selection->name->value;
 
         // Hook fields are synthetic — they don't exist in the schema and their value comes from
@@ -345,13 +299,16 @@ final class SelectionSetPlanner
             // caller's typed API is not polluted by the hook's internals.)
             $this->assertHookSiteType($parent, $hook);
 
-            $fields->add($fieldName, new HookPropertyType(
-                $hook->name,
-                $hook->requiresFqcn,
-                $hook->requiresClassName,
-                $hook->returnType,
-                $hook->batched,
-            ));
+            $fields->add(
+                $fieldName,
+                new HookPropertyType(
+                    $hook->name,
+                    $hook->requiresFqcn,
+                    $hook->requiresClassName,
+                    $hook->returnType,
+                    $hook->batched,
+                ),
+            );
 
             return;
         }
@@ -363,7 +320,7 @@ final class SelectionSetPlanner
             // payload shape (read via `$this->data['__typename']`) but must
             // NOT surface as a public property. Only a user-selected
             // __typename becomes a property.
-            if ( ! $selection instanceof InjectedTypenameFieldNode) {
+            if (!$selection instanceof InjectedTypenameFieldNode) {
                 $fields->add($fieldName, SymfonyType::string());
             }
 
@@ -376,9 +333,7 @@ final class SelectionSetPlanner
         Assert::isInstanceOf($parent, HasFieldsType::class, 'Parent type must have fields');
 
         $fieldType = $parent->getField($selection->name->value)->getType();
-        $nakedFieldType = $fieldType instanceof WrappingType
-            ? $fieldType->getInnermostType()
-            : $fieldType;
+        $nakedFieldType = $fieldType instanceof WrappingType ? $fieldType->getInnermostType() : $fieldType;
 
         $throwWhenNull = $this->directiveProcessor->hasThrowWhenNullDirective($selection->directives);
 
@@ -400,9 +355,7 @@ final class SelectionSetPlanner
         if ($nakedFieldType instanceof ObjectType && isset($this->config->objectTypes[$nakedFieldType->name()])) {
             [$objectPayloadShape, $objectType] = $this->config->objectTypes[$nakedFieldType->name()];
 
-            $finalType = $fieldType instanceof NullableType
-                ? SymfonyType::nullable($objectType)
-                : $objectType;
+            $finalType = $fieldType instanceof NullableType ? SymfonyType::nullable($objectType) : $objectType;
 
             $finalPayloadShape = $fieldType instanceof NullableType
                 ? SymfonyType::nullable($objectPayloadShape)
@@ -459,12 +412,12 @@ final class SelectionSetPlanner
      *
      * @throws InvalidArgumentException
      */
-    private function assertHookSiteType(Type $parent, HookDefinition $hook) : void
+    private function assertHookSiteType(Type $parent, HookDefinition $hook): void
     {
         $parentName = $parent instanceof NamedType ? $parent->name() : (string) $parent;
         $matches = $parentName === $hook->requiresTypeCondition;
 
-        if ( ! $matches && $parent instanceof ObjectType) {
+        if (!$matches && $parent instanceof ObjectType) {
             foreach ($parent->getInterfaces() as $interface) {
                 if ($interface->name() === $hook->requiresTypeCondition) {
                     $matches = true;
@@ -489,7 +442,7 @@ final class SelectionSetPlanner
      * @throws LogicException
      */
     private function processNestedSelection(
-        GraphQLFileSource | HookInputSource | InlineFragmentSource | InlineSource | TwigFileSource $source,
+        GraphQLFileSource|HookInputSource|InlineFragmentSource|InlineSource|TwigFileSource $source,
         FieldNode $selection,
         string $fieldName,
         Type $fieldType,
@@ -499,7 +452,7 @@ final class SelectionSetPlanner
         FieldCollection $fields,
         PathFieldMap $pathFields,
         PayloadShape $payloadShape,
-    ) : void {
+    ): void {
         Assert::isInstanceOf($nakedFieldType, NamedType::class, 'Field type must be a named type');
 
         // Determine class name
@@ -509,9 +462,7 @@ final class SelectionSetPlanner
         $indexByContext = $this->processIndexByDirective($selection, $nakedFieldType);
 
         // Create nested context
-        $nestedContext = $context
-            ->withSubDirectory($className)
-            ->withPath($context->path . '.' . $fieldName);
+        $nestedContext = $context->withSubDirectory($className)->withPath($context->path . '.' . $fieldName);
 
         if ($indexByContext !== null) {
             $nestedContext = $nestedContext->withIndexBy($indexByContext['types'], $indexByContext['fields']);
@@ -519,12 +470,7 @@ final class SelectionSetPlanner
 
         // Recursively plan the nested selection
         Assert::notNull($selection->selectionSet, 'Selection set must not be null');
-        $nestedResult = $this->planSelectionSet(
-            $source,
-            $selection->selectionSet,
-            $fieldType,
-            $nestedContext,
-        );
+        $nestedResult = $this->planSelectionSet($source, $selection->selectionSet, $fieldType, $nestedContext);
 
         // Handle special nodes for connections
         $nodesType = $this->extractNodesType($nakedFieldType, $nestedResult, $context->path . '.' . $fieldName);
@@ -562,14 +508,14 @@ final class SelectionSetPlanner
      * @throws LogicException
      */
     private function processInlineFragment(
-        GraphQLFileSource | HookInputSource | InlineFragmentSource | InlineSource | TwigFileSource $source,
+        GraphQLFileSource|HookInputSource|InlineFragmentSource|InlineSource|TwigFileSource $source,
         InlineFragmentNode $selection,
         Type $parent,
         PlanningContext $context,
         FieldCollection $fields,
         PathFieldMap $pathFields,
         PayloadShape $payloadShape,
-    ) : void {
+    ): void {
         Assert::notNull($selection->typeCondition, 'Inline fragment must have a type condition');
 
         $fragmentType = Type::getNamedType($this->schema->getType($selection->typeCondition->name->value));
@@ -579,16 +525,9 @@ final class SelectionSetPlanner
         $fieldName = sprintf('as%s', $fragmentType->name());
 
         // Plan the inline fragment
-        $fragmentContext = $context
-            ->withSubDirectory($className)
-            ->withPath($context->path . '.' . $fieldName);
+        $fragmentContext = $context->withSubDirectory($className)->withPath($context->path . '.' . $fieldName);
 
-        $fragmentResult = $this->planSelectionSet(
-            $source,
-            $selection->selectionSet,
-            $fragmentType,
-            $fragmentContext,
-        );
+        $fragmentResult = $this->planSelectionSet($source, $selection->selectionSet, $fragmentType, $fragmentContext);
 
         // The inline-fragment class only exposes what is selected inside
         // `... on Type { ... }`. Parent fields are deliberately NOT merged in:
@@ -604,10 +543,13 @@ final class SelectionSetPlanner
         );
 
         // Using fragmentType as parent ensures fields won't be marked optional.
-        $inlineFragmentPayloadShape = $fragmentSpecificBuilder->buildPayloadShape($selection->selectionSet, $fragmentType);
+        $inlineFragmentPayloadShape = $fragmentSpecificBuilder->buildPayloadShape(
+            $selection->selectionSet,
+            $fragmentType,
+        );
 
         // Add __typename as it's always present for inline fragments
-        if ( ! $inlineFragmentPayloadShape->has('__typename')) {
+        if (!$inlineFragmentPayloadShape->has('__typename')) {
             $inlineFragmentPayloadShape->addRequired('__typename', new StringLiteralType($fragmentType->name()));
         }
 
@@ -654,7 +596,7 @@ final class SelectionSetPlanner
         FieldCollection $fields,
         PathFieldMap $pathFields,
         PayloadShape $payloadShape,
-    ) : void {
+    ): void {
         $fragmentType = $this->fragmentTypes[$selection->name->value];
         $fieldName = lcfirst($selection->name->value);
 
@@ -665,9 +607,10 @@ final class SelectionSetPlanner
             $fragmentType,
         );
 
-        $accessorType = ($parent instanceof InterfaceType || $parent instanceof UnionType)
-            ? SymfonyType::nullable($fragmentObjectType)
-            : $fragmentObjectType;
+        $accessorType =
+            $parent instanceof InterfaceType || $parent instanceof UnionType
+                ? SymfonyType::nullable($fragmentObjectType)
+                : $fragmentObjectType;
 
         $fields->add($fieldName, $accessorType);
         $pathFields->addWithPrefix($context->path, $fieldName, $accessorType);
@@ -712,7 +655,7 @@ final class SelectionSetPlanner
      * Fragment spread fields must remain isolated and are NOT collected here
      * @return array<string, FieldNode>
      */
-    private function collectMergedFieldSelections(SelectionSetNode $selectionSet, NamedType & Type $type) : array
+    private function collectMergedFieldSelections(SelectionSetNode $selectionSet, NamedType&Type $type): array
     {
         $fieldsByName = [];
 
@@ -723,7 +666,7 @@ final class SelectionSetPlanner
             if ($selection instanceof FieldNode) {
                 $fieldName = $selection->alias->value ?? $selection->name->value;
 
-                if ( ! isset($fieldsByName[$fieldName])) {
+                if (!isset($fieldsByName[$fieldName])) {
                     $fieldsByName[$fieldName] = [];
                 }
 
@@ -749,7 +692,7 @@ final class SelectionSetPlanner
      * Merge multiple FieldNodes into one with combined selection set
      * @param list<FieldNode> $nodes
      */
-    private function mergeFieldNodes(array $nodes) : FieldNode
+    private function mergeFieldNodes(array $nodes): FieldNode
     {
         $primary = $nodes[0];
 
@@ -771,7 +714,7 @@ final class SelectionSetPlanner
                 if ($selection instanceof FieldNode) {
                     $subFieldName = $selection->alias->value ?? $selection->name->value;
 
-                    if ( ! isset($subFieldsByName[$subFieldName])) {
+                    if (!isset($subFieldsByName[$subFieldName])) {
                         $subFieldsByName[$subFieldName] = [];
                     }
 
@@ -814,7 +757,7 @@ final class SelectionSetPlanner
     /**
      * Get a unique key for a selection
      */
-    private function getSelectionKey(SelectionNode $selection) : string
+    private function getSelectionKey(SelectionNode $selection): string
     {
         if ($selection instanceof FieldNode) {
             return 'field:' . ($selection->alias->value ?? $selection->name->value);
@@ -834,7 +777,7 @@ final class SelectionSetPlanner
      * @param list<list<string>> $indexBy
      * @throws LogicException
      */
-    private function createIndexByType(array $indexByType, SymfonyType $valueType, array $indexBy) : SymfonyType
+    private function createIndexByType(array $indexByType, SymfonyType $valueType, array $indexBy): SymfonyType
     {
         $result = $valueType;
 
@@ -854,14 +797,15 @@ final class SelectionSetPlanner
     /**
      * @throws LogicException
      */
-    private function wrapInList(SelectionSetResult $inner, PlanningContext $context) : SelectionSetResult
+    private function wrapInList(SelectionSetResult $inner, PlanningContext $context): SelectionSetResult
     {
         $listFields = SymfonyType::list($inner->getFieldsType());
         $listPayloadShape = SymfonyType::list($inner->getPayloadShapeType());
 
-        $resultType = $context->indexByType !== null && $context->indexBy !== []
-            ? $this->createIndexByType($context->indexByType, $inner->resultType, $context->indexBy)
-            : SymfonyType::list($inner->resultType);
+        $resultType =
+            $context->indexByType !== null && $context->indexBy !== []
+                ? $this->createIndexByType($context->indexByType, $inner->resultType, $context->indexBy)
+                : SymfonyType::list($inner->resultType);
 
         // Return the inner fields and payload with wrapped types
         return new SelectionSetResult(
@@ -874,7 +818,7 @@ final class SelectionSetPlanner
         );
     }
 
-    private function wrapInNullable(SelectionSetResult $inner) : SelectionSetResult
+    private function wrapInNullable(SelectionSetResult $inner): SelectionSetResult
     {
         // Wrap the types in nullable
         return new SelectionSetResult(
@@ -887,9 +831,9 @@ final class SelectionSetPlanner
         );
     }
 
-    private function needsImplicitTypename(SelectionSetNode $selectionSet, Type $parent) : bool
+    private function needsImplicitTypename(SelectionSetNode $selectionSet, Type $parent): bool
     {
-        if ( ! ($parent instanceof InterfaceType || $parent instanceof UnionType)) {
+        if (!($parent instanceof InterfaceType || $parent instanceof UnionType)) {
             return false;
         }
 
@@ -907,11 +851,15 @@ final class SelectionSetPlanner
         NamedType $fieldType,
         Type $parent,
         Type $wrappedFieldType,
-    ) : string {
+    ): string {
         $className = ucfirst($this->isList($wrappedFieldType) ? $this->singularize($fieldName) : $fieldName);
 
         if ($parent instanceof NamedType) {
-            if ($this->config->useNodeNameForEdgeNodes && $fieldName === 'node' && str_ends_with($parent->name(), 'Edge')) {
+            if (
+                $this->config->useNodeNameForEdgeNodes
+                && $fieldName === 'node'
+                && str_ends_with($parent->name(), 'Edge')
+            ) {
                 return ucfirst($fieldType->name());
             }
 
@@ -932,9 +880,9 @@ final class SelectionSetPlanner
      * @throws InvalidArgumentException
      * @return array{types: list<SymfonyType>, fields: list<list<string>>}
      */
-    private function processIndexByDirective(FieldNode $selection, Type $nakedFieldType) : ?array
+    private function processIndexByDirective(FieldNode $selection, Type $nakedFieldType): ?array
     {
-        if ( ! $this->config->indexByDirective) {
+        if (!$this->config->indexByDirective) {
             return null;
         }
 
@@ -944,16 +892,16 @@ final class SelectionSetPlanner
             return null;
         }
 
-        $validFields = array_filter($indexByFields, fn($fieldPath) => $fieldPath !== []);
+        $validFields = array_filter($indexByFields, static fn($fieldPath) => $fieldPath !== []);
 
         if ($validFields === []) {
             return null;
         }
 
-        $types = array_map(
-            fn($fieldPath) => $this->typeMapper->mapGraphQLTypeToPHPType(RecursiveTypeFinder::find($nakedFieldType, $fieldPath)),
-            $validFields,
-        );
+        $types = array_map(fn($fieldPath) => $this->typeMapper->mapGraphQLTypeToPHPType(RecursiveTypeFinder::find(
+            $nakedFieldType,
+            $fieldPath,
+        )), $validFields);
 
         return [
             'types' => array_values($types),
@@ -965,8 +913,8 @@ final class SelectionSetPlanner
         NamedType $fieldType,
         SelectionSetResult $nestedResult,
         string $path,
-    ) : ?SymfonyType {
-        if ( ! $this->config->addNodesOnConnections || ! str_ends_with($fieldType->name(), 'Connection')) {
+    ): ?SymfonyType {
+        if (!$this->config->addNodesOnConnections || !str_ends_with($fieldType->name(), 'Connection')) {
             return null;
         }
 
@@ -999,14 +947,14 @@ final class SelectionSetPlanner
      * @throws InvariantViolation
      */
     private function createDataClassPlan(
-        GraphQLFileSource | HookInputSource | InlineFragmentSource | InlineSource | TwigFileSource $source,
-        NamedType & Type $parentType,
+        GraphQLFileSource|HookInputSource|InlineFragmentSource|InlineSource|TwigFileSource $source,
+        NamedType&Type $parentType,
         SelectionSetResult $result,
         PlanningContext $context,
         FieldNode $selection,
         ?SymfonyType $nodesType,
         Type $fieldType,
-    ) : void {
+    ): void {
         $fields = $result->getFieldsType();
         $payloadShape = $result->getPayloadShapeType();
 
@@ -1056,7 +1004,7 @@ final class SelectionSetPlanner
      * presence/non-null without reading any data), so it must NOT trigger
      * only when other fields are selected alongside `__typename`.
      */
-    private function shouldMarkTypenameAsApi(FieldNode $selection) : bool
+    private function shouldMarkTypenameAsApi(FieldNode $selection): bool
     {
         return $this->selectionSetIsSoleTypename($selection->selectionSet);
     }
@@ -1067,7 +1015,7 @@ final class SelectionSetPlanner
      * the value back (GraphQL just forces at least one field), so the
      * generated `__typename` property is never used.
      */
-    private function selectionSetIsSoleTypename(?SelectionSetNode $selectionSet) : bool
+    private function selectionSetIsSoleTypename(?SelectionSetNode $selectionSet): bool
     {
         $selections = $selectionSet?->selections;
 
@@ -1081,13 +1029,13 @@ final class SelectionSetPlanner
     }
 
     private function createInlineFragmentClassPlan(
-        GraphQLFileSource | HookInputSource | InlineFragmentSource | InlineSource | TwigFileSource $source,
-        NamedType & Type $fragmentType,
+        GraphQLFileSource|HookInputSource|InlineFragmentSource|InlineSource|TwigFileSource $source,
+        NamedType&Type $fragmentType,
         FieldCollection $fields,
         PayloadShape $payloadShape,
         PlanningContext $context,
         InlineFragmentNode $selection,
-    ) : void {
+    ): void {
         $dataClass = new DataClassPlan(
             source: $source,
             path: $context->outputDirectory . '.php',
@@ -1110,10 +1058,8 @@ final class SelectionSetPlanner
     /**
      * @throws \InvalidArgumentException
      */
-    private function storeInlineFragmentRequiredFields(
-        InlineFragmentNode $selection,
-        string $inlineFragmentKey,
-    ) : void {
+    private function storeInlineFragmentRequiredFields(InlineFragmentNode $selection, string $inlineFragmentKey): void
+    {
         $requiredFields = [];
         $this->collectRequiredFieldsFromSelectionSet($selection->selectionSet, $requiredFields);
         $this->inlineFragmentRequiredFields[$inlineFragmentKey] = $requiredFields;
@@ -1124,10 +1070,8 @@ final class SelectionSetPlanner
      * @param list<string> $requiredFields
      * @throws \InvalidArgumentException
      */
-    private function collectRequiredFieldsFromSelectionSet(
-        SelectionSetNode $selectionSet,
-        array &$requiredFields,
-    ) : void {
+    private function collectRequiredFieldsFromSelectionSet(SelectionSetNode $selectionSet, array &$requiredFields): void
+    {
         foreach ($selectionSet->selections as $selection) {
             if ($selection instanceof FieldNode && $selection->name->value !== '__typename') {
                 // The synthetic hook field itself is never present in the raw response, so it
@@ -1141,7 +1085,10 @@ final class SelectionSetPlanner
                     $hook = $this->config->hooks[$hookName] ?? null;
 
                     if ($hook !== null) {
-                        $this->collectRequiredFieldsFromSelectionSet($hook->requiresFragment->selectionSet, $requiredFields);
+                        $this->collectRequiredFieldsFromSelectionSet(
+                            $hook->requiresFragment->selectionSet,
+                            $requiredFields,
+                        );
                     }
 
                     continue;
@@ -1149,7 +1096,7 @@ final class SelectionSetPlanner
 
                 $fieldName = $selection->alias->value ?? $selection->name->value;
 
-                if ( ! in_array($fieldName, $requiredFields, true)) {
+                if (!in_array($fieldName, $requiredFields, true)) {
                     $requiredFields[] = $fieldName;
                 }
             } elseif ($selection instanceof FragmentSpreadNode) {
@@ -1166,16 +1113,14 @@ final class SelectionSetPlanner
         }
     }
 
-    private function mergeInlineFragmentPayload(
-        PayloadShape $fragmentPayload,
-        PayloadShape $parentPayload,
-    ) : void {
+    private function mergeInlineFragmentPayload(PayloadShape $fragmentPayload, PayloadShape $parentPayload): void
+    {
         $parentPayload->merge($fragmentPayload, asOptional: true);
     }
 
     // Utility methods
 
-    private function isList(Type $fieldType) : bool
+    private function isList(Type $fieldType): bool
     {
         if ($fieldType instanceof NonNull) {
             return $this->isList($fieldType->getWrappedType());
@@ -1184,33 +1129,36 @@ final class SelectionSetPlanner
         return $fieldType instanceof ListOfType;
     }
 
-    private function singularize(string $fieldName) : string
+    private function singularize(string $fieldName): string
     {
         $options = $this->inflector->singularize($fieldName);
 
         return $options[0] ?? $fieldName;
     }
 
-    private function fullyQualified(string $part, string ...$moreParts) : string
+    private function fullyQualified(string $part, string ...$moreParts): string
     {
         if (str_starts_with($part, $this->config->namespace . '\\')) {
             $part = substr($part, strlen($this->config->namespace) + 1);
         }
 
-        return implode('\\', array_filter([$this->config->namespace, $part, ...$moreParts], fn($part) => $part !== ''));
+        return implode('\\', array_filter(
+            [$this->config->namespace, $part, ...$moreParts],
+            static fn($part) => $part !== '',
+        ));
     }
 
-    public function setFragmentPayloadShape(string $name, SymfonyType $shape) : void
+    public function setFragmentPayloadShape(string $name, SymfonyType $shape): void
     {
         $this->fragmentPayloadShapes[$name] = $shape;
     }
 
-    public function setFragmentType(string $name, NamedType & Type $type) : void
+    public function setFragmentType(string $name, NamedType&Type $type): void
     {
         $this->fragmentTypes[$name] = $type;
     }
 
-    public function setFragmentFqcn(string $name, string $fqcn) : void
+    public function setFragmentFqcn(string $name, string $fqcn): void
     {
         $this->fragmentFqcns[$name] = $fqcn;
     }
@@ -1218,8 +1166,11 @@ final class SelectionSetPlanner
     /**
      * @param list<string> $dependencies
      */
-    public function setFragmentDefinition(string $name, FragmentDefinitionNodeWithSource $definition, array $dependencies) : void
-    {
+    public function setFragmentDefinition(
+        string $name,
+        FragmentDefinitionNodeWithSource $definition,
+        array $dependencies,
+    ): void {
         $this->fragmentDefinitions[$name] = [$definition, $dependencies];
     }
 }

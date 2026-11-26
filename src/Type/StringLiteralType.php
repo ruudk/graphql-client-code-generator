@@ -14,7 +14,7 @@ final class StringLiteralType extends Type
     ) {}
 
     #[Override]
-    public function __toString() : string
+    public function __toString(): string
     {
         return var_export($this->type, true);
     }

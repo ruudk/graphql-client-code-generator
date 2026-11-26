@@ -11,10 +11,16 @@ use Symfony\Component\TypeInfo\Type as SymfonyType;
 
 final class AbstractGeneratorTest extends TestCase
 {
-    public function testNullableCustomScalarUsesExplicitNullUnionInsteadOfNullableShorthand() : void
+    public function testNullableCustomScalarUsesExplicitNullUnionInsteadOfNullableShorthand(): void
     {
-        $generator = new class(Config::create(schema: '', projectDir: '', outputDir: '', namespace: 'Test\\Generated', client: 'Test\\Client')) extends AbstractGenerator {
-            public function dump(SymfonyType $type) : string
+        $generator = new class(Config::create(
+            schema: '',
+            projectDir: '',
+            outputDir: '',
+            namespace: 'Test\\Generated',
+            client: 'Test\\Client',
+        )) extends AbstractGenerator {
+            public function dump(SymfonyType $type): string
             {
                 return $this->dumpPHPType($type, static fn(string $className) => $className);
             }

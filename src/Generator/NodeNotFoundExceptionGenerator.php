@@ -9,7 +9,7 @@ use Ruudk\CodeGenerator\CodeGenerator;
 
 final class NodeNotFoundExceptionGenerator extends AbstractGenerator
 {
-    public function generate() : string
+    public function generate(): string
     {
         $generator = new CodeGenerator($this->config->namespace);
 
@@ -19,10 +19,10 @@ final class NodeNotFoundExceptionGenerator extends AbstractGenerator
             yield '';
             yield sprintf('final class NodeNotFoundException extends %s', $generator->import(Exception::class));
             yield '{';
-            yield $generator->indent(function () use ($generator) {
+            yield $generator->indent(static function () use ($generator) {
                 yield 'public static function create(string $node, string $property) : self';
                 yield '{';
-                yield $generator->indent(function () {
+                yield $generator->indent(static function () {
                     yield "return new self(sprintf('Field %s.%s is null', \$node, \$property));";
                 });
                 yield '}';

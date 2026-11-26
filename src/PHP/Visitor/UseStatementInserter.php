@@ -26,9 +26,8 @@ final class UseStatementInserter extends NodeVisitorAbstract
     /**
      * @param list<string> $fqcns
      */
-    public function __construct(
-        array $fqcns,
-    ) {
+    public function __construct(array $fqcns)
+    {
         // Remove duplicates and sort the FQCNs
         $this->fqcnsToInsert = array_values(array_unique($fqcns));
         sort($this->fqcnsToInsert, SORT_STRING | SORT_FLAG_CASE);
@@ -38,10 +37,10 @@ final class UseStatementInserter extends NodeVisitorAbstract
      * @return null|array<Node>
      */
     #[Override]
-    public function enterNode(Node $node) : ?array
+    public function enterNode(Node $node): ?array
     {
         // Only process Use_ nodes
-        if ( ! $node instanceof Use_) {
+        if (!$node instanceof Use_) {
             return null;
         }
 
@@ -77,9 +76,9 @@ final class UseStatementInserter extends NodeVisitorAbstract
      * @return null|array<Node>
      */
     #[Override]
-    public function leaveNode(Node $node) : ?array
+    public function leaveNode(Node $node): ?array
     {
-        if ( ! $node instanceof Use_) {
+        if (!$node instanceof Use_) {
             return null;
         }
 
@@ -89,7 +88,7 @@ final class UseStatementInserter extends NodeVisitorAbstract
         $parent = $node->getAttribute('parent');
         $key = $node->getAttribute('key');
 
-        if ( ! is_int($key)) {
+        if (!is_int($key)) {
             return null;
         }
 
@@ -114,7 +113,7 @@ final class UseStatementInserter extends NodeVisitorAbstract
         $toInsertAfter = [];
 
         // If there's no next statement or next is not a Use_, insert remaining after current
-        if ( ! isset($stmts[$nextIndex]) || ! ($stmts[$nextIndex] instanceof Use_)) {
+        if (!isset($stmts[$nextIndex]) || !$stmts[$nextIndex] instanceof Use_) {
             // This is the last use statement, insert all remaining that come after
             foreach ($this->fqcnsToInsert as $fqcn) {
                 if (isset($this->insertedFqcns[$fqcn])) {
@@ -156,12 +155,12 @@ final class UseStatementInserter extends NodeVisitorAbstract
      * @return null|array<Node>
      */
     #[Override]
-    public function afterTraverse(array $nodes) : ?array
+    public function afterTraverse(array $nodes): ?array
     {
         // Check if there are any FQCNs that haven't been inserted yet
         $remainingFqcns = [];
         foreach ($this->fqcnsToInsert as $fqcn) {
-            if ( ! isset($this->insertedFqcns[$fqcn])) {
+            if (!isset($this->insertedFqcns[$fqcn])) {
                 $remainingFqcns[] = $fqcn;
             }
         }
@@ -185,7 +184,7 @@ final class UseStatementInserter extends NodeVisitorAbstract
     /**
      * @param list<string> $fqcns
      */
-    private function handleNamespaceNode(Namespace_ $namespace, array $fqcns) : void
+    private function handleNamespaceNode(Namespace_ $namespace, array $fqcns): void
     {
         $firstNonUseIndex = null;
         $lastUseIndex = null;
@@ -224,7 +223,7 @@ final class UseStatementInserter extends NodeVisitorAbstract
      * @param list<string> $fqcns
      * @return array<Node>
      */
-    private function insertMultipleBefore(Use_ $node, array $fqcns) : array
+    private function insertMultipleBefore(Use_ $node, array $fqcns): array
     {
         $newUses = [];
         foreach ($fqcns as $fqcn) {
@@ -240,7 +239,7 @@ final class UseStatementInserter extends NodeVisitorAbstract
      * @param list<string> $fqcns
      * @return array<Node>
      */
-    private function insertMultipleAfter(Use_ $node, array $fqcns) : array
+    private function insertMultipleAfter(Use_ $node, array $fqcns): array
     {
         $newUses = [$node];
         foreach ($fqcns as $fqcn) {

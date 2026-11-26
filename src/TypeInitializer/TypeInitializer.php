@@ -14,7 +14,7 @@ use Symfony\Component\TypeInfo\Type;
  */
 interface TypeInitializer
 {
-    public function supports(Type $type) : bool;
+    public function supports(Type $type): bool;
 
     /**
      * @param T $type
@@ -25,5 +25,5 @@ interface TypeInitializer
         CodeGenerator $generator,
         string $variable,
         DelegatingTypeInitializer $delegator,
-    ) : Generator | string;
+    ): Generator|string;
 }

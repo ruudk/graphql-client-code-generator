@@ -28,31 +28,26 @@ final readonly class GraphQLRequestMatcher implements RequestMatcherInterface
         private ?string $operationName = null,
         ?string $path = null,
         ?string $host = null,
-        null | array | string $methods = ['POST'],
-        null | array | string $schemes = [],
+        array|string|null $methods = ['POST'],
+        array|string|null $schemes = [],
     ) {
-        $this->matcher = new RequestMatcher(
-            $path,
-            $host,
-            $methods,
-            $schemes,
-        );
+        $this->matcher = new RequestMatcher($path, $host, $methods, $schemes);
     }
 
     #[Override]
-    public function matches(RequestInterface $request) : bool
+    public function matches(RequestInterface $request): bool
     {
-        if ( ! $this->matcher->matches($request)) {
+        if (!$this->matcher->matches($request)) {
             return false;
         }
 
-        if ( ! str_starts_with($request->getHeaderLine('Content-Type'), 'application/json')) {
+        if (!str_starts_with($request->getHeaderLine('Content-Type'), 'application/json')) {
             return false;
         }
 
         $body = json_decode((string) $request->getBody(), true, 512, JSON_THROW_ON_ERROR);
 
-        if ( ! is_array($body) || ! isset($body['operationName']) || ! is_string($body['operationName'])) {
+        if (!is_array($body) || !isset($body['operationName']) || !is_string($body['operationName'])) {
             return false;
         }
 
@@ -60,7 +55,11 @@ final readonly class GraphQLRequestMatcher implements RequestMatcherInterface
             return false;
         }
 
-        if ($this->variables !== null && array_key_exists('variables', $body) && $body['variables'] !== $this->variables) {
+        if (
+            $this->variables !== null
+            && array_key_exists('variables', $body)
+            && $body['variables'] !== $this->variables
+        ) {
             return false;
         }
 

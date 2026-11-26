@@ -9,7 +9,7 @@ use Ruudk\GraphQLCodeGenerator\GraphQLTestCase;
 
 final class ExplicitTypenameTest extends GraphQLTestCase
 {
-    public function testGenerate() : void
+    public function testGenerate(): void
     {
         $this->assertActualMatchesExpected();
     }
@@ -20,7 +20,7 @@ final class ExplicitTypenameTest extends GraphQLTestCase
      * `$this->data['__typename']` internally to discriminate the fragment
      * spread (`userDetails`) and the inline fragment (`asApplication`).
      */
-    public function testExplicitTypenameIsPublicAndDiscriminationStillWorks() : void
+    public function testExplicitTypenameIsPublicAndDiscriminationStillWorks(): void
     {
         $result = new TestQuery($this->getClient([
             'data' => [
@@ -53,7 +53,7 @@ final class ExplicitTypenameTest extends GraphQLTestCase
      * in). Selecting `__typename`, `url` and `name` there means the
      * generated `AsApplication` exposes exactly those.
      */
-    public function testExplicitTypenameOnInlineFragmentVariant() : void
+    public function testExplicitTypenameOnInlineFragmentVariant(): void
     {
         $result = new TestQuery($this->getClient([
             'data' => [

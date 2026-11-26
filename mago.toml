@@ -1,0 +1,37 @@
+#:schema ./vendor/carthage-software/mago/schema.json
+php-version = "8.5"
+
+[source]
+paths = [
+    "bin/graphql-client-code-generator",
+    "composer-dependency-analyser.php",
+    "examples",
+    "src",
+    "tests",
+]
+includes = ["vendor"]
+
+[formatter]
+excludes = ["**/Generated/**"]
+
+[linter]
+integrations = ["phpunit", "symfony"]
+excludes = ["**/Generated/**"]
+
+[linter.rules]
+assertion-style = { style = "self" }
+no-debug-symbols = { exclude = ["examples/run.php"] }
+
+# Not enforced before the move to Mago; these need design changes rather than fixes.
+cyclomatic-complexity = { enabled = false }
+excessive-nesting = { enabled = false }
+excessive-parameter-list = { enabled = false }
+halstead = { enabled = false }
+kan-defect = { enabled = false }
+literal-named-argument = { enabled = false }
+no-boolean-flag-parameter = { enabled = false }
+no-else-clause = { enabled = false }
+no-isset = { enabled = false }
+prefer-early-continue = { enabled = false }
+too-many-methods = { enabled = false }
+too-many-properties = { enabled = false }

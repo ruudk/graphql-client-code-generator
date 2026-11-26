@@ -23,16 +23,16 @@ final readonly class PlanningContext
         public array $indexBy = [],
     ) {}
 
-    public function withPath(string $path) : self
+    public function withPath(string $path): self
     {
-        return clone ($this, [
+        return clone($this, [
             'path' => $path,
         ]);
     }
 
-    public function withSubDirectory(string $className) : self
+    public function withSubDirectory(string $className): self
     {
-        return clone ($this, [
+        return clone($this, [
             'outputDirectory' => $this->outputDirectory . '/' . $className,
             'fqcn' => $this->fqcn . '\\' . $className,
             'indexByType' => null,
@@ -44,9 +44,9 @@ final readonly class PlanningContext
      * @param null|list<SymfonyType> $indexByType
      * @param list<list<string>> $indexBy
      */
-    public function withIndexBy(?array $indexByType, array $indexBy) : self
+    public function withIndexBy(?array $indexByType, array $indexBy): self
     {
-        return clone ($this, [
+        return clone($this, [
             'indexByType' => $indexByType,
             'indexBy' => $indexBy,
         ]);

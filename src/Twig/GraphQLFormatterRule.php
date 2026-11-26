@@ -20,11 +20,11 @@ use TwigCsFixer\Token\Tokens;
 final class GraphQLFormatterRule extends AbstractFixableRule
 {
     #[Override]
-    protected function process(int $tokenIndex, Tokens $tokens) : void
+    protected function process(int $tokenIndex, Tokens $tokens): void
     {
         $token = $tokens->get($tokenIndex);
 
-        if ( ! $token->isMatching(Token::BLOCK_NAME_TYPE, 'graphql')) {
+        if (!$token->isMatching(Token::BLOCK_NAME_TYPE, 'graphql')) {
             return;
         }
 
@@ -86,11 +86,8 @@ final class GraphQLFormatterRule extends AbstractFixableRule
 
         try {
             $formatted = rtrim(Printer::doPrint(Parser::parse($raw)), "\r\n");
-        } catch (JsonException | SyntaxError $error) {
-            $this->addError(
-                sprintf('Unable to parse GraphQL: %s', $error->getMessage()),
-                $token,
-            );
+        } catch (JsonException|SyntaxError $error) {
+            $this->addError(sprintf('Unable to parse GraphQL: %s', $error->getMessage()), $token);
 
             return;
         }
@@ -109,10 +106,7 @@ final class GraphQLFormatterRule extends AbstractFixableRule
             return;
         }
 
-        $fixer = $this->addFixableError(
-            'The GraphQL operation is not correctly formatted.',
-            $token,
-        );
+        $fixer = $this->addFixableError('The GraphQL operation is not correctly formatted.', $token);
 
         if ($fixer === null) {
             return;
@@ -128,11 +122,11 @@ final class GraphQLFormatterRule extends AbstractFixableRule
         $fixer->endChangeSet();
     }
 
-    private function resolveIndent(Tokens $tokens, int $blockNameIndex) : string
+    private function resolveIndent(Tokens $tokens, int $blockNameIndex): string
     {
         $blockStartIndex = $tokens->findPrevious(Token::BLOCK_START_TYPE, $blockNameIndex);
 
-        if ($blockStartIndex === false || ! $tokens->has($blockStartIndex - 1)) {
+        if ($blockStartIndex === false || !$tokens->has($blockStartIndex - 1)) {
             return '';
         }
 

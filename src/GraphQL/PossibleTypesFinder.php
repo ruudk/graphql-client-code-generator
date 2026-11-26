@@ -21,7 +21,7 @@ final readonly class PossibleTypesFinder
      * @throws InvariantViolation
      * @return list<string>
      */
-    public function find(Type $type) : array
+    public function find(Type $type): array
     {
         if ($type instanceof NonNull) {
             $type = $type->getWrappedType();

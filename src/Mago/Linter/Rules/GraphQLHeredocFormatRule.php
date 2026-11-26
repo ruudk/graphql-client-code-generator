@@ -31,7 +31,7 @@ final class GraphQLHeredocFormatRule implements Rule
     public const string CODE = 'graphql/heredoc-format';
 
     #[Override]
-    public function getDefinition() : RuleDefinition
+    public function getDefinition(): RuleDefinition
     {
         return new RuleDefinition(
             code: self::CODE,
@@ -44,7 +44,7 @@ final class GraphQLHeredocFormatRule implements Rule
     }
 
     #[Override]
-    public function lint(LintContext $context) : void
+    public function lint(LintContext $context): void
     {
         $text = $context->getText();
         $matches = [];
@@ -59,7 +59,7 @@ final class GraphQLHeredocFormatRule implements Rule
 
         try {
             $formatted = rtrim(Printer::doPrint(Parser::parse($body)), "\r\n");
-        } catch (JsonException | SyntaxError) {
+        } catch (JsonException|SyntaxError) {
             return;
         }
 

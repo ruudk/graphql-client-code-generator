@@ -30,7 +30,7 @@ use Ruudk\GraphQLCodeGenerator\HooksBatched\Generated\Query\Test\TestQuery;
 final class HooksBatchedTest extends GraphQLTestCase
 {
     #[Override]
-    public function getConfig() : Config
+    public function getConfig(): Config
     {
         return parent::getConfig()
             ->withHook(FindUserByIdHook::class)
@@ -38,12 +38,12 @@ final class HooksBatchedTest extends GraphQLTestCase
             ->withHook(FindOrgPlanHook::class);
     }
 
-    public function testGenerate() : void
+    public function testGenerate(): void
     {
         $this->assertActualMatchesExpected();
     }
 
-    public function testHooksAreBatchedAndInvokedOncePerOperation() : void
+    public function testHooksAreBatchedAndInvokedOncePerOperation(): void
     {
         $findUserById = new FindUserByIdHook([
             'user-1' => new User('user-1', 'Alice'),
@@ -111,7 +111,7 @@ final class HooksBatchedTest extends GraphQLTestCase
         self::assertCount(1, $findOrgPlan->batches);
         self::assertSame(
             ['org-1', 'org-2', 'org-3'],
-            array_map(fn($organization) => $organization->id, $findOrgPlan->batches[0]),
+            array_map(static fn($organization) => $organization->id, $findOrgPlan->batches[0]),
         );
 
         // Repository-level single-field hook: one batch holding all 6
@@ -119,7 +119,7 @@ final class HooksBatchedTest extends GraphQLTestCase
         self::assertCount(1, $findUserById->batches);
         self::assertSame(
             ['user-1', 'user-1', 'user-2', 'user-1', 'user-2', 'user-1'],
-            array_map(fn($repository) => $repository->ownerId, $findUserById->batches[0]),
+            array_map(static fn($repository) => $repository->ownerId, $findUserById->batches[0]),
         );
 
         // Repository-level two-field hook: one batch of 6 repositories.
@@ -133,14 +133,14 @@ final class HooksBatchedTest extends GraphQLTestCase
                 ['user-2', 'user-2'],
                 ['user-1', 'user-1'],
             ],
-            array_map(
-                fn($repository) => [$repository->ownerId, $repository->reviewerId],
-                $computeAccess->batches[0],
-            ),
+            array_map(static fn($repository) => [
+                $repository->ownerId,
+                $repository->reviewerId,
+            ], $computeAccess->batches[0]),
         );
     }
 
-    public function testHooksResolveLazilyAndDoNotRunBeforeAccess() : void
+    public function testHooksResolveLazilyAndDoNotRunBeforeAccess(): void
     {
         $findUserById = new FindUserByIdHook([
             'user-1' => new User('user-1', 'Alice'),
@@ -172,7 +172,7 @@ final class HooksBatchedTest extends GraphQLTestCase
         self::assertSame([], $findOrgPlan->batches);
     }
 
-    public function testRepeatedAccessTriggersTheBatchOnlyOnce() : void
+    public function testRepeatedAccessTriggersTheBatchOnlyOnce(): void
     {
         $findUserById = new FindUserByIdHook([
             'user-1' => new User('user-1', 'Alice'),
@@ -219,7 +219,7 @@ final class HooksBatchedTest extends GraphQLTestCase
      * @param list<array<string, mixed>> $repositories
      * @return array<string, mixed>
      */
-    private function organization(string $id, string $name, array $repositories) : array
+    private function organization(string $id, string $name, array $repositories): array
     {
         return [
             'id' => $id,
@@ -231,7 +231,7 @@ final class HooksBatchedTest extends GraphQLTestCase
     /**
      * @return array<string, mixed>
      */
-    private function repository(string $id, string $name, string $ownerId, string $reviewerId) : array
+    private function repository(string $id, string $name, string $ownerId, string $reviewerId): array
     {
         return [
             'id' => $id,

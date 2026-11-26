@@ -43,10 +43,10 @@ final readonly class HookFieldInjector
      * @throws Exception
      * @return T
      */
-    public function __invoke(Node $node) : Node
+    public function __invoke(Node $node): Node
     {
         $new = Visitor::visit($node, [
-            NodeKind::FIELD => function (Node $node) : ?InlineFragmentNode {
+            NodeKind::FIELD => function (Node $node): ?InlineFragmentNode {
                 Assert::isInstanceOf($node, FieldNode::class);
 
                 foreach ($node->directives as $directive) {
@@ -56,10 +56,14 @@ final readonly class HookFieldInjector
 
                     $hookName = $this->readHookName($directive);
 
-                    Assert::keyExists($this->hooks, $hookName, sprintf(
-                        'Hook "%s" used in a @hook directive is not registered via Config::withHook().',
+                    Assert::keyExists(
+                        $this->hooks,
                         $hookName,
-                    ));
+                        sprintf(
+                            'Hook "%s" used in a @hook directive is not registered via Config::withHook().',
+                            $hookName,
+                        ),
+                    );
 
                     $fragment = $this->hooks[$hookName]->requiresFragment;
 
@@ -83,7 +87,7 @@ final readonly class HookFieldInjector
     /**
      * @throws InvalidArgumentException
      */
-    private function readHookName(DirectiveNode $directive) : string
+    private function readHookName(DirectiveNode $directive): string
     {
         foreach ($directive->arguments as $argument) {
             if ($argument->name->value === 'name' && $argument->value instanceof StringValueNode) {

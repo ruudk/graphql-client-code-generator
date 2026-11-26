@@ -22,7 +22,7 @@ final class VariableParser
      * @throws InvariantViolation
      * @return array<string, SymfonyType>
      */
-    public function parseVariables(OperationDefinitionNode $operation) : array
+    public function parseVariables(OperationDefinitionNode $operation): array
     {
         $required = [];
         $optional = [];
@@ -32,7 +32,10 @@ final class VariableParser
             $type = $this->typeMapper->mapGraphQLASTTypeToPHPType($varDef->type);
 
             if ($type->isIdentifiedBy(TypeIdentifier::STRING)) {
-                $type = TypeHelper::rewrap($type, fn() => SymfonyType::union(SymfonyType::string(), SymfonyType::object(Stringable::class)));
+                $type = TypeHelper::rewrap($type, static fn() => SymfonyType::union(
+                    SymfonyType::string(),
+                    SymfonyType::object(Stringable::class),
+                ));
             }
 
             if ($type instanceof SymfonyType\NullableType) {

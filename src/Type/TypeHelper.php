@@ -11,7 +11,7 @@ final readonly class TypeHelper
     /**
      * @param callable(SymfonyType): SymfonyType $callable
      */
-    public static function rewrap(SymfonyType $type, callable $callable) : SymfonyType
+    public static function rewrap(SymfonyType $type, callable $callable): SymfonyType
     {
         if ($type instanceof SymfonyType\NullableType) {
             $result = $callable($type->getWrappedType());

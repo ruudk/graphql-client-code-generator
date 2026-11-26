@@ -36,7 +36,7 @@ final class FindUserByIdHook
      * @param array<int, RepositoryOwnerId> $inputs
      * @return iterable<int, ?User>
      */
-    public function __invoke(array $inputs) : iterable
+    public function __invoke(array $inputs): iterable
     {
         $this->batches[] = $inputs;
 

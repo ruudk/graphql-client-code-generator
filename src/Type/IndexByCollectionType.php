@@ -22,12 +22,6 @@ final class IndexByCollectionType extends Type\CollectionType
         public readonly Type $value,
         public readonly array $indexBy,
     ) {
-        parent::__construct(
-            new GenericType(
-                new BuiltinType(TypeIdentifier::ARRAY),
-                $key,
-                $value,
-            ),
-        );
+        parent::__construct(new GenericType(new BuiltinType(TypeIdentifier::ARRAY), $key, $value));
     }
 }

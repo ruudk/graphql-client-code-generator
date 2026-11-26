@@ -12,19 +12,17 @@ use Ruudk\GraphQLCodeGenerator\GraphQLTestCase;
 final class DumpOrThrowsTest extends GraphQLTestCase
 {
     #[Override]
-    public function getConfig() : Config
+    public function getConfig(): Config
     {
-        return parent::getConfig()
-            ->enableDumpOrThrowMethods()
-            ->enableDumpOrThrowProperties();
+        return parent::getConfig()->enableDumpOrThrowMethods()->enableDumpOrThrowProperties();
     }
 
-    public function testGenerate() : void
+    public function testGenerate(): void
     {
         $this->assertActualMatchesExpected();
     }
 
-    public function testOrThrowsMethodReturnsData() : void
+    public function testOrThrowsMethodReturnsData(): void
     {
         $query = new TestQuery($this->getClient([
             'data' => [
@@ -45,7 +43,7 @@ final class DumpOrThrowsTest extends GraphQLTestCase
         self::assertCount(1, $data->viewer->projects);
     }
 
-    public function testOrThrowsMethodThrowsException() : void
+    public function testOrThrowsMethodThrowsException(): void
     {
         $query = new TestQuery($this->getClient([
             'errors' => [
@@ -63,7 +61,7 @@ final class DumpOrThrowsTest extends GraphQLTestCase
         $query->executeOrThrow();
     }
 
-    public function testNodeOrThrows() : void
+    public function testNodeOrThrows(): void
     {
         $result = new TestQuery($this->getClient([
             'data' => [

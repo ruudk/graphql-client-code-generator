@@ -100,7 +100,7 @@ final class PlanExecutor
      * @throws LogicException
      * @return array<string, string>
      */
-    public function execute(PlannerResult $plan) : array
+    public function execute(PlannerResult $plan): array
     {
         $this->hookUsageRegistry->classHooks = [];
 
@@ -110,7 +110,7 @@ final class PlanExecutor
         $plansByFqcn = [];
 
         foreach ($plan->classes as $class) {
-            if ( ! $class instanceof DataClassPlan) {
+            if (!$class instanceof DataClassPlan) {
                 continue;
             }
 
@@ -134,10 +134,7 @@ final class PlanExecutor
         }
 
         if ($this->config->formatOperationFiles && $this->config->queriesDir !== null) {
-            $finder = Finder::create()->files()
-                ->in($this->config->queriesDir)
-                ->name('*.graphql')
-                ->sortByName();
+            $finder = Finder::create()->files()->in($this->config->queriesDir)->name('*.graphql')->sortByName();
 
             foreach ($finder as $file) {
                 $document = GraphQLParser::parse($file->getContents());
@@ -201,19 +198,14 @@ final class PlanExecutor
      * @param array<string, DataClassPlan> $plansByFqcn
      * @throws LogicException
      */
-    private function generateClass(object $class, array $plansByFqcn) : string
+    private function generateClass(object $class, array $plansByFqcn): string
     {
         return match ($class::class) {
             DataClassPlan::class => $this->dataClassGenerator->generate($class, $plansByFqcn),
-
             EnumClassPlan::class => $this->enumTypeGenerator->generate($class),
-
             InputClassPlan::class => $this->inputTypeGenerator->generate($class),
-
             NodeNotFoundExceptionPlan::class => $this->nodeNotFoundExceptionGenerator->generate(),
-
             HookLoaderPlan::class => $this->hookLoaderGenerator->generate(),
-
             default => throw new LogicException('Unknown class type: ' . $class::class),
         };
     }
@@ -222,25 +214,19 @@ final class PlanExecutor
      * @throws JsonException
      * @return array<string, string>
      */
-    private function generateOperation(OperationPlan $operation) : array
+    private function generateOperation(OperationPlan $operation): array
     {
         $files = [];
 
         // Generate operation class
-        $files[$operation->operationClass->path] = $this->operationClassGenerator->generate(
-            $operation->operationClass,
-        );
+        $files[$operation->operationClass->path] = $this->operationClassGenerator->generate($operation->operationClass);
 
         // Generate error class
-        $files[$operation->errorClass->path] = $this->errorClassGenerator->generate(
-            $operation->errorClass,
-        );
+        $files[$operation->errorClass->path] = $this->errorClassGenerator->generate($operation->errorClass);
 
         // Generate exception class only if it exists
         if ($operation->exceptionClass !== null) {
-            $files[$operation->exceptionClass->path] = $this->exceptionClassGenerator->generate(
-                $operation->exceptionClass,
-            );
+            $files[$operation->exceptionClass->path] = $this->exceptionClassGenerator->generate($operation->exceptionClass);
         }
 
         return $files;

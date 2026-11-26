@@ -18,7 +18,7 @@ final readonly class RestrictedUsage
         public ?string $member = null,
     ) {}
 
-    public function describe() : string
+    public function describe(): string
     {
         $class = ltrim($this->class, '\\');
 

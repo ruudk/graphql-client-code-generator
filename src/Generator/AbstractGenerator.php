@@ -16,24 +16,27 @@ abstract class AbstractGenerator
         protected readonly Config $config,
     ) {}
 
-    protected function dumpHeader() : string
+    protected function dumpHeader(): string
     {
         return '// This file was automatically generated and should not be edited.';
     }
 
-    protected function fullyQualified(string $part, string ...$moreParts) : string
+    protected function fullyQualified(string $part, string ...$moreParts): string
     {
         if (str_starts_with($part, $this->config->namespace . '\\')) {
             $part = substr($part, strlen($this->config->namespace) + 1);
         }
 
-        return implode('\\', array_filter([$this->config->namespace, $part, ...$moreParts], fn($part) => $part !== ''));
+        return implode('\\', array_filter(
+            [$this->config->namespace, $part, ...$moreParts],
+            static fn($part) => $part !== '',
+        ));
     }
 
     /**
      * @param callable(string): string $importer
      */
-    protected function dumpPHPType(Type $type, callable $importer) : string
+    protected function dumpPHPType(Type $type, callable $importer): string
     {
         if ($type instanceof HookPropertyType) {
             return $this->dumpPHPType($type->getWrappedType(), $importer);
@@ -64,19 +67,14 @@ abstract class AbstractGenerator
         if ($type instanceof Type\UnionType) {
             return implode(
                 '|',
-                array_unique(
-                    array_map(
-                        fn(Type $type) => $this->dumpPHPType($type, $importer),
-                        $type->getTypes(),
-                    ),
-                ),
+                array_unique(array_map(fn(Type $type) => $this->dumpPHPType($type, $importer), $type->getTypes())),
             );
         }
 
         return (string) $type;
     }
 
-    protected function getNakedType(Type $type) : Type
+    protected function getNakedType(Type $type): Type
     {
         if ($type instanceof Type\NullableType) {
             return $type->getWrappedType();
@@ -92,16 +90,12 @@ abstract class AbstractGenerator
      * @param array<string, true> $usedHooks
      * @throws \Webmozart\Assert\InvalidArgumentException
      */
-    protected function buildHooksShape(array $usedHooks) : Type
+    protected function buildHooksShape(array $usedHooks): Type
     {
         $shape = [];
 
         foreach (array_keys($usedHooks) as $name) {
-            Assert::keyExists(
-                $this->config->hooks,
-                $name,
-                sprintf('Hook "%s" is not registered in config.', $name),
-            );
+            Assert::keyExists($this->config->hooks, $name, sprintf('Hook "%s" is not registered in config.', $name));
             $shape[$name] = Type::object($this->config->hooks[$name]->class);
         }
 

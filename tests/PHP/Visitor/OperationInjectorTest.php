@@ -11,7 +11,7 @@ use PHPUnit\Framework\TestCase;
 
 final class OperationInjectorTest extends TestCase
 {
-    public function testReplacesSingleObjectContract() : void
+    public function testReplacesSingleObjectContract(): void
     {
         $printed = $this->inject(
             'consume',
@@ -23,7 +23,7 @@ final class OperationInjectorTest extends TestCase
         self::assertStringContainsString('function consume(UserName $data)', $printed);
     }
 
-    public function testPreservesNullableSingleContract() : void
+    public function testPreservesNullableSingleContract(): void
     {
         $printed = $this->inject(
             'consume',
@@ -35,7 +35,7 @@ final class OperationInjectorTest extends TestCase
         self::assertStringContainsString('function consume(?UserName $user)', $printed);
     }
 
-    public function testLeavesCollectionTypeForDocblock() : void
+    public function testLeavesCollectionTypeForDocblock(): void
     {
         $printed = $this->inject(
             'mapMany',
@@ -47,20 +47,20 @@ final class OperationInjectorTest extends TestCase
         self::assertStringContainsString('function mapMany(array $users)', $printed);
     }
 
-    private function inject(string $method, string $param, string $fqcn, string $methodCode) : string
+    private function inject(string $method, string $param, string $fqcn, string $methodCode): string
     {
         $code = sprintf('<?php class C { %s }', $methodCode);
 
-        $stmts = new ParserFactory()->createForNewestSupportedVersion()->parse($code);
+        $stmts = new ParserFactory()
+            ->createForNewestSupportedVersion()
+            ->parse($code);
         self::assertNotNull($stmts);
 
-        $stmts = new NodeTraverser(
-            new OperationInjector([
-                $method => [
-                    $param => $fqcn,
-                ],
-            ]),
-        )->traverse($stmts);
+        $stmts = new NodeTraverser(new OperationInjector([
+            $method => [
+                $param => $fqcn,
+            ],
+        ]))->traverse($stmts);
 
         return new Standard()->prettyPrintFile($stmts);
     }

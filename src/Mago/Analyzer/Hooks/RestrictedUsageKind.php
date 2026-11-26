@@ -17,7 +17,7 @@ enum RestrictedUsageKind
     /**
      * The issue code, prefixed by Mago with the plugin identifier.
      */
-    public function code() : string
+    public function code(): string
     {
         return match ($this) {
             self::ClassName => 'restricted-class',

@@ -17,14 +17,14 @@ final class DirectiveProcessor
      * @param NodeList<DirectiveNode> $directives
      * @return list<list<string>>
      */
-    public function getIndexByDirective(NodeList $directives) : array
+    public function getIndexByDirective(NodeList $directives): array
     {
         foreach ($directives as $directive) {
             if ($directive->name->value !== 'indexBy') {
                 continue;
             }
 
-            if ( ! $directive->arguments[0]->value instanceof StringValueNode) {
+            if (!$directive->arguments[0]->value instanceof StringValueNode) {
                 continue;
             }
 
@@ -48,7 +48,7 @@ final class DirectiveProcessor
     /**
      * @param NodeList<DirectiveNode> $directives
      */
-    public function hasThrowWhenNullDirective(NodeList $directives) : bool
+    public function hasThrowWhenNullDirective(NodeList $directives): bool
     {
         foreach ($directives as $directive) {
             if ($directive->name->value === 'throwWhenNull') {
@@ -62,7 +62,7 @@ final class DirectiveProcessor
     /**
      * @param NodeList<DirectiveNode> $directives
      */
-    public function hasDirective(NodeList $directives, string $name) : bool
+    public function hasDirective(NodeList $directives, string $name): bool
     {
         foreach ($directives as $directive) {
             if ($directive->name->value === $name) {
@@ -80,7 +80,7 @@ final class DirectiveProcessor
      * @param NodeList<DirectiveNode> $directives
      * @throws InvalidArgumentException
      */
-    public function getHookDirective(NodeList $directives) : ?string
+    public function getHookDirective(NodeList $directives): ?string
     {
         foreach ($directives as $directive) {
             if ($directive->name->value !== 'hook') {

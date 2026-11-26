@@ -28,8 +28,12 @@ final class SchemaLoader
      * @throws \Symfony\Component\Filesystem\Exception\IOException
      * @throws \Webmozart\Assert\InvalidArgumentException
      */
-    public function load(Schema | string $schema, bool $indexByDirective, bool $hookDirective, bool $throwWhenNullDirective) : Schema
-    {
+    public function load(
+        Schema|string $schema,
+        bool $indexByDirective,
+        bool $hookDirective,
+        bool $throwWhenNullDirective,
+    ): Schema {
         if (is_string($schema) && str_ends_with($schema, '.graphql')) {
             $this->schemaPath = $schema;
             $schema = BuildSchema::build($this->filesystem->readFile($schema));
@@ -45,7 +49,11 @@ final class SchemaLoader
             $schema = BuildClientSchema::build($introspection['data']);
         }
 
-        Assert::isInstanceOf($schema, Schema::class, 'Invalid schema given, expected .graphql or .json file or Schema instance');
+        Assert::isInstanceOf(
+            $schema,
+            Schema::class,
+            'Invalid schema given, expected .graphql or .json file or Schema instance',
+        );
 
         if ($indexByDirective) {
             $schema = GraphQL\IndexByDirectiveSchemaExtender::extend($schema);

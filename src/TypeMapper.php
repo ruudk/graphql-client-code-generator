@@ -38,7 +38,7 @@ final readonly class TypeMapper
     /**
      * @throws InvariantViolation
      */
-    public function mapGraphQLASTTypeToPHPType(TypeNode $typeNode, ?bool $nullable = null) : SymfonyType
+    public function mapGraphQLASTTypeToPHPType(TypeNode $typeNode, ?bool $nullable = null): SymfonyType
     {
         if ($typeNode instanceof NonNullTypeNode) {
             return $this->mapGraphQLASTTypeToPHPType($typeNode->type, false);
@@ -69,7 +69,7 @@ final readonly class TypeMapper
                 return $this->objectTypes[$typeNode->name->value][1];
             }
 
-            // TODO: should we use this for everything?
+            // TODO(@ruudk): should we use this for everything?
             $type = $this->schema->getType($typeNode->name->value);
 
             if ($type instanceof ScalarType) {
@@ -82,7 +82,7 @@ final readonly class TypeMapper
         return SymfonyType::mixed();
     }
 
-    public function mapGraphQLTypeToPHPType(Type $type, ?bool $nullable = null, bool $builtInOnly = false) : SymfonyType
+    public function mapGraphQLTypeToPHPType(Type $type, ?bool $nullable = null, bool $builtInOnly = false): SymfonyType
     {
         if ($type instanceof NonNull) {
             return $this->mapGraphQLTypeToPHPType($type->getWrappedType(), false, $builtInOnly);
@@ -109,7 +109,7 @@ final readonly class TypeMapper
         }
 
         if ($type instanceof NamedType) {
-            if ( ! $builtInOnly) {
+            if (!$builtInOnly) {
                 if (isset($this->enumTypes[$type->name()])) {
                     return $this->enumTypes[$type->name()];
                 }

@@ -12,7 +12,7 @@ use Ruudk\GraphQLCodeGenerator\MutationTypename\Generated\Mutation\Test\Data\Wit
 
 final class MutationTypenameTest extends GraphQLTestCase
 {
-    public function testGenerate() : void
+    public function testGenerate(): void
     {
         $this->assertActualMatchesExpected();
     }
@@ -22,7 +22,7 @@ final class MutationTypenameTest extends GraphQLTestCase
      * run a mutation without caring about the response, so the generated
      * __typename property is tagged @api.
      */
-    public function testSoleTypenameOnFirstLevelMutationFieldIsApi() : void
+    public function testSoleTypenameOnFirstLevelMutationFieldIsApi(): void
     {
         $docComment = new ReflectionClass(FireAndForget::class)
             ->getProperty('__typename')
@@ -36,7 +36,7 @@ final class MutationTypenameTest extends GraphQLTestCase
      * When other fields are selected alongside __typename, the caller does
      * care about the response, so it must NOT be tagged @api.
      */
-    public function testTypenameWithSiblingFieldsIsNotApi() : void
+    public function testTypenameWithSiblingFieldsIsNotApi(): void
     {
         $docComment = new ReflectionClass(WithExtraFields::class)
             ->getProperty('__typename')
@@ -51,7 +51,7 @@ final class MutationTypenameTest extends GraphQLTestCase
      * nested object selected purely to probe its presence/non-null) is
      * never read back either, so it is tagged @api too.
      */
-    public function testSoleTypenameDeeperThanFirstLevelIsApi() : void
+    public function testSoleTypenameDeeperThanFirstLevelIsApi(): void
     {
         $docComment = new ReflectionClass(Inner::class)
             ->getProperty('__typename')

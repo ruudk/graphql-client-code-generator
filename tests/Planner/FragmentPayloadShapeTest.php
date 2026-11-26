@@ -12,7 +12,7 @@ use Symfony\Component\TypeInfo\Type as SymfonyType;
 
 final class FragmentPayloadShapeTest extends TestCase
 {
-    public function testFragmentSpreadFieldsShouldMergeInNestedPayloadShapes() : void
+    public function testFragmentSpreadFieldsShouldMergeInNestedPayloadShapes(): void
     {
         $schema = BuildSchema::build('
             type Query { item: Item }
@@ -72,19 +72,11 @@ final class FragmentPayloadShapeTest extends TestCase
         $shape = $builder->buildPayloadShape($detailsField->selectionSet, $detailType);
         $shapeString = (string) $shape->toArrayShape();
         // Should have BOTH key (from DetailBasic fragment) and value (from direct selection)
-        self::assertStringContainsString(
-            "'key': string",
-            $shapeString,
-            'Should include key from DetailBasic fragment',
-        );
-        self::assertStringContainsString(
-            "'value': string",
-            $shapeString,
-            'Should include value from direct selection',
-        );
+        self::assertStringContainsString("'key': string", $shapeString, 'Should include key from DetailBasic fragment');
+        self::assertStringContainsString("'value': string", $shapeString, 'Should include value from direct selection');
     }
 
-    public function testNestedFragmentFieldsMergeCorrectly() : void
+    public function testNestedFragmentFieldsMergeCorrectly(): void
     {
         $schema = BuildSchema::build('
             type Query { payment: Payment }
@@ -148,11 +140,7 @@ final class FragmentPayloadShapeTest extends TestCase
         $shape = $builder->buildPayloadShape($payoutsField->selectionSet, $payoutType);
         $shapeString = (string) $shape->toArrayShape();
         // Should have BOTH id (from PayoutRow fragment) and reason (from direct selection)
-        self::assertStringContainsString(
-            "'id': string",
-            $shapeString,
-            'Should include id from PayoutRow fragment',
-        );
+        self::assertStringContainsString("'id': string", $shapeString, 'Should include id from PayoutRow fragment');
         self::assertStringContainsString(
             "'reason': string",
             $shapeString,

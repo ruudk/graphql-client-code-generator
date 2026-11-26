@@ -21,13 +21,8 @@ final readonly class UserMapper
      * @param list<UserName> $users
      * @return list<string>
      */
-    public function mapMany(
-        #[GeneratedGraphQLFragment(self::FRAGMENT)]
-        array $users,
-    ) : array {
-        return array_map(
-            fn(UserName $u) => $u->firstName . ' ' . $u->lastName,
-            $users,
-        );
+    public function mapMany(#[GeneratedGraphQLFragment(self::FRAGMENT)] array $users): array
+    {
+        return array_map(static fn(UserName $u) => $u->firstName . ' ' . $u->lastName, $users);
     }
 }

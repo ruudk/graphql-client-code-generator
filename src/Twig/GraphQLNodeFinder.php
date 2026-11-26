@@ -22,12 +22,12 @@ final readonly class GraphQLNodeFinder
      * @throws InvalidArgumentException
      * @return list<string>
      */
-    public function find(string $content) : array
+    public function find(string $content): array
     {
         $operations = [];
         $stream = $this->twig->tokenize(new Source($content, ''));
 
-        while ( ! $stream->isEOF()) {
+        while (!$stream->isEOF()) {
             if ($stream->getCurrent()->test('graphql')) {
                 $stream->next();
                 $stream->expect(Token::BLOCK_END_TYPE);
