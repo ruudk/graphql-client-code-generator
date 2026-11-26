@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "bbeb972cea8b9b8427fb3afb1c7b7984",
+    "content-hash": "81700debacd1a35415e0ae0b5d188c7b",
     "packages": [
         {
             "name": "nikic/php-parser",
@@ -231,32 +231,27 @@
         },
         {
             "name": "ruudk/code-generator",
-            "version": "0.4.7",
+            "version": "1.0.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/ruudk/code-generator.git",
-                "reference": "638615160b43cbc3b5da52d3f5e169536a6ed52f"
+                "reference": "bff6dd4c4228ce016d419176ca20b0301c7eaadc"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/ruudk/code-generator/zipball/638615160b43cbc3b5da52d3f5e169536a6ed52f",
-                "reference": "638615160b43cbc3b5da52d3f5e169536a6ed52f",
+                "url": "https://api.github.com/repos/ruudk/code-generator/zipball/bff6dd4c4228ce016d419176ca20b0301c7eaadc",
+                "reference": "bff6dd4c4228ce016d419176ca20b0301c7eaadc",
                 "shasum": ""
             },
             "require": {
                 "php": "^8.5"
             },
             "require-dev": {
+                "carthage-software/mago": "^1.61",
                 "ergebnis/composer-normalize": "^2.47",
-                "friendsofphp/php-cs-fixer": "^3.85",
-                "phpstan/extension-installer": "^1.4",
-                "phpstan/phpstan": "^2.1",
-                "phpstan/phpstan-phpunit": "^2.0",
                 "phpunit/phpunit": "^12.3",
                 "ruudk/readme-examples-sync-hook": "^2.0",
-                "shipmonk/composer-dependency-analyser": "^1.8",
-                "ticketswap/php-cs-fixer-config": "^1.0",
-                "ticketswap/phpstan-error-formatter": "^1.1"
+                "shipmonk/composer-dependency-analyser": "^1.8"
             },
             "type": "library",
             "autoload": {
@@ -281,7 +276,7 @@
             ],
             "support": {
                 "issues": "https://github.com/ruudk/code-generator/issues",
-                "source": "https://github.com/ruudk/code-generator/tree/0.4.7"
+                "source": "https://github.com/ruudk/code-generator/tree/1.0.0"
             },
             "funding": [
                 {
@@ -289,7 +284,8 @@
                     "type": "github"
                 }
             ],
-            "time": "2026-04-18T17:44:05+00:00"
+            "time": "2026-11-26T09:26:59+00:00",
+            "published-time": "2026-11-26T09:27:49+00:00"
         },
         {
             "name": "sebastian/diff",
