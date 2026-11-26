@@ -20,6 +20,7 @@
         "webonyx/graphql-php": "^15.24.0"
     },
     "require-dev": {
+        "carthage-software/mago": "^1.61",
         "ergebnis/composer-normalize": "^2.51",
         "friendsofphp/php-cs-fixer": "^3.95.18",
         "guzzlehttp/psr7": "^2.9",
@@ -48,6 +49,7 @@
         "vincentlanglet/twig-cs-fixer": "^3.14"
     },
     "suggest": {
+        "carthage-software/mago": "For the Mago extension that formats GraphQL in PHP and restricts usage of generated classes",
         "twig/twig": "For generating GraphQL fragments from Twig templates"
     },
     "autoload": {

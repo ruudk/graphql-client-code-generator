@@ -1,0 +1,8 @@
+php-version = "8.5"
+
+[source]
+paths = ["tests/PHPStan/Fixtures", "tests/PHPStan/Generated"]
+includes = ["src/Attribute"]
+
+[extension-hosts.graphql]
+command = ["php", "worker.php"]

@@ -22,4 +22,6 @@ final readonly class NotAllowedController
 
         return $data->name . $inline->name . $twig->title;
     }
+
+    public function accept(Data $data) : void {}
 }

@@ -569,7 +569,7 @@ final readonly class ListUsersClient
 
 1. The service tags a method parameter with `#[GeneratedGraphQLFragment(self::FRAGMENT)]`.
 2. The generator emits the fragment class at `Generated/Fragment/{Name}{hash}/{Name}.php` — hashed by the declaration site, like `#[GeneratedGraphQLClient]`.
-3. The fragment class is stamped with `#[Generated(source: …, restricted: true, restrictInstantiation: true)]`, so PHPStan only lets the declaring service consume it.
+3. The fragment class is stamped with `#[Generated(source: …, restricted: true, restrictInstantiation: true)]`, so the [PHPStan extension](#-restrict-generated-classes) and the [Mago extension](#-mago-extension) only let the declaring service consume it.
 4. Any query — `.graphql` file, Twig block, or another inline `#[GeneratedGraphQLClient]` — can spread `...UserName`; the generated Data class imports the same hashed fragment class.
 5. Callers hand fragment-shaped data back to the service, which is the only place allowed to read it.
 
@@ -619,6 +619,8 @@ return $config;
 ```
 
 Running `vendor/bin/php-cs-fixer fix` now formats every `<<<'GRAPHQL'` block automatically. The fixer runs before `heredoc_indentation`, so the surrounding indentation stays consistent with the rest of your codebase.
+
+Using [Mago](https://mago.carthage.software/) instead? Enable the [Mago extension](#-mago-extension); its `graphql/heredoc-format` lint rule reports unformatted nowdocs and `vendor/bin/mago lint --fix` formats them. The GraphQL is indented to the closing `GRAPHQL` marker, so it works together with Mago's formatter.
 
 ### 🎭 Twig Template Support
 
@@ -687,6 +689,60 @@ return $config;
 ```
 
 Running `vendor/bin/twig-cs-fixer fix` now formats every `{% graphql %}` block automatically, and `vendor/bin/twig-cs-fixer lint` fails on any block that isn't canonically formatted.
+
+### 🔒 Restrict Generated Classes
+
+Generated classes marked `#[Generated(restricted: true)]` may only be used by the class (or Twig template) they were generated for. Two static analysis integrations enforce this.
+
+**PHPStan:** with [phpstan/extension-installer](https://github.com/phpstan/extension-installer) the extension is registered automatically. Point it at your configs in `phpstan.neon`:
+
+```neon
+parameters:
+    graphQLClientCodeGenerator:
+        configs:
+            - graphql.php
+```
+
+**Mago:** enable the analyzer plugin of the [Mago extension](#-mago-extension) by passing your configs to `GraphQLExtension::create()`. It reports `graphql/restricted-class`, `graphql/restricted-instantiation`, `graphql/restricted-method` and `graphql/restricted-property`.
+
+### 🪄 Mago Extension
+
+The library ships a [Mago](https://mago.carthage.software/) extension (Mago 1.61 or newer) with:
+
+- the `graphql/heredoc-format` lint rule, see [Auto-Format GraphQL in PHP Heredocs](#-auto-format-graphql-in-php-heredocs);
+- the `graphql` analyzer plugin, see [Restrict Generated Classes](#-restrict-generated-classes). It is only enabled when you pass the configs of the code generator.
+
+Install Mago with Composer, which also brings the SDK the extension is built on:
+
+```bash
+composer require --dev carthage-software/mago
+```
+
+Mago extensions run in a PHP worker process that your project owns. Create a worker entrypoint, for example `.mago/extensions.php`:
+
+```php
+<?php
+
+declare(strict_types=1);
+
+use Mago\Sdk\Worker;
+use Ruudk\GraphQLCodeGenerator\Mago\GraphQLExtension;
+
+require dirname(__DIR__) . '/vendor/autoload.php';
+
+new Worker(GraphQLExtension::create([
+    dirname(__DIR__) . '/graphql.php',
+]))->run();
+```
+
+Then register it in `mago.toml`:
+
+```toml
+[extension-hosts.graphql]
+command = ["php", ".mago/extensions.php"]
+```
+
+Check that Mago picks it up with `vendor/bin/mago extension list`. Twig templates are not covered yet: Mago extensions cannot add Twig lint rules ([carthage-software/mago#2813](https://github.com/carthage-software/mago/issues/2813)), so keep using the Twig CS Fixer rule for `{% graphql %}` blocks.
 
 ### ⚡ Custom `@indexBy` Directive
 
