@@ -813,9 +813,15 @@ public string $login {
 ```
 
 This also works for aliased fields, `@throwWhenNull` fields, their `...OrThrow` properties and
-fields lifted by `@flatten` (a deprecated flattened field marks every property it lifts). The
-`@mago-expect` on the getter covers the generated getter itself, which reads its own deprecated property;
-only reads in your own code get reported.
+fields lifted by `@flatten` (a deprecated flattened field marks every property it lifts).
+
+The generated getter reads its own deprecated property. So that only reads in your own code get
+reported:
+
+- **Mago:** the `@mago-expect` on the getter covers that read.
+- **PHPStan** with [phpstan/phpstan-deprecation-rules](https://github.com/phpstan/phpstan-deprecation-rules):
+  the [PHPStan extension](#-restrict-generated-classes) ignores reads of a deprecated property inside
+  generated classes. Point it at your configs, as shown there.
 
 ### 🪄 Mago Extension
 

@@ -28,6 +28,7 @@
         "php-http/guzzle7-adapter": "^1.1",
         "php-http/message": "^1.16.2",
         "php-http/mock-client": "^1.6.1",
+        "phpstan/phpstan-deprecation-rules": "^2.0",
         "phpunit/phpunit": "^13.4.8",
         "psr/http-client": "^1.0.3",
         "psr/http-message": "^2.0",
