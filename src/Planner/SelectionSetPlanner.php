@@ -1010,7 +1010,7 @@ final class SelectionSetPlanner
     /**
      * @throws InvariantViolation
      * @throws InvalidArgumentException
-     * @return array{types: list<SymfonyType>, fields: list<list<string>>}
+     * @return null|array{types: list<SymfonyType>, fields: list<non-empty-list<string>>}
      */
     private function processIndexByDirective(FieldNode $selection, Type $nakedFieldType): ?array
     {
@@ -1018,34 +1018,20 @@ final class SelectionSetPlanner
             return null;
         }
 
-        $indexByFields = $this->directiveProcessor->getIndexByDirective($selection->directives);
+        $fields = $this->directiveProcessor->getIndexByDirective($selection->directives);
 
-        if ($indexByFields === []) {
-            return null;
-        }
-
-        $validFields = [];
-
-        foreach ($indexByFields as $key => $fieldPath) {
-            if ($fieldPath !== []) {
-                $validFields[$key] = $fieldPath;
-            }
-        }
-
-        if ($validFields === []) {
+        if ($fields === []) {
             return null;
         }
 
         // The keys are read from the raw payload, so they have the payload type (an enum is its string
         // value, a custom scalar its JSON value), not the PHP type the value is turned into.
-        $types = array_map(fn($fieldPath) => $this->typeMapper->mapGraphQLTypeToPHPType(
-            RecursiveTypeFinder::find($nakedFieldType, $fieldPath),
-            builtInOnly: true,
-        ), $validFields);
-
         return [
-            'types' => array_values($types),
-            'fields' => array_values($validFields),
+            'types' => array_map(fn($fieldPath) => $this->typeMapper->mapGraphQLTypeToPHPType(
+                RecursiveTypeFinder::find($nakedFieldType, $fieldPath),
+                builtInOnly: true,
+            ), $fields),
+            'fields' => $fields,
         ];
     }
 

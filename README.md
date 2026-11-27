@@ -976,6 +976,36 @@ final class Data
 }
 ```
 
+#### Index by several fields
+
+Give a list of fields to nest the arrays, one level per field in the order given:
+
+<!-- source: tests/IndexByDirective/TestMultiField.graphql -->
+```graphql
+query TestMultiField {
+    projects @indexBy(field: ["id", "name"]) {
+        id
+        name
+    }
+    issues @indexBy(field: "id") {
+        id
+        name
+    }
+    customers {
+        edges @indexBy(field: ["node.id", "node.name"]) {
+            node {
+                id
+                name
+            }
+        }
+    }
+}
+```
+
+`projects` becomes `array<string, array<string, Project>>`, keyed by `id` and then by `name`. A
+single field can be written as `field: "id"` or `field: ["id"]`, both mean the same. On connection
+edges indexed by several fields, `nodes` is a flat list.
+
 ### 🗃️ Group Lists with `@groupBy` Directive
 
 Where `@indexBy` expects one item per key, `@groupBy` collects every item that shares a key into a

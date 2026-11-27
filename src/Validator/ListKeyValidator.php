@@ -37,8 +37,7 @@ final class ListKeyValidator extends ValidationRule
 {
     /**
      * @param array<string, SymfonyType|array{SymfonyType, SymfonyType}> $scalars
-     * @param array<string, bool> $directives The directive names, mapped to whether a string `field` holds
-     *                                         several comma-separated fields (`@indexBy`) or a single one (`@groupBy`)
+     * @param list<string> $directives The directive names
      */
     public function __construct(
         private array $scalars,
@@ -60,7 +59,7 @@ final class ListKeyValidator extends ValidationRule
 
                 $usedDirectives = [];
                 foreach ($node->directives as $directive) {
-                    if (array_key_exists($directive->name->value, $this->directives)) {
+                    if (in_array($directive->name->value, $this->directives, true)) {
                         $usedDirectives[] = '@' . $directive->name->value;
                     }
                 }
@@ -81,7 +80,7 @@ final class ListKeyValidator extends ValidationRule
                 $directiveName = null;
                 $fields = null;
                 foreach ($node->directives as $directive) {
-                    if (!array_key_exists($directive->name->value, $this->directives)) {
+                    if (!in_array($directive->name->value, $this->directives, true)) {
                         continue;
                     }
 
@@ -93,7 +92,7 @@ final class ListKeyValidator extends ValidationRule
                         continue;
                     }
 
-                    $fields = $this->getFieldPaths($directive->name->value, $directive->arguments[0]->value);
+                    $fields = $this->getFieldPaths($directive->arguments[0]->value);
 
                     if ($fields === null) {
                         continue;
@@ -144,7 +143,7 @@ final class ListKeyValidator extends ValidationRule
                         continue;
                     }
 
-                    if (!$this->directives[$directiveName] && str_contains($fieldPath, ',')) {
+                    if (str_contains($fieldPath, ',')) {
                         $context->reportError(
                             new Error(
                                 sprintf(
@@ -290,15 +289,14 @@ final class ListKeyValidator extends ValidationRule
     }
 
     /**
-     * The field paths of the `field` argument: a single string, a list of strings, or for directives
-     * that take them, comma-separated fields in one string.
+     * The field paths of the `field` argument: a list of strings, or a single string.
      *
      * @return null|list<string>
      */
-    private function getFieldPaths(string $directiveName, ValueNode $value): ?array
+    private function getFieldPaths(ValueNode $value): ?array
     {
         if ($value instanceof StringValueNode) {
-            return $this->directives[$directiveName] ? explode(',', $value->value) : [$value->value];
+            return [$value->value];
         }
 
         if (!$value instanceof ListValueNode) {

@@ -36,16 +36,16 @@ final readonly class IndexByDirectiveSchemaExtender
             [$field] = $existing->args;
             Assert::eq($field->name, 'field', 'Expected @indexBy argument to be named "field"');
             Assert::eq(
-                Type::nonNull(Type::string()),
+                Type::nonNull(Type::listOf(Type::nonNull(Type::string()))),
                 $field->getType(),
-                'Expected @indexBy argument to be a non-null string',
+                'Expected @indexBy argument to be a non-null list of non-null strings',
             );
 
             return $schema;
         }
 
         return SchemaExtender::extend($schema, Parser::parse(<<<'GRAPHQL'
-            directive @indexBy(field: String!) on FIELD
+            directive @indexBy(field: [String!]!) on FIELD
             GRAPHQL));
     }
 }

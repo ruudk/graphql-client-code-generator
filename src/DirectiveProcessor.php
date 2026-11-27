@@ -13,37 +13,15 @@ use InvalidArgumentException;
 final class DirectiveProcessor
 {
     /**
-     * Extract the @indexBy directive field path
+     * Extract the @indexBy directive field paths, one per nesting level. The `field` argument
+     * is a list of fields, or a single field.
      *
      * @param NodeList<DirectiveNode> $directives
-     * @return list<list<string>>
+     * @return list<non-empty-list<string>>
      */
     public function getIndexByDirective(NodeList $directives): array
     {
-        foreach ($directives as $directive) {
-            if ($directive->name->value !== 'indexBy') {
-                continue;
-            }
-
-            if (!$directive->arguments[0]->value instanceof StringValueNode) {
-                continue;
-            }
-
-            $value = $directive->arguments[0]->value->value;
-
-            // Split by comma for multi-field indexing
-            $fields = explode(',', $value);
-            $result = [];
-
-            foreach ($fields as $field) {
-                $field = trim($field);
-                $result[] = explode('.', $field);
-            }
-
-            return $result;
-        }
-
-        return [];
+        return $this->getFieldPaths($directives, 'indexBy');
     }
 
     /**
@@ -55,8 +33,17 @@ final class DirectiveProcessor
      */
     public function getGroupByDirective(NodeList $directives): array
     {
+        return $this->getFieldPaths($directives, 'groupBy');
+    }
+
+    /**
+     * @param NodeList<DirectiveNode> $directives
+     * @return list<non-empty-list<string>>
+     */
+    private function getFieldPaths(NodeList $directives, string $name): array
+    {
         foreach ($directives as $directive) {
-            if ($directive->name->value !== 'groupBy') {
+            if ($directive->name->value !== $name) {
                 continue;
             }
 
