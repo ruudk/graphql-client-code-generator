@@ -1,0 +1,35 @@
+type Query {
+    issues: [Issue!]!
+    customers: CustomerConnection!
+}
+
+enum IssueState {
+    OPEN
+    CLOSED
+}
+
+type Issue {
+    id: ID!
+    title: String!
+    state: IssueState!
+    project: Project!
+}
+
+type Project {
+    id: ID!
+    name: String!
+}
+
+type CustomerConnection {
+    edges: [CustomerEdge!]!
+}
+
+type CustomerEdge {
+    node: Customer!
+}
+
+type Customer {
+    id: Int!
+    name: String!
+    country: String!
+}

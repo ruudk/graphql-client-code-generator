@@ -42,6 +42,7 @@ use Ruudk\GraphQLCodeGenerator\Type\FlattenedPropertyType;
 use Ruudk\GraphQLCodeGenerator\Type\FlattenSegment;
 use Ruudk\GraphQLCodeGenerator\Type\FragmentObjectType;
 use Ruudk\GraphQLCodeGenerator\Type\GeneratedClassName;
+use Ruudk\GraphQLCodeGenerator\Type\GroupByCollectionType;
 use Ruudk\GraphQLCodeGenerator\Type\HookPropertyType;
 use Ruudk\GraphQLCodeGenerator\Type\IndexByCollectionType;
 use Ruudk\GraphQLCodeGenerator\Type\StringLiteralType;
@@ -568,6 +569,12 @@ final class SelectionSetPlanner
             $nestedContext = $nestedContext->withIndexBy($indexByContext['types'], $indexByContext['fields']);
         }
 
+        $groupByContext = $this->processGroupByDirective($selection, $nakedFieldType);
+
+        if ($groupByContext !== null) {
+            $nestedContext = $nestedContext->withGroupBy($groupByContext['type'], $groupByContext['field']);
+        }
+
         // Recursively plan the nested selection
         Assert::notNull($selection->selectionSet, 'Selection set must not be null');
         $nestedResult = $this->planSelectionSet($source, $selection->selectionSet, $fieldType, $nestedContext);
@@ -902,10 +909,19 @@ final class SelectionSetPlanner
         $listFields = SymfonyType::list($inner->getFieldsType());
         $listPayloadShape = SymfonyType::list($inner->getPayloadShapeType());
 
-        $resultType =
-            $context->indexByType !== null && $context->indexBy !== []
-                ? $this->createIndexByType($context->indexByType, $inner->resultType, $context->indexBy)
-                : SymfonyType::list($inner->resultType);
+        $resultType = match (true) {
+            $context->indexByType !== null && $context->indexBy !== [] => $this->createIndexByType(
+                $context->indexByType,
+                $inner->resultType,
+                $context->indexBy,
+            ),
+            $context->groupByType !== null && $context->groupBy !== [] => new GroupByCollectionType(
+                $context->groupByType,
+                $inner->resultType,
+                $context->groupBy,
+            ),
+            default => SymfonyType::list($inner->resultType),
+        };
 
         // Return the inner fields and payload with wrapped types
         return new SelectionSetResult(
@@ -1017,6 +1033,33 @@ final class SelectionSetPlanner
         ];
     }
 
+    /**
+     * @throws InvariantViolation
+     * @throws InvalidArgumentException
+     * @return null|array{type: SymfonyType, field: non-empty-list<string>}
+     */
+    private function processGroupByDirective(FieldNode $selection, Type $nakedFieldType): ?array
+    {
+        if (!$this->config->groupByDirective) {
+            return null;
+        }
+
+        $fieldPath = $this->directiveProcessor->getGroupByDirective($selection->directives);
+
+        if ($fieldPath === null) {
+            return null;
+        }
+
+        // Like @indexBy, the keys are read from the raw payload, so they have the payload type.
+        return [
+            'type' => $this->typeMapper->mapGraphQLTypeToPHPType(
+                RecursiveTypeFinder::find($nakedFieldType, $fieldPath),
+                builtInOnly: true,
+            ),
+            'field' => $fieldPath,
+        ];
+    }
+
     private function extractNodesType(
         NamedType $fieldType,
         SelectionSetResult $nestedResult,
@@ -1036,6 +1079,11 @@ final class SelectionSetPlanner
 
         if ($nodeType === null) {
             return null;
+        }
+
+        if ($edges instanceof GroupByCollectionType) {
+            // Grouped edges give nodes in the same groups
+            return SymfonyType::array(SymfonyType::list($nodeType), $edges->key);
         }
 
         if ($edges instanceof IndexByCollectionType) {

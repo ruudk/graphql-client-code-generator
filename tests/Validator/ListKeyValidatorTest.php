@@ -16,10 +16,10 @@ use Override;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\TypeInfo\Type as SymfonyType;
 
-final class IndexByValidatorTest extends TestCase
+final class ListKeyValidatorTest extends TestCase
 {
     private Schema $schema;
-    private IndexByValidator $validator;
+    private ListKeyValidator $validator;
 
     #[Override]
     protected function setUp(): void
@@ -111,12 +111,15 @@ final class IndexByValidatorTest extends TestCase
         ]);
 
         // Set up the validator with scalar mappings
-        $this->validator = new IndexByValidator([
+        $this->validator = new ListKeyValidator([
             'ID' => SymfonyType::string(),
             'String' => SymfonyType::string(),
             'Int' => SymfonyType::int(),
             'Float' => SymfonyType::float(),
             'Boolean' => SymfonyType::bool(),
+        ], [
+            'indexBy' => true,
+            'groupBy' => false,
         ]);
     }
 
@@ -814,6 +817,127 @@ final class IndexByValidatorTest extends TestCase
         self::assertCount(1, $errors);
         self::assertStringContainsString(
             'Field "status" is not selected in the indexBy directive',
+            $errors[0]->getMessage(),
+        );
+    }
+
+    public function testValidGroupBy(): void
+    {
+        $query = <<<'GRAPHQL'
+            {
+              users @groupBy(field: "status") {
+                id
+                status
+              }
+            }
+            GRAPHQL;
+
+        $errors = $this->validate($query);
+        self::assertCount(0, $errors);
+    }
+
+    public function testValidNestedGroupBy(): void
+    {
+        $query = <<<'GRAPHQL'
+            {
+              userConnection {
+                edges @groupBy(field: "node.name") {
+                  node {
+                    name
+                  }
+                }
+              }
+            }
+            GRAPHQL;
+
+        $errors = $this->validate($query);
+        self::assertCount(0, $errors);
+    }
+
+    public function testInvalidGroupByOnNonList(): void
+    {
+        $query = <<<'GRAPHQL'
+            {
+              userConnection @groupBy(field: "edges") {
+                edges {
+                  cursor
+                }
+              }
+            }
+            GRAPHQL;
+
+        $errors = $this->validate($query);
+        self::assertCount(1, $errors);
+        self::assertStringContainsString('@groupBy can only be used on lists', $errors[0]->getMessage());
+    }
+
+    public function testInvalidGroupByWithNullableField(): void
+    {
+        $query = <<<'GRAPHQL'
+            {
+              users @groupBy(field: "email") {
+                email
+              }
+            }
+            GRAPHQL;
+
+        $errors = $this->validate($query);
+        self::assertCount(1, $errors);
+        self::assertStringContainsString(
+            'Field "email" is nullable and cannot be used for @groupBy',
+            $errors[0]->getMessage(),
+        );
+    }
+
+    public function testInvalidGroupByFieldNotSelected(): void
+    {
+        $query = <<<'GRAPHQL'
+            {
+              users @groupBy(field: "status") {
+                id
+              }
+            }
+            GRAPHQL;
+
+        $errors = $this->validate($query);
+        self::assertCount(1, $errors);
+        self::assertStringContainsString(
+            'Field "status" is not selected in the groupBy directive',
+            $errors[0]->getMessage(),
+        );
+    }
+
+    public function testInvalidGroupByWithSeveralFields(): void
+    {
+        $query = <<<'GRAPHQL'
+            {
+              users @groupBy(field: "status,name") {
+                status
+                name
+              }
+            }
+            GRAPHQL;
+
+        $errors = $this->validate($query);
+        self::assertCount(1, $errors);
+        self::assertStringContainsString('@groupBy only accepts a single field', $errors[0]->getMessage());
+    }
+
+    public function testInvalidGroupByCombinedWithIndexBy(): void
+    {
+        $query = <<<'GRAPHQL'
+            {
+              users @indexBy(field: "id") @groupBy(field: "status") {
+                id
+                status
+              }
+            }
+            GRAPHQL;
+
+        $errors = $this->validate($query);
+        self::assertCount(1, $errors);
+        self::assertStringContainsString(
+            '@indexBy and @groupBy cannot be combined on one field',
             $errors[0]->getMessage(),
         );
     }

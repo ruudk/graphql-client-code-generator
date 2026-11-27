@@ -71,6 +71,7 @@ final class SelectionSetPlannerTest extends TestCase
         $useEdgeNameProperty->setValue($configInstance, false);
         $indexByDirectiveProperty = $configClass->getProperty('indexByDirective');
         $indexByDirectiveProperty->setValue($configInstance, false);
+        $configClass->getProperty('groupByDirective')->setValue($configInstance, false);
         $addNodesProperty = $configClass->getProperty('addNodesOnConnections');
         $addNodesProperty->setValue($configInstance, false);
         $hooksProperty = $configClass->getProperty('hooks');
@@ -191,6 +192,7 @@ final class SelectionSetPlannerTest extends TestCase
         $useEdgeNameProperty->setValue($configInstance, false);
         $indexByDirectiveProperty = $configClass->getProperty('indexByDirective');
         $indexByDirectiveProperty->setValue($configInstance, false);
+        $configClass->getProperty('groupByDirective')->setValue($configInstance, false);
         $addNodesProperty = $configClass->getProperty('addNodesOnConnections');
         $addNodesProperty->setValue($configInstance, false);
         $hooksProperty = $configClass->getProperty('hooks');

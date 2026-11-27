@@ -13,6 +13,7 @@ use Ruudk\GraphQLCodeGenerator\Config\ConfigException;
 use Ruudk\GraphQLCodeGenerator\Config\ConfigLoader;
 use Ruudk\GraphQLCodeGenerator\Executor\PlanExecutor;
 use Ruudk\GraphQLCodeGenerator\GraphQL\FlattenDirectiveSchemaExtender;
+use Ruudk\GraphQLCodeGenerator\GraphQL\GroupByDirectiveSchemaExtender;
 use Ruudk\GraphQLCodeGenerator\GraphQL\HookDirectiveSchemaExtender;
 use Ruudk\GraphQLCodeGenerator\GraphQL\IndexByDirectiveSchemaExtender;
 use Ruudk\GraphQLCodeGenerator\GraphQL\OperationArgumentDirectiveSchemaExtender;
@@ -128,6 +129,10 @@ final class GenerateCommand
 
                     if ($schemaConfig->indexByDirective) {
                         $schema = IndexByDirectiveSchemaExtender::extend($schema);
+                    }
+
+                    if ($schemaConfig->groupByDirective) {
+                        $schema = GroupByDirectiveSchemaExtender::extend($schema);
                     }
 
                     if ($schemaConfig->hooks !== []) {

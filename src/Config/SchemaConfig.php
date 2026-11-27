@@ -60,6 +60,7 @@ final readonly class SchemaConfig
         public bool $addSymfonyExcludeAttribute = false,
         public bool $addGeneratedAttribute = false,
         public bool $indexByDirective = false,
+        public bool $groupByDirective = false,
         public bool $throwWhenNullDirective = false,
         public bool $flattenDirective = false,
         public bool $addUnknownCaseToEnums = false,
@@ -151,6 +152,13 @@ final readonly class SchemaConfig
     {
         return clone($this, [
             'indexByDirective' => true,
+        ]);
+    }
+
+    public function enableGroupByDirective(): self
+    {
+        return clone($this, [
+            'groupByDirective' => true,
         ]);
     }
 

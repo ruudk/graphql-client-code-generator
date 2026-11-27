@@ -33,6 +33,7 @@ final class SchemaLoader
         bool $indexByDirective,
         bool $hookDirective,
         bool $throwWhenNullDirective,
+        bool $groupByDirective = false,
         bool $flattenDirective = false,
     ): Schema {
         if (is_string($schema) && str_ends_with($schema, '.graphql')) {
@@ -57,6 +58,10 @@ final class SchemaLoader
 
         if ($indexByDirective) {
             $schema = GraphQL\IndexByDirectiveSchemaExtender::extend($schema);
+        }
+
+        if ($groupByDirective) {
+            $schema = GraphQL\GroupByDirectiveSchemaExtender::extend($schema);
         }
 
         if ($hookDirective) {
