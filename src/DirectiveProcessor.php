@@ -46,6 +46,29 @@ final class DirectiveProcessor
     }
 
     /**
+     * Extract the @groupBy directive field path
+     *
+     * @param NodeList<DirectiveNode> $directives
+     * @return null|non-empty-list<string>
+     */
+    public function getGroupByDirective(NodeList $directives): ?array
+    {
+        foreach ($directives as $directive) {
+            if ($directive->name->value !== 'groupBy') {
+                continue;
+            }
+
+            if (!$directive->arguments[0]->value instanceof StringValueNode) {
+                continue;
+            }
+
+            return explode('.', trim($directive->arguments[0]->value->value));
+        }
+
+        return null;
+    }
+
+    /**
      * @param NodeList<DirectiveNode> $directives
      */
     public function hasThrowWhenNullDirective(NodeList $directives): bool

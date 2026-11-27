@@ -7,6 +7,7 @@ namespace Ruudk\GraphQLCodeGenerator\TypeInitializer;
 use Generator;
 use Override;
 use Ruudk\CodeGenerator\CodeGenerator;
+use Ruudk\GraphQLCodeGenerator\Type\GroupByCollectionType;
 use Ruudk\GraphQLCodeGenerator\Type\IndexByCollectionType;
 use Symfony\Component\TypeInfo\Type;
 
@@ -19,7 +20,11 @@ final class CollectionTypeInitializer implements TypeInitializer
     #[Override]
     public function supports(Type $type): bool
     {
-        return $type instanceof Type\CollectionType && !$type instanceof IndexByCollectionType;
+        return (
+            $type instanceof Type\CollectionType
+            && !$type instanceof IndexByCollectionType
+            && !$type instanceof GroupByCollectionType
+        );
     }
 
     /**

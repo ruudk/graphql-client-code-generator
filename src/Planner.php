@@ -95,6 +95,7 @@ use Ruudk\GraphQLCodeGenerator\Type\ThrowWhenNullPropertyType;
 use Ruudk\GraphQLCodeGenerator\Type\TypeHelper;
 use Ruudk\GraphQLCodeGenerator\Validator\ListKeyValidator;
 use Ruudk\GraphQLCodeGenerator\Visitor\DefinedFragmentsVisitor;
+use Ruudk\GraphQLCodeGenerator\Visitor\GroupByRemover;
 use Ruudk\GraphQLCodeGenerator\Visitor\HookFieldInjector;
 use Ruudk\GraphQLCodeGenerator\Visitor\IndexByRemover;
 use Ruudk\GraphQLCodeGenerator\Visitor\OperationArgumentDirectiveRemover;
@@ -180,6 +181,7 @@ final class Planner
             $schemaConfig->indexByDirective,
             $schemaConfig->hooks !== [],
             $schemaConfig->throwWhenNullDirective,
+            $schemaConfig->groupByDirective,
         );
 
         // Auto-inject the marker directives (e.g. @requiresActor) into the schema so operations
@@ -230,10 +232,19 @@ final class Planner
             ProvidedRequiredArgumentsOnDirectives::class => new ProvidedRequiredArgumentsOnDirectives(),
         ];
 
+        // Directive name => whether it accepts several comma-separated fields
+        $listKeyDirectives = [];
+
         if ($schemaConfig->indexByDirective) {
-            $this->validatorRules[ListKeyValidator::class] = new ListKeyValidator($this->scalars, [
-                'indexBy' => true,
-            ]);
+            $listKeyDirectives['indexBy'] = true;
+        }
+
+        if ($schemaConfig->groupByDirective) {
+            $listKeyDirectives['groupBy'] = false;
+        }
+
+        if ($listKeyDirectives !== []) {
+            $this->validatorRules[ListKeyValidator::class] = new ListKeyValidator($this->scalars, $listKeyDirectives);
         }
 
         $this->phpParser = new ParserFactory()->createForNewestSupportedVersion();
@@ -1203,6 +1214,10 @@ final class Planner
 
         if ($this->schemaConfig->indexByDirective) {
             $document = new IndexByRemover()->__invoke($document);
+        }
+
+        if ($this->schemaConfig->groupByDirective) {
+            $document = new GroupByRemover()->__invoke($document);
         }
 
         if ($this->schemaConfig->hooks !== []) {

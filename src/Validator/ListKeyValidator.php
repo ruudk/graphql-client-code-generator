@@ -55,6 +55,26 @@ final class ListKeyValidator extends ValidationRule
                     return;
                 }
 
+                $usedDirectives = [];
+                foreach ($node->directives as $directive) {
+                    if (array_key_exists($directive->name->value, $this->directives)) {
+                        $usedDirectives[] = '@' . $directive->name->value;
+                    }
+                }
+
+                if (count($usedDirectives) > 1) {
+                    $context->reportError(
+                        new Error(
+                            sprintf('%s cannot be combined on one field', implode(' and ', $usedDirectives)),
+                            [
+                                $node,
+                            ],
+                        ),
+                    );
+
+                    return;
+                }
+
                 $directiveName = null;
                 $fields = null;
                 foreach ($node->directives as $directive) {

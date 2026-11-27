@@ -18,6 +18,7 @@ use Ruudk\GraphQLCodeGenerator\Planner\Source\GraphQLFileSource;
 use Ruudk\GraphQLCodeGenerator\Planner\Source\HookInputSource;
 use Ruudk\GraphQLCodeGenerator\Planner\Source\TwigFileSource;
 use Ruudk\GraphQLCodeGenerator\Type\FragmentObjectType;
+use Ruudk\GraphQLCodeGenerator\Type\GroupByCollectionType;
 use Ruudk\GraphQLCodeGenerator\Type\HookPropertyType;
 use Ruudk\GraphQLCodeGenerator\Type\IndexByCollectionType;
 use Ruudk\GraphQLCodeGenerator\Type\StringLiteralType;
@@ -989,6 +990,7 @@ final class DataClassGenerator extends AbstractGenerator
 
                     // Check if edges field has multi-field indexing
                     $isMultiFieldIndexedEdges = false;
+                    $isGroupedEdges = false;
 
                     if ($fields instanceof ArrayShapeType) {
                         $edgesFieldType = $fields->getShape()['edges']['type'] ?? null;
@@ -996,9 +998,16 @@ final class DataClassGenerator extends AbstractGenerator
                         if ($edgesFieldType instanceof IndexByCollectionType) {
                             $isMultiFieldIndexedEdges = $edgesFieldType->value instanceof IndexByCollectionType;
                         }
+
+                        $isGroupedEdges = $edgesFieldType instanceof GroupByCollectionType;
                     }
 
-                    if ($isMultiFieldIndexedEdges) {
+                    if ($isGroupedEdges) {
+                        // Grouped edges keep their groups: every group of edges becomes a group of nodes
+                        yield $generator->indent(
+                            'get => array_map(fn($edges) => array_map(fn($edge) => $edge->node, $edges), $this->edges);',
+                        );
+                    } elseif ($isMultiFieldIndexedEdges) {
                         // For multi-field indexed edges, we need nested loops
                         yield $generator->indent(static function () use ($generator) {
                             yield 'get {';

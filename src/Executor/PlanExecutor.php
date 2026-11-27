@@ -39,6 +39,7 @@ use Ruudk\GraphQLCodeGenerator\TypeInitializer\BackedEnumTypeInitializer;
 use Ruudk\GraphQLCodeGenerator\TypeInitializer\ClassHookUsageRegistry;
 use Ruudk\GraphQLCodeGenerator\TypeInitializer\CollectionTypeInitializer;
 use Ruudk\GraphQLCodeGenerator\TypeInitializer\DelegatingTypeInitializer;
+use Ruudk\GraphQLCodeGenerator\TypeInitializer\GroupByCollectionTypeInitializer;
 use Ruudk\GraphQLCodeGenerator\TypeInitializer\IndexByCollectionTypeInitializer;
 use Ruudk\GraphQLCodeGenerator\TypeInitializer\NullableTypeInitializer;
 use Ruudk\GraphQLCodeGenerator\TypeInitializer\ObjectTypeInitializer;
@@ -71,6 +72,7 @@ final class PlanExecutor
         $initializers = [
             new NullableTypeInitializer(),
             new IndexByCollectionTypeInitializer(),
+            new GroupByCollectionTypeInitializer(),
             new CollectionTypeInitializer(),
             new BackedEnumTypeInitializer($config->addUnknownCaseToEnums, $config->namespace),
             ...$config->typeInitializers,

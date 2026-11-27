@@ -14,6 +14,7 @@ final readonly class PlanningContext
     /**
      * @param null|list<SymfonyType> $indexByType
      * @param list<list<string>> $indexBy
+     * @param list<string> $groupBy
      */
     public function __construct(
         public string $outputDirectory,
@@ -21,6 +22,8 @@ final readonly class PlanningContext
         public string $path,
         public ?array $indexByType = null,
         public array $indexBy = [],
+        public ?SymfonyType $groupByType = null,
+        public array $groupBy = [],
     ) {}
 
     public function withPath(string $path): self
@@ -37,6 +40,8 @@ final readonly class PlanningContext
             'fqcn' => $this->fqcn . '\\' . $className,
             'indexByType' => null,
             'indexBy' => [],
+            'groupByType' => null,
+            'groupBy' => [],
         ]);
     }
 
@@ -49,6 +54,17 @@ final readonly class PlanningContext
         return clone($this, [
             'indexByType' => $indexByType,
             'indexBy' => $indexBy,
+        ]);
+    }
+
+    /**
+     * @param list<string> $groupBy
+     */
+    public function withGroupBy(SymfonyType $groupByType, array $groupBy): self
+    {
+        return clone($this, [
+            'groupByType' => $groupByType,
+            'groupBy' => $groupBy,
         ]);
     }
 }

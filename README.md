@@ -417,6 +417,7 @@ enum SearchType: string
 - **Lazy-loading** for nested objects (only instantiated when accessed)
 - **Connection pattern awareness** (edges, nodes, pageInfo) for Relay-style APIs
 - **Custom `@indexBy` directive** for O(1) lookups instead of O(n) searching
+- **Custom `@groupBy` directive** - group a list by a field, e.g. issues per state
 - **Custom `@throwWhenNull` directive** - drop nullability per-field and throw a typed exception when the server returns null
 - **Custom `@hook` directive** - enrich responses with local data resolved lazily at access time
 - **Operation arguments** via `withOperationArgument()` - inject extra typed parameters (e.g. an actor) into `execute()` and forward them to your client, optionally gated by a custom directive
@@ -937,6 +938,57 @@ final class Data
     }
 }
 ```
+
+### 🗃️ Group Lists with `@groupBy` Directive
+
+Where `@indexBy` expects one item per key, `@groupBy` collects every item that shares a key into a
+list. Enable it with `enableGroupByDirective()` and tag a list:
+
+<!-- source: tests/GroupByDirective/Test.graphql -->
+```graphql
+query Test {
+    issuesByState: issues @groupBy(field: "state") {
+        id
+        title
+        state
+    }
+    issuesByProject: issues @groupBy(field: "project.id") {
+        id
+        title
+        project {
+            id
+            name
+        }
+    }
+    customers {
+        edges @groupBy(field: "node.country") {
+            node {
+                id
+                name
+                country
+            }
+        }
+    }
+}
+```
+
+The property becomes `array<key, list<Item>>`:
+
+```php
+foreach ($result->issuesByState['OPEN'] ?? [] as $issue) {
+    echo $issue->title;
+}
+```
+
+- The key is the raw value from the response: an enum is grouped by its string value
+  (`'OPEN'`), a custom scalar by its JSON value.
+- Groups keep the order in which their key first appears, and items keep their order within a group.
+- The field must be a selected, non-null `String`, `Int`, `ID` or enum, like with `@indexBy`.
+  Nested paths such as `project.id` work, several comma-separated fields don't.
+- On grouped connection edges, `nodes` has the same groups.
+- `@groupBy` and `@indexBy` can't be combined on one field.
+
+The directive is local to your query: it is stripped from the operation sent to the server.
 
 ### 💥 Throw on Null with `@throwWhenNull` Directive
 
