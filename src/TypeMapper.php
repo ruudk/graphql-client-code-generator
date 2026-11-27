@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Ruudk\GraphQLCodeGenerator;
 
+use Closure;
 use GraphQL\Error\InvariantViolation;
 use GraphQL\Language\AST\ListTypeNode;
 use GraphQL\Language\AST\NamedTypeNode;
@@ -16,6 +17,9 @@ use GraphQL\Type\Definition\NonNull;
 use GraphQL\Type\Definition\ScalarType;
 use GraphQL\Type\Definition\Type;
 use GraphQL\Type\Schema;
+use LogicException;
+use Ruudk\GraphQLCodeGenerator\Config\ScalarDecoder;
+use Ruudk\GraphQLCodeGenerator\Type\DecodedScalarType;
 use Ruudk\GraphQLCodeGenerator\Type\ScalarType as CustomScalarType;
 use Ruudk\GraphQLCodeGenerator\Type\TypeHelper;
 use Stringable;
@@ -30,6 +34,8 @@ final readonly class TypeMapper
      * @param array<string, SymfonyType> $inputObjectTypes
      * @param array<string, array{SymfonyType, SymfonyType}> $objectTypes
      * @param array<string, SymfonyType> $scalarInputTypes
+     * @param array<string, ScalarDecoder> $scalarDecoders
+     * @param array<string, Closure(string, string): ?SymfonyType> $scalarFieldTypes
      */
     public function __construct(
         private Schema $schema,
@@ -38,7 +44,64 @@ final readonly class TypeMapper
         private array $inputObjectTypes,
         private array $objectTypes,
         private array $scalarInputTypes = [],
+        private array $scalarDecoders = [],
+        private array $scalarFieldTypes = [],
     ) {}
+
+    /**
+     * The PHP type of a field the server answers, selected on `$parentTypeName`. A scalar takes the
+     * narrower type of the field when it has one, and is decoded when it has a decoder.
+     *
+     * @throws LogicException
+     */
+    public function mapGraphQLFieldTypeToPHPType(
+        Type $type,
+        string $parentTypeName,
+        string $fieldName,
+        ?bool $nullable = null,
+    ): SymfonyType {
+        if ($type instanceof NonNull) {
+            return $this->mapGraphQLFieldTypeToPHPType($type->getWrappedType(), $parentTypeName, $fieldName, false);
+        }
+
+        if ($nullable === null) {
+            return SymfonyType::nullable($this->mapGraphQLFieldTypeToPHPType($type, $parentTypeName, $fieldName, true));
+        }
+
+        if ($type instanceof ListOfType) {
+            return SymfonyType::list($this->mapGraphQLFieldTypeToPHPType(
+                $type->getWrappedType(),
+                $parentTypeName,
+                $fieldName,
+            ));
+        }
+
+        if (!$type instanceof ScalarType) {
+            return $this->mapGraphQLTypeToPHPType($type, true);
+        }
+
+        $narrowedType = isset($this->scalarFieldTypes[$type->name()])
+            ? $this->scalarFieldTypes[$type->name()]($parentTypeName, $fieldName)
+            : null;
+        $phpType = $narrowedType ?? $this->mapGraphQLTypeToPHPType($type, true);
+        $decoder = $this->scalarDecoders[$type->name()] ?? null;
+
+        if ($decoder === null) {
+            return $phpType;
+        }
+
+        if (!$phpType instanceof SymfonyType\ObjectType) {
+            throw new LogicException(sprintf(
+                'Scalar "%s" has a decoder, so %s.%s must be an object type, got "%s".',
+                $type->name(),
+                $parentTypeName,
+                $fieldName,
+                $phpType,
+            ));
+        }
+
+        return new DecodedScalarType($phpType->getClassName(), $decoder, $narrowedType !== null);
+    }
 
     /**
      * The PHP type the generated code takes for a variable. A string also takes a Stringable, which the

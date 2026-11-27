@@ -90,6 +90,7 @@ use Ruudk\GraphQLCodeGenerator\Planner\Source\InlineSource;
 use Ruudk\GraphQLCodeGenerator\Planner\Source\TwigFileSource;
 use Ruudk\GraphQLCodeGenerator\Twig\GraphQLExtension;
 use Ruudk\GraphQLCodeGenerator\Twig\GraphQLNodeFinder;
+use Ruudk\GraphQLCodeGenerator\Type\DecodedScalarType;
 use Ruudk\GraphQLCodeGenerator\Type\FlattenedPropertyType;
 use Ruudk\GraphQLCodeGenerator\Type\GeneratedClassName;
 use Ruudk\GraphQLCodeGenerator\Type\HookPropertyType;
@@ -569,6 +570,8 @@ final class Planner
             $this->inputObjectTypes,
             $this->objectTypes,
             $this->schemaConfig->scalarInputTypes,
+            $this->schemaConfig->scalarDecoders,
+            $this->schemaConfig->scalarFieldTypes,
         );
 
         // Initialize helper classes
@@ -1049,6 +1052,7 @@ final class Planner
 
             $plansByFqcn[$plan->fqcn] = $plan;
             $plan->usedHooks = [];
+            $plan->usedDecoders = [];
             $childFqcnsByPlan[$plan->fqcn] = [];
 
             foreach ($this->fieldTypesIn($plan->fields) as $fieldType) {
@@ -1062,14 +1066,22 @@ final class Planner
 
                 if ($fieldType instanceof HookPropertyType) {
                     $plan->usedHooks[$fieldType->hookName] = true;
+                    // The data class the hook receives may decode scalars
+                    $childFqcnsByPlan[$plan->fqcn][] = $fieldType->requiresFqcn;
 
                     continue;
                 }
 
-                $nakedObject = $this->unwrapToObjectType($fieldType);
+                $nakedObject = $this->unwrapToObject($fieldType);
+
+                if ($nakedObject instanceof DecodedScalarType) {
+                    $plan->usedDecoders[$nakedObject->decoder->scalar] = true;
+
+                    continue;
+                }
 
                 if ($nakedObject !== null) {
-                    $childFqcnsByPlan[$plan->fqcn][] = $nakedObject;
+                    $childFqcnsByPlan[$plan->fqcn][] = $nakedObject->getClassName();
                 }
             }
         }
@@ -1079,7 +1091,7 @@ final class Planner
             $changed = false;
 
             foreach ($plansByFqcn as $plan) {
-                $before = $plan->usedHooks;
+                $before = [$plan->usedHooks, $plan->usedDecoders];
 
                 foreach ($childFqcnsByPlan[$plan->fqcn] as $childFqcn) {
                     $child = $plansByFqcn[$childFqcn] ?? null;
@@ -1088,12 +1100,11 @@ final class Planner
                         continue;
                     }
 
-                    foreach ($child->usedHooks as $hookName => $_) {
-                        $plan->usedHooks[$hookName] = true;
-                    }
+                    $plan->usedHooks += $child->usedHooks;
+                    $plan->usedDecoders += $child->usedDecoders;
                 }
 
-                if ($plan->usedHooks !== $before) {
+                if ([$plan->usedHooks, $plan->usedDecoders] !== $before) {
                     $changed = true;
                 }
             }
@@ -1122,10 +1133,12 @@ final class Planner
     }
 
     /**
-     * Peel off nullable/collection wrappers; return the FQCN of the nested ObjectType
-     * if that's what we find, otherwise null.
+     * Peel off nullable/collection wrappers; return the nested ObjectType if that's what we find,
+     * otherwise null.
+     *
+     * @return null|SymfonyType\ObjectType<class-string>
      */
-    private function unwrapToObjectType(SymfonyType $type): ?string
+    private function unwrapToObject(SymfonyType $type): ?SymfonyType\ObjectType
     {
         while (true) {
             if ($type instanceof ThrowWhenNullPropertyType || $type instanceof FlattenedPropertyType) {
@@ -1149,7 +1162,7 @@ final class Planner
             break;
         }
 
-        return $type instanceof SymfonyType\ObjectType ? $type->getClassName() : null;
+        return $type instanceof SymfonyType\ObjectType ? $type : null;
     }
 
     /**

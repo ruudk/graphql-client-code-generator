@@ -28,6 +28,8 @@ final readonly class SchemaConfig
     /**
      * @param array<string, array{Type, Type}> $scalars
      * @param array<string, Type> $scalarInputTypes
+     * @param array<string, ScalarDecoder> $scalarDecoders
+     * @param array<string, Closure(string, string): ?Type> $scalarFieldTypes
      * @param array<string, Type> $inputObjectTypes
      * @param array<string, array{Type, Type}> $objectTypes
      * @param array<string, Type> $enumTypes
@@ -51,6 +53,8 @@ final readonly class SchemaConfig
         public bool $useNodeNameForEdgeNodes = false,
         public array $scalars = [],
         public array $scalarInputTypes = [],
+        public array $scalarDecoders = [],
+        public array $scalarFieldTypes = [],
         public array $inputObjectTypes = [],
         public array $objectTypes = [],
         public array $enumTypes = [],
@@ -74,6 +78,7 @@ final readonly class SchemaConfig
         public bool $formatOperationFiles = false,
         public array $hooks = [],
         public bool $symfonyAutowireHooks = false,
+        public bool $symfonyAutowireDecoders = false,
         public array $operationArguments = [],
         public ?string $name = null,
     ) {}
@@ -228,6 +233,18 @@ final readonly class SchemaConfig
     }
 
     /**
+     * Emit Symfony `#[Autowire([...])]` on the generated query class's `$decoders`
+     * constructor argument so the DI container can inject each scalar decoder, by
+     * the `service` given to `withScalarDecoder()` or else by class name.
+     */
+    public function enableSymfonyAutowireDecoders(): self
+    {
+        return clone($this, [
+            'symfonyAutowireDecoders' => true,
+        ]);
+    }
+
+    /**
      * Maps a scalar to the PHP type of its JSON value (`$type`) and the PHP type the generated code reads it as
      * (`$payloadType`, the JSON type when null).
      *
@@ -251,6 +268,57 @@ final readonly class SchemaConfig
         return clone($this, [
             'scalars' => $scalars,
             'scalarInputTypes' => $scalarInputTypes,
+        ]);
+    }
+
+    /**
+     * Decodes every value of the scalar that the server answers with a service, for a PHP value that only
+     * that service can make, like an id that it decodes. The scalar must map to an object type with
+     * `withScalar()`.
+     *
+     * The generated code receives the service in its `$decoders` map under the name of the scalar, which
+     * the container wires with `enableSymfonyAutowireDecoders()`, and calls `$method($value)` on it lazily,
+     * the first time the property is read. A field with a narrower type (see `withScalarFieldType()`) calls
+     * `$method($value, Narrower::class)`. The keys of `@indexBy` and `@groupBy` stay the JSON value.
+     *
+     * @param class-string $class
+     * @param null|string $service The id of the service in the Symfony container, when it is not the class.
+     */
+    public function withScalarDecoder(
+        string $scalar,
+        string $class,
+        string $method = '__invoke',
+        ?string $service = null,
+    ): self {
+        Assert::classExists($class, sprintf('Decoder class "%s" of scalar "%s" does not exist.', $class, $scalar));
+        Assert::methodExists(
+            $class,
+            $method,
+            sprintf('Decoder class "%s" of scalar "%s" has no method "%s".', $class, $scalar, $method),
+        );
+
+        $scalarDecoders = $this->scalarDecoders;
+        $scalarDecoders[$scalar] = new ScalarDecoder($scalar, $class, $method, $service);
+
+        return clone($this, [
+            'scalarDecoders' => $scalarDecoders,
+        ]);
+    }
+
+    /**
+     * Gives a scalar that the server answers a narrower PHP type per field. `$type` gets the name of the
+     * GraphQL type the field is selected on and the name of the field, and returns the narrower type, or
+     * null for the type of the scalar. For example `Event.id` as `EventId` instead of `NodeId`.
+     *
+     * @param Closure(string $type, string $field): ?Type $type
+     */
+    public function withScalarFieldType(string $scalar, Closure $type): self
+    {
+        $scalarFieldTypes = $this->scalarFieldTypes;
+        $scalarFieldTypes[$scalar] = $type;
+
+        return clone($this, [
+            'scalarFieldTypes' => $scalarFieldTypes,
         ]);
     }
 

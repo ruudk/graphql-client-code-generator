@@ -1,0 +1,23 @@
+type Query {
+    node(id: ID!): Node
+    viewer: User!
+    projects: [Project!]!
+}
+
+interface Node {
+    id: ID!
+}
+
+type User implements Node {
+    id: ID!
+    name: String!
+    manager: User
+    friendIds: [ID!]!
+    bestFriendId: ID
+}
+
+type Project implements Node {
+    id: ID!
+    name: String!
+    ownerId: ID!
+}

@@ -7,13 +7,14 @@ namespace Ruudk\GraphQLCodeGenerator\TypeInitializer;
 use Ruudk\GraphQLCodeGenerator\Config\HookDefinition;
 
 /**
- * Knows which generated data classes accept a `$hooks` and/or `$loaders`
- * constructor argument and which hook names each one carries.
+ * Knows which generated data classes accept a `$hooks`, `$loaders` and/or
+ * `$decoders` constructor argument and which hook names and scalars each one
+ * carries.
  *
  * Consulted by `ObjectTypeInitializer` (to forward `$this->hooks` /
- * `$this->loaders` into child constructors) and `OperationClassGenerator` (to
- * emit the root query's hook parameter and shape). Populated once by
- * `PlanExecutor` after planning.
+ * `$this->loaders` / `$this->decoders` into child constructors) and
+ * `OperationClassGenerator` (to emit the root query's parameters and shapes).
+ * Populated once by `PlanExecutor` after planning.
  */
 final class ClassHookUsageRegistry
 {
@@ -64,11 +65,34 @@ final class ClassHookUsageRegistry
     }
 
     /**
+     * Keys are generated class FQCNs, values the scalars whose decoder the class needs.
+     *
+     * @var array<string, array<string, true>>
+     */
+    public array $classDecoders = [];
+
+    /**
      * @return array<string, true>
      */
     public function getHooksForClass(string $fqcn): array
     {
         return $this->classHooks[$fqcn] ?? [];
+    }
+
+    /**
+     * True when the class decodes a scalar and therefore needs the `$decoders` constructor argument.
+     */
+    public function usesDecoders(string $fqcn): bool
+    {
+        return $this->getDecodersForClass($fqcn) !== [];
+    }
+
+    /**
+     * @return array<string, true>
+     */
+    public function getDecodersForClass(string $fqcn): array
+    {
+        return $this->classDecoders[$fqcn] ?? [];
     }
 
     /**
