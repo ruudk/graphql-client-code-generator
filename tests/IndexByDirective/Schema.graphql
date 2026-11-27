@@ -2,6 +2,7 @@ type Query {
     projects: [Project!]!
     issues: [Issue!]!
     customers: CustomerConnection!
+    labels: [Label!]!
 }
 
 type Project {
@@ -26,5 +27,18 @@ type CustomerEdge {
 
 type Customer {
     id: Int!
+    name: String!
+}
+
+scalar LabelCode
+
+enum LabelStatus {
+    OPEN
+    CLOSED
+}
+
+type Label {
+    code: LabelCode!
+    status: LabelStatus!
     name: String!
 }

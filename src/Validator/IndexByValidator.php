@@ -6,15 +6,21 @@ namespace Ruudk\GraphQLCodeGenerator\Validator;
 
 use GraphQL\Error\Error;
 use GraphQL\Language\AST\FieldNode;
+use GraphQL\Language\AST\FragmentSpreadNode;
+use GraphQL\Language\AST\InlineFragmentNode;
+use GraphQL\Language\AST\NamedTypeNode;
 use GraphQL\Language\AST\Node;
 use GraphQL\Language\AST\NodeKind;
+use GraphQL\Language\AST\SelectionSetNode;
 use GraphQL\Language\AST\StringValueNode;
+use GraphQL\Type\Definition\AbstractType;
 use GraphQL\Type\Definition\EnumType;
 use GraphQL\Type\Definition\InterfaceType;
 use GraphQL\Type\Definition\ListOfType;
 use GraphQL\Type\Definition\NonNull;
 use GraphQL\Type\Definition\ObjectType;
 use GraphQL\Type\Definition\Type;
+use GraphQL\Type\Schema;
 use GraphQL\Validator\QueryValidationContext;
 use GraphQL\Validator\Rules\ValidationRule;
 use Override;
@@ -183,11 +189,10 @@ final class IndexByValidator extends ValidationRule
                             $possibleArrayKeyTypes[] = $name;
                         }
 
-                        if ($namedType instanceof EnumType) {
-                            continue;
-                        }
-
-                        if (!in_array($namedType->name(), $possibleArrayKeyTypes, true)) {
+                        if (
+                            !$namedType instanceof EnumType
+                            && !in_array($namedType->name(), $possibleArrayKeyTypes, true)
+                        ) {
                             $context->reportError(
                                 new Error(
                                     sprintf(
@@ -201,9 +206,7 @@ final class IndexByValidator extends ValidationRule
                             continue;
                         }
 
-                        $found = $this->find($node, $fieldParts);
-
-                        if ($found === null) {
+                        if (!$this->isSelected($context, $node->selectionSet, $listOfType, $fieldParts)) {
                             $context->reportError(
                                 new Error(
                                     sprintf('Field "%s" is not selected in the indexBy directive', $fieldPath),
@@ -225,28 +228,135 @@ final class IndexByValidator extends ValidationRule
     }
 
     /**
-     * @param non-empty-list<string> $indexBy
+     * Whether the field path is selected, either directly or through an inline fragment or
+     * fragment spread that applies to every item. Aliased fields don't count, because the
+     * key is read from the payload by the field name.
+     *
+     * @param non-empty-list<string> $path
+     * @param list<string> $visitedFragments
      */
-    public function find(FieldNode $node, array $indexBy): ?FieldNode
-    {
-        $field = array_shift($indexBy);
+    private function isSelected(
+        QueryValidationContext $context,
+        ?SelectionSetNode $selectionSet,
+        Type $parentType,
+        array $path,
+        array $visitedFragments = [],
+    ): bool {
+        $parentType = Type::getNamedType($parentType);
 
-        foreach ($node->selectionSet->selections ?? [] as $selection) {
-            if (!$selection instanceof FieldNode) {
-                continue;
-            }
-
-            if ($selection->name->value !== $field) {
-                continue;
-            }
-
-            if ($indexBy === []) {
-                return $selection;
-            }
-
-            return $this->find($selection, $indexBy);
+        if ($selectionSet === null || !$parentType instanceof ObjectType && !$parentType instanceof InterfaceType) {
+            return false;
         }
 
-        return null;
+        [$fieldName] = $path;
+        $rest = array_slice($path, 1);
+
+        foreach ($selectionSet->selections as $selection) {
+            if ($selection instanceof FieldNode) {
+                if ($selection->name->value !== $fieldName) {
+                    continue;
+                }
+
+                if ($selection->alias !== null && $selection->alias->value !== $fieldName) {
+                    continue;
+                }
+
+                if ($rest === []) {
+                    return true;
+                }
+
+                if (!$parentType->hasField($fieldName)) {
+                    continue;
+                }
+
+                if ($this->isSelected(
+                    $context,
+                    $selection->selectionSet,
+                    $parentType->getField($fieldName)->getType(),
+                    $rest,
+                    $visitedFragments,
+                )) {
+                    return true;
+                }
+
+                continue;
+            }
+
+            if ($selection instanceof InlineFragmentNode) {
+                if (!$this->appliesToEveryItem($context->getSchema(), $parentType, $selection->typeCondition)) {
+                    continue;
+                }
+
+                if ($this->isSelected($context, $selection->selectionSet, $parentType, $path, $visitedFragments)) {
+                    return true;
+                }
+
+                continue;
+            }
+
+            if (!$selection instanceof FragmentSpreadNode) {
+                continue;
+            }
+
+            $fragmentName = $selection->name->value;
+
+            if (in_array($fragmentName, $visitedFragments, true)) {
+                continue;
+            }
+
+            $fragment = $context->getFragment($fragmentName);
+
+            if ($fragment === null) {
+                continue;
+            }
+
+            if (!$this->appliesToEveryItem($context->getSchema(), $parentType, $fragment->typeCondition)) {
+                continue;
+            }
+
+            if ($this->isSelected(
+                $context,
+                $fragment->selectionSet,
+                $parentType,
+                $path,
+                [
+                    ...$visitedFragments,
+                    $fragmentName,
+                ],
+            )) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * A fragment only guarantees its fields when every possible type of the parent matches its type condition.
+     */
+    private function appliesToEveryItem(
+        Schema $schema,
+        ObjectType|InterfaceType $parentType,
+        ?NamedTypeNode $typeCondition,
+    ): bool {
+        if ($typeCondition === null || $typeCondition->name->value === $parentType->name()) {
+            return true;
+        }
+
+        $condition = $schema->getType($typeCondition->name->value);
+
+        if (!$condition instanceof AbstractType) {
+            return false;
+        }
+
+        $possibleTypes = $parentType instanceof InterfaceType ? $schema->getPossibleTypes($parentType) : [$parentType];
+
+        foreach ($possibleTypes as $possibleType) {
+            if (!$schema->isSubType($condition, $possibleType)) {
+                return false;
+            }
+        }
+
+        return true;
     }
 }
