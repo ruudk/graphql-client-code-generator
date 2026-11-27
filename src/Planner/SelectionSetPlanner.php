@@ -39,7 +39,6 @@ use Ruudk\GraphQLCodeGenerator\Planner\Source\HookInputSource;
 use Ruudk\GraphQLCodeGenerator\Planner\Source\InlineFragmentSource;
 use Ruudk\GraphQLCodeGenerator\Planner\Source\InlineSource;
 use Ruudk\GraphQLCodeGenerator\Planner\Source\TwigFileSource;
-use Ruudk\GraphQLCodeGenerator\RecursiveTypeFinder;
 use Ruudk\GraphQLCodeGenerator\Type\FlattenedPropertyType;
 use Ruudk\GraphQLCodeGenerator\Type\FlattenSegment;
 use Ruudk\GraphQLCodeGenerator\Type\FragmentObjectType;
@@ -600,13 +599,21 @@ final class SelectionSetPlanner
         $nestedContext = $context->withSubDirectory($className)->withPath($context->path . '.' . $fieldName);
 
         if ($indexByContext !== null) {
-            $nestedContext = $nestedContext->withIndexBy($indexByContext['types'], $indexByContext['fields']);
+            $nestedContext = $nestedContext->withIndexBy(
+                $indexByContext['types'],
+                $indexByContext['fields'],
+                $indexByContext['throwWhenNull'],
+            );
         }
 
         $groupByContext = $this->processGroupByDirective($selection, $nakedFieldType);
 
         if ($groupByContext !== null) {
-            $nestedContext = $nestedContext->withGroupBy($groupByContext['types'], $groupByContext['fields']);
+            $nestedContext = $nestedContext->withGroupBy(
+                $groupByContext['types'],
+                $groupByContext['fields'],
+                $groupByContext['throwWhenNull'],
+            );
         }
 
         // Recursively plan the nested selection
@@ -1046,10 +1053,15 @@ final class SelectionSetPlanner
     /**
      * @param list<SymfonyType> $indexByType
      * @param list<list<string>> $indexBy
+     * @param list<array<int, string>> $throwWhenNull
      * @throws LogicException
      */
-    private function createIndexByType(array $indexByType, SymfonyType $valueType, array $indexBy): SymfonyType
-    {
+    private function createIndexByType(
+        array $indexByType,
+        SymfonyType $valueType,
+        array $indexBy,
+        array $throwWhenNull,
+    ): SymfonyType {
         $result = $valueType;
 
         foreach (array_reverse($indexByType, true) as $i => $keyType) {
@@ -1059,7 +1071,7 @@ final class SelectionSetPlanner
                 continue;
             }
 
-            $result = new IndexByCollectionType($keyType, $result, $fieldPath);
+            $result = new IndexByCollectionType($keyType, $result, $fieldPath, $throwWhenNull[$i] ?? []);
         }
 
         return $result;
@@ -1078,11 +1090,13 @@ final class SelectionSetPlanner
                 $context->indexByType,
                 $inner->resultType,
                 $context->indexBy,
+                $context->indexByThrowWhenNull,
             ),
             $context->groupByType !== null && $context->groupBy !== [] => new GroupByCollectionType(
                 $context->groupByType,
                 $inner->resultType,
                 $context->groupBy,
+                $context->groupByThrowWhenNull,
             ),
             default => SymfonyType::list($inner->resultType),
         };
@@ -1158,7 +1172,7 @@ final class SelectionSetPlanner
     /**
      * @throws InvariantViolation
      * @throws InvalidArgumentException
-     * @return null|array{types: list<SymfonyType>, fields: list<non-empty-list<string>>}
+     * @return null|array{types: list<SymfonyType>, fields: list<non-empty-list<string>>, throwWhenNull: list<array<int, string>>}
      */
     private function processIndexByDirective(FieldNode $selection, Type $nakedFieldType): ?array
     {
@@ -1172,21 +1186,13 @@ final class SelectionSetPlanner
             return null;
         }
 
-        // The keys are read from the raw payload, so they have the payload type (an enum is its string
-        // value, a custom scalar its JSON value), not the PHP type the value is turned into.
-        return [
-            'types' => array_map(fn($fieldPath) => $this->typeMapper->mapGraphQLTypeToPHPType(
-                RecursiveTypeFinder::find($nakedFieldType, $fieldPath),
-                builtInOnly: true,
-            ), $fields),
-            'fields' => $fields,
-        ];
+        return $this->resolveListKeys($nakedFieldType, $fields);
     }
 
     /**
      * @throws InvariantViolation
      * @throws InvalidArgumentException
-     * @return null|array{types: non-empty-list<SymfonyType>, fields: non-empty-list<non-empty-list<string>>}
+     * @return null|array{types: non-empty-list<SymfonyType>, fields: non-empty-list<non-empty-list<string>>, throwWhenNull: non-empty-list<array<int, string>>}
      */
     private function processGroupByDirective(FieldNode $selection, Type $nakedFieldType): ?array
     {
@@ -1200,13 +1206,67 @@ final class SelectionSetPlanner
             return null;
         }
 
-        // Like @indexBy, the keys are read from the raw payload, so they have the payload type.
-        return [
-            'types' => array_map(fn($fieldPath) => $this->typeMapper->mapGraphQLTypeToPHPType(
-                RecursiveTypeFinder::find($nakedFieldType, $fieldPath),
+        return $this->resolveListKeys($nakedFieldType, $fields);
+    }
+
+    /**
+     * The key type and the nullable fields of every key path of `@indexBy` or `@groupBy`.
+     *
+     * The keys are read from the raw payload, so they have the payload type (an enum is its string
+     * value, a custom scalar its JSON value), not the PHP type the value is turned into.
+     *
+     * A field of the path that is nullable in the schema passed validation because it is selected
+     * with `@throwWhenNull`: the key is never null, and the generated code throws for an item where
+     * that field is null. Such a field is returned with the type that owns it, by its index in the path.
+     *
+     * @template T of non-empty-list<non-empty-list<string>>
+     * @param T $fieldPaths
+     * @throws InvariantViolation
+     * @throws InvalidArgumentException
+     * @throws LogicException
+     * @return array{types: non-empty-list<SymfonyType>, fields: T, throwWhenNull: non-empty-list<array<int, string>>}
+     */
+    private function resolveListKeys(Type $nakedFieldType, array $fieldPaths): array
+    {
+        $types = [];
+        $throwWhenNull = [];
+
+        foreach ($fieldPaths as $fieldPath) {
+            $parentType = $nakedFieldType;
+            $nullableFields = [];
+            $fieldType = null;
+
+            foreach ($fieldPath as $index => $fieldName) {
+                if (!$parentType instanceof ObjectType && !$parentType instanceof InterfaceType) {
+                    throw new LogicException(sprintf(
+                        'Cannot read "%s" of a list key from %s',
+                        $fieldName,
+                        $parentType->toString(),
+                    ));
+                }
+
+                $fieldType = $parentType->getField($fieldName)->getType();
+
+                if (!$fieldType instanceof NonNull) {
+                    $nullableFields[$index] = $parentType->name();
+                }
+
+                $parentType = Type::getNamedType($fieldType);
+            }
+
+            Assert::notNull($fieldType);
+
+            $types[] = $this->typeMapper->mapGraphQLTypeToPHPType(
+                Type::nonNull(Type::getNullableType($fieldType)),
                 builtInOnly: true,
-            ), $fields),
-            'fields' => $fields,
+            );
+            $throwWhenNull[] = $nullableFields;
+        }
+
+        return [
+            'types' => $types,
+            'fields' => $fieldPaths,
+            'throwWhenNull' => $throwWhenNull,
         ];
     }
 

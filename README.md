@@ -1007,6 +1007,28 @@ query TestMultiField {
 single field can be written as `field: "id"` or `field: ["id"]`, both mean the same. On connection
 edges indexed by several fields, `nodes` is a flat list.
 
+#### Index through a nullable field
+
+Every field in the path must be non-null, so the key is never `null`. A field that is nullable in
+the schema counts as non-null when you select it with
+[`@throwWhenNull`](#-throw-on-null-with-throwwhennull-directive), directly or in a fragment:
+
+```graphql
+query Payouts {
+    payouts @indexBy(field: "orderItem.id") {
+        id
+        orderItem @throwWhenNull {
+            id
+        }
+    }
+}
+```
+
+`payouts` becomes `array<string, Payout>`. When an item has no `orderItem`, building the array
+throws `NodeNotFoundException` (`Field Payout.orderItem is null`), the same as the `orderItem`
+getter. This works for every field in the path, the key itself included, and for every field when
+indexing by several fields. A nullable field without `@throwWhenNull` is still an error.
+
 ### 🗃️ Group Lists with `@groupBy` Directive
 
 Where `@indexBy` expects one item per key, `@groupBy` collects every item that shares a key into a
@@ -1053,6 +1075,9 @@ foreach ($result->issuesByState['OPEN'] ?? [] as $issue) {
 - Groups keep the order in which their key first appears, and items keep their order within a group.
 - The field must be a selected, non-null `String`, `Int`, `ID` or enum, like with `@indexBy`.
   Nested paths such as `project.id` work.
+- A field in the path that is nullable in the schema counts as non-null when you select it with
+  `@throwWhenNull`, [like with `@indexBy`](#index-through-a-nullable-field): an item where it is
+  `null` makes building the groups throw `NodeNotFoundException`.
 - On grouped connection edges, `nodes` has the same groups.
 - `@groupBy` and `@indexBy` can't be combined on one field.
 

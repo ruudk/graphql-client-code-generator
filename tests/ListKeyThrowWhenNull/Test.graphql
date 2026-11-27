@@ -1,0 +1,36 @@
+query Test {
+    byOrderItem: payouts @indexBy(field: "orderItem.id") {
+        id
+        orderItem @throwWhenNull {
+            id
+        }
+    }
+    byCode: payouts @indexBy(field: "orderItem.code") {
+        id
+        orderItem: orderItem @throwWhenNull {
+            code @throwWhenNull
+        }
+    }
+    byOrderItemAndOrder: payouts @indexBy(field: ["orderItem.id", "orderItem.order.id"]) {
+        id
+        ...PayoutOrder
+    }
+    byStatus: payouts @groupBy(field: "orderItem.order.status") {
+        id
+        ...PayoutOrder
+    }
+    byStatusAndOrderItem: payouts @groupBy(field: ["orderItem.order.status", "orderItem.id"]) {
+        id
+        ...PayoutOrder
+    }
+}
+
+fragment PayoutOrder on Payout {
+    orderItem @throwWhenNull {
+        id
+        order @throwWhenNull {
+            id
+            status
+        }
+    }
+}

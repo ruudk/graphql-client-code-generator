@@ -14,8 +14,12 @@ use Symfony\Component\TypeInfo\Type;
  * @phpstan-import-type CodeLine from CodeGenerator
  * @implements TypeInitializer<GroupByCollectionType>
  */
-final class GroupByCollectionTypeInitializer implements TypeInitializer
+final readonly class GroupByCollectionTypeInitializer implements TypeInitializer
 {
+    public function __construct(
+        private ListKeyAccess $keyAccess,
+    ) {}
+
     #[Override]
     public function supports(Type $type): bool
     {
@@ -38,7 +42,7 @@ final class GroupByCollectionTypeInitializer implements TypeInitializer
             yield sprintf('foreach (%s as $item) {', $variable);
             yield $generator->indent(function () use ($generator, $type, $delegator) {
                 yield from $generator->wrap(
-                    sprintf('$result%s[] = ', $this->buildGroupAccess($type->groupBy)),
+                    sprintf('$result%s[] = ', $this->buildGroupAccess($generator, $type)),
                     $delegator($type->value, $generator, '$item'),
                     ';',
                 );
@@ -53,19 +57,19 @@ final class GroupByCollectionTypeInitializer implements TypeInitializer
 
     /**
      * One `[$item['a']['b']]` per level, so the item lands in the group of every level at once.
-     *
-     * @param list<list<string>> $groupBy
      */
-    private function buildGroupAccess(array $groupBy): string
+    private function buildGroupAccess(CodeGenerator $generator, GroupByCollectionType $type): string
     {
-        return implode(array_map(fn($fieldPath) => sprintf('[$item%s]', $this->buildKeyAccess($fieldPath)), $groupBy));
-    }
+        $keys = $this->keyAccess->build(
+            $generator,
+            '$item',
+            array_map(
+                static fn($level, $fieldPath) => [$fieldPath, $type->throwWhenNull[$level] ?? []],
+                array_keys($type->groupBy),
+                $type->groupBy,
+            ),
+        );
 
-    /**
-     * @param list<string> $fieldPath
-     */
-    private function buildKeyAccess(array $fieldPath): string
-    {
-        return implode(array_map(static fn($key) => sprintf('[%s]', var_export($key, true)), $fieldPath));
+        return implode(array_map(static fn($key) => sprintf('[%s]', $key), $keys));
     }
 }
