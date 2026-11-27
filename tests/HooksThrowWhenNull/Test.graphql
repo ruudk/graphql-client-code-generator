@@ -1,0 +1,11 @@
+query Test {
+    customers {
+        id
+
+        # Hook invoked once per customer; returns ?User.
+        user @hook(name: "findUserById") @throwWhenNull
+
+        # Batched hook; resolves ?Account for every customer in one call.
+        account @hook(name: "findAccountById") @throwWhenNull
+    }
+}

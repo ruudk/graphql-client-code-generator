@@ -12,8 +12,9 @@ use Symfony\Component\TypeInfo\Type\WrappingTypeInterface;
  * Marker type attached to a generated property that should be populated by a
  * configured hook at runtime rather than by reading from `$this->data`.
  *
- * The wrapped type is the hook's declared return type (used both for the
- * property's PHP type hint and for dumping any PHPDoc). The extra state
+ * The wrapped type is the property's type: the hook's declared return type, or
+ * that type without null when the field carries `@throwWhenNull` (used both for
+ * the property's PHP type hint and for dumping any PHPDoc). The extra state
  * (hook name + the hook's `requires` data class) drives code emission in
  * DataClassGenerator.
  *
@@ -27,6 +28,9 @@ final class HookPropertyType extends SymfonyType implements WrappingTypeInterfac
      * @param string $requiresClassName Short name of that data class.
      * @param bool $batched When true, the hook is resolved by a batched `HookLoader`
      *                      instead of a per-instance `__invoke` call.
+     * @param bool $throwWhenNull When true, the field carries `@throwWhenNull`: the
+     *                            getter throws `NodeNotFoundException` when the hook
+     *                            returns null, and `$returnType` is already non-nullable.
      */
     public function __construct(
         public readonly string $hookName,
@@ -34,6 +38,7 @@ final class HookPropertyType extends SymfonyType implements WrappingTypeInterfac
         public readonly string $requiresClassName,
         private readonly SymfonyType $returnType,
         public readonly bool $batched = false,
+        public readonly bool $throwWhenNull = false,
     ) {}
 
     #[Override]
