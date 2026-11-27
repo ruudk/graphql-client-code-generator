@@ -14,4 +14,9 @@ final class NodeNotFoundException extends Exception
     {
         return new self(sprintf('Field %s.%s is null', $node, $property));
     }
+
+    public static function unexpectedType(string $node, string $property, string $expected, string $actual) : self
+    {
+        return new self(sprintf('Field %s.%s is %s, expected %s', $node, $property, $actual, $expected));
+    }
 }

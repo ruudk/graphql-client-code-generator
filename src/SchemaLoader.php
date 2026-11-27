@@ -35,6 +35,7 @@ final class SchemaLoader
         bool $throwWhenNullDirective,
         bool $groupByDirective = false,
         bool $flattenDirective = false,
+        bool $narrowDirective = false,
     ): Schema {
         if (is_string($schema) && str_ends_with($schema, '.graphql')) {
             $this->schemaPath = $schema;
@@ -74,6 +75,10 @@ final class SchemaLoader
 
         if ($flattenDirective) {
             $schema = GraphQL\FlattenDirectiveSchemaExtender::extend($schema);
+        }
+
+        if ($narrowDirective) {
+            $schema = GraphQL\NarrowDirectiveSchemaExtender::extend($schema);
         }
 
         return $schema;

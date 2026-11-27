@@ -26,6 +26,13 @@ final class NodeNotFoundExceptionGenerator extends AbstractGenerator
                     yield "return new self(sprintf('Field %s.%s is null', \$node, \$property));";
                 });
                 yield '}';
+                yield '';
+                yield 'public static function unexpectedType(string $node, string $property, string $expected, string $actual) : self';
+                yield '{';
+                yield $generator->indent(static function () {
+                    yield "return new self(sprintf('Field %s.%s is %s, expected %s', \$node, \$property, \$actual, \$expected));";
+                });
+                yield '}';
             });
             yield '}';
         });

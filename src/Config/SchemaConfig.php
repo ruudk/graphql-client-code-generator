@@ -63,6 +63,7 @@ final readonly class SchemaConfig
         public bool $groupByDirective = false,
         public bool $throwWhenNullDirective = false,
         public bool $flattenDirective = false,
+        public bool $narrowDirective = false,
         public bool $addUnknownCaseToEnums = false,
         public bool $dumpEnumIsMethods = false,
         public ?object $introspectionClient = null,
@@ -177,6 +178,18 @@ final readonly class SchemaConfig
     {
         return clone($this, [
             'flattenDirective' => true,
+        ]);
+    }
+
+    /**
+     * Allow `@narrow` on inline fragments: the field that selects an interface or union is
+     * typed as the fragment's object type. The fields of the fragment become properties of
+     * the field's class, and reading the field throws when the server returns another type.
+     */
+    public function enableNarrowDirective(): self
+    {
+        return clone($this, [
+            'narrowDirective' => true,
         ]);
     }
 

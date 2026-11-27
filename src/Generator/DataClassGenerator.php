@@ -15,6 +15,7 @@ use Ruudk\GraphQLCodeGenerator\Attribute\Generated;
 use Ruudk\GraphQLCodeGenerator\Config\SchemaConfig;
 use Ruudk\GraphQLCodeGenerator\GraphQL\AST\Printer;
 use Ruudk\GraphQLCodeGenerator\Planner\Plan\DataClassPlan;
+use Ruudk\GraphQLCodeGenerator\Planner\Plan\Narrowing;
 use Ruudk\GraphQLCodeGenerator\Planner\Source\GraphQLFileSource;
 use Ruudk\GraphQLCodeGenerator\Planner\Source\HookInputSource;
 use Ruudk\GraphQLCodeGenerator\Planner\Source\TwigFileSource;
@@ -473,6 +474,7 @@ final class DataClassGenerator extends AbstractGenerator
     private function dumpFlattenedProperty(
         string $fieldName,
         FlattenedPropertyType $type,
+        bool $throws,
         string $parentTypeName,
         bool $isMutationData,
         CodeGenerator $generator,
@@ -497,9 +499,9 @@ final class DataClassGenerator extends AbstractGenerator
             yield from $this->dumpDeprecation($deprecationReason);
         });
         yield sprintf('public %s $%s {', $this->dumpPHPType($propertyType, $generator->import(...)), $fieldName);
-        yield $generator->indent(function () use ($fieldName, $type, $generator, $deprecationReason) {
-            yield from $generator->docComment(function () use ($generator, $type, $deprecationReason) {
-                if ($type->throwsWhenNull()) {
+        yield $generator->indent(function () use ($fieldName, $type, $throws, $generator, $deprecationReason) {
+            yield from $generator->docComment(function () use ($generator, $throws, $deprecationReason) {
+                if ($throws) {
                     yield sprintf('@throws %s', $generator->import($this->fullyQualified('NodeNotFoundException')));
                 }
 
@@ -542,6 +544,46 @@ final class DataClassGenerator extends AbstractGenerator
             });
             yield '}';
         }
+    }
+
+    /**
+     * The constructor body of a class narrowed with `@narrow`: throw when the payload is
+     * another type, or misses a field the narrowed type always has, before storing it.
+     *
+     * @return iterable<string|Group>
+     */
+    private function dumpNarrowingCheck(Narrowing $narrowing, CodeGenerator $generator): iterable
+    {
+        $conditions = [sprintf('$data[\'__typename\'] !== %s', var_export($narrowing->typeName, true))];
+
+        foreach ($narrowing->requiredFields as $requiredField) {
+            $conditions[] = sprintf('! array_key_exists(%s, $data)', var_export($requiredField, true));
+        }
+
+        yield sprintf('if (%s) {', implode(' || ', $conditions));
+        yield $generator->indent(sprintf(
+            'throw %s::unexpectedType(%s, %s, %s, $data[\'__typename\']);',
+            $generator->import($this->fullyQualified('NodeNotFoundException')),
+            var_export($narrowing->ownerTypeName, true),
+            var_export($narrowing->fieldName, true),
+            var_export($narrowing->typeName, true),
+        ));
+        yield '}';
+        yield '';
+        yield '$this->data = $data;';
+    }
+
+    /**
+     * Whether reading a property of this type constructs a class narrowed with `@narrow`,
+     * which throws when the server returned another type.
+     *
+     * @param array<string, DataClassPlan> $plansByFqcn
+     */
+    private function constructsNarrowedClass(SymfonyType $type, array $plansByFqcn): bool
+    {
+        $className = $this->unwrapToObjectClassName($type);
+
+        return $className !== null && ($plansByFqcn[$className] ?? null)?->narrowing !== null;
     }
 
     /**
@@ -842,6 +884,8 @@ final class DataClassGenerator extends AbstractGenerator
                             yield from $this->dumpFlattenedProperty(
                                 $fieldName,
                                 $fieldType,
+                                $fieldType->throwsWhenNull()
+                                || $this->constructsNarrowedClass($fieldType, $plansByFqcn),
                                 $parentType->name(),
                                 $isMutationData,
                                 $generator,
@@ -961,9 +1005,22 @@ final class DataClassGenerator extends AbstractGenerator
                             $fieldName,
                         );
 
-                        yield $generator->indent($generator->docComment($this->dumpDeprecatedPropertyRead(
-                            $deprecatedFields[$fieldName] ?? null,
-                        )));
+                        yield $generator->indent($generator->docComment(function () use (
+                            $fieldType,
+                            $plansByFqcn,
+                            $generator,
+                            $deprecatedFields,
+                            $fieldName,
+                        ) {
+                            if ($this->constructsNarrowedClass($fieldType, $plansByFqcn)) {
+                                yield sprintf(
+                                    '@throws %s',
+                                    $generator->import($this->fullyQualified('NodeNotFoundException')),
+                                );
+                            }
+
+                            yield from $this->dumpDeprecatedPropertyRead($deprecatedFields[$fieldName] ?? null);
+                        }));
 
                         yield $generator->indent(function () use (
                             $parentType,
@@ -1322,17 +1379,34 @@ final class DataClassGenerator extends AbstractGenerator
                     yield 'private readonly array $loaders;';
                 }
 
+                $narrowing = $plan->narrowing;
+
+                if ($narrowing !== null) {
+                    // The constructor receives the payload of the interface or union and only
+                    // stores it once it is known to be the narrowed type.
+                    yield '';
+                    yield from $generator->docComment(sprintf('@var %s', TypeDumper::dump(
+                        $payloadShape,
+                        $generator->import(...),
+                    )));
+                    yield 'private readonly array $data;';
+                }
+
                 yield '';
                 yield from $generator->docComment(function () use (
                     $isData,
                     $generator,
                     $payloadShape,
+                    $narrowing,
                     $hooksParam,
                     $needsHooksParam,
                     $needsLoadersParam,
                     $batchedHooks,
                 ) {
-                    yield sprintf('@param %s $data', TypeDumper::dump($payloadShape, $generator->import(...)));
+                    yield sprintf('@param %s $data', TypeDumper::dump(
+                        $narrowing->payloadShape ?? $payloadShape,
+                        $generator->import(...),
+                    ));
 
                     if ($isData) {
                         yield sprintf('@param %s $errors', TypeDumper::dump(
@@ -1358,19 +1432,24 @@ final class DataClassGenerator extends AbstractGenerator
                     if ($needsLoadersParam) {
                         yield sprintf('@param %s $loaders', $this->dumpLoadersShape($batchedHooks, $generator));
                     }
+
+                    if ($narrowing !== null) {
+                        yield sprintf('@throws %s', $generator->import($this->fullyQualified('NodeNotFoundException')));
+                    }
                 });
                 yield 'public function __construct(';
                 yield $generator->indent(function () use (
                     $generator,
                     $payloadShape,
+                    $narrowing,
                     $isData,
                     $needsHooksParam,
                     $needsLoadersParam,
                 ) {
-                    yield sprintf('private readonly %s $data,', $this->dumpPHPType(
-                        $payloadShape,
-                        $generator->import(...),
-                    ));
+                    yield sprintf(
+                        $narrowing !== null ? '%s $data,' : 'private readonly %s $data,',
+                        $this->dumpPHPType($payloadShape, $generator->import(...)),
+                    );
 
                     if ($isData) {
                         yield 'array $errors,';
@@ -1410,6 +1489,10 @@ final class DataClassGenerator extends AbstractGenerator
                             yield '];';
                         }
                     });
+                    yield '}';
+                } elseif ($narrowing !== null) {
+                    yield ') {';
+                    yield $generator->indent($this->dumpNarrowingCheck($narrowing, $generator));
                     yield '}';
                 } else {
                     yield ') {}';

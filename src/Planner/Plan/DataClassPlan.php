@@ -52,5 +52,9 @@ final class DataClassPlan
          * `@api` to keep dead-code analysis from flagging it.
          */
         public readonly bool $markTypenameAsApi = false,
+        /**
+         * Set when the class narrows an interface or union to one object type with `@narrow`.
+         */
+        public readonly ?Narrowing $narrowing = null,
     ) {}
 }
