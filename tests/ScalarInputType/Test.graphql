@@ -1,0 +1,22 @@
+query Test(
+    $id: ID!
+    $handle: Handle!
+    $ids: [ID!]!
+    $after: ID
+    $filter: UserFilter!
+    $name: String
+) {
+    user(id: $id) {
+        id
+        name
+    }
+    userByHandle(handle: $handle) {
+        id
+    }
+    users(ids: $ids, after: $after) {
+        id
+    }
+    search(filter: $filter, name: $name) {
+        id
+    }
+}

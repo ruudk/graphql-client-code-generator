@@ -27,6 +27,7 @@ final readonly class SchemaConfig
 {
     /**
      * @param array<string, array{Type, Type}> $scalars
+     * @param array<string, Type> $scalarInputTypes
      * @param array<string, Type> $inputObjectTypes
      * @param array<string, array{Type, Type}> $objectTypes
      * @param array<string, Type> $enumTypes
@@ -49,6 +50,7 @@ final readonly class SchemaConfig
         public bool $dumpDefinition = false,
         public bool $useNodeNameForEdgeNodes = false,
         public array $scalars = [],
+        public array $scalarInputTypes = [],
         public array $inputObjectTypes = [],
         public array $objectTypes = [],
         public array $enumTypes = [],
@@ -212,13 +214,30 @@ final readonly class SchemaConfig
         ]);
     }
 
-    public function withScalar(string $name, Type $type, ?Type $payloadType = null): self
+    /**
+     * Maps a scalar to the PHP type of its JSON value (`$type`) and the PHP type the generated code reads it as
+     * (`$payloadType`, the JSON type when null).
+     *
+     * `$inputType` is the PHP type the generated code takes for the scalar in a variable or a field of an input
+     * object, when that is not the same as `$payloadType`. The generated code passes such a value to the client as
+     * it is, without casting it to a string, so the client turns it into its JSON value. Use it for a value object
+     * that only the client can write, like an id that it encodes.
+     */
+    public function withScalar(string $name, Type $type, ?Type $payloadType = null, ?Type $inputType = null): self
     {
         $scalars = $this->scalars;
         $scalars[$name] = [$type, $payloadType ?? $type];
 
+        $scalarInputTypes = $this->scalarInputTypes;
+        unset($scalarInputTypes[$name]);
+
+        if ($inputType !== null) {
+            $scalarInputTypes[$name] = $inputType;
+        }
+
         return clone($this, [
             'scalars' => $scalars,
+            'scalarInputTypes' => $scalarInputTypes,
         ]);
     }
 

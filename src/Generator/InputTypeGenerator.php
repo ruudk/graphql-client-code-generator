@@ -10,8 +10,8 @@ use Ruudk\CodeGenerator\CodeGenerator;
 use Ruudk\GraphQLCodeGenerator\Config\SchemaConfig;
 use Ruudk\GraphQLCodeGenerator\Planner\Plan\InputClassPlan;
 use Ruudk\GraphQLCodeGenerator\Type\TypeDumper;
+use Ruudk\GraphQLCodeGenerator\Type\TypeHelper;
 use Symfony\Component\TypeInfo\Type as SymfonyType;
-use Symfony\Component\TypeInfo\TypeIdentifier;
 
 final class InputTypeGenerator extends AbstractGenerator
 {
@@ -110,7 +110,7 @@ final class InputTypeGenerator extends AbstractGenerator
                     yield 'return [';
                     yield $generator->indent(static function () use ($plan) {
                         foreach ($plan->fields as $fieldName => $fieldType) {
-                            if ($fieldType->isIdentifiedBy(TypeIdentifier::STRING)) {
+                            if (TypeHelper::isStringable($fieldType)) {
                                 if ($fieldType instanceof SymfonyType\NullableType) {
                                     yield sprintf(
                                         "'%s' => \$this->%s !== null ? (string) \$this->%s : null,",
