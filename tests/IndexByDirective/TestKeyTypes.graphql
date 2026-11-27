@@ -1,0 +1,10 @@
+query TestKeyTypes {
+    labelsByStatus: labels @indexBy(field: "status") {
+        status
+        name
+    }
+    labelsByCode: labels @indexBy(field: "code") {
+        code
+        name
+    }
+}

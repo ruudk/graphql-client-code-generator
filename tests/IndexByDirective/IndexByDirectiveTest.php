@@ -8,8 +8,11 @@ use Override;
 use Ruudk\GraphQLCodeGenerator\Config\SchemaConfig;
 use Ruudk\GraphQLCodeGenerator\GraphQLRequestMatcher;
 use Ruudk\GraphQLCodeGenerator\GraphQLTestCase;
+use Ruudk\GraphQLCodeGenerator\IndexByDirective\Generated\Enum\LabelStatus;
 use Ruudk\GraphQLCodeGenerator\IndexByDirective\Generated\Query\Test\TestQuery;
+use Ruudk\GraphQLCodeGenerator\IndexByDirective\Generated\Query\TestKeyTypes\TestKeyTypesQuery;
 use Ruudk\GraphQLCodeGenerator\IndexByDirective\Generated\Query\TestMultiField\TestMultiFieldQuery;
+use Ruudk\GraphQLCodeGenerator\IndexByDirective\ValueObjects\LabelCode;
 use Symfony\Component\TypeInfo\Type;
 
 final class IndexByDirectiveTest extends GraphQLTestCase
@@ -21,6 +24,7 @@ final class IndexByDirectiveTest extends GraphQLTestCase
             ->enableIndexByDirective()
             ->enableAddNodesOnConnections()
             ->withScalar('IssueId', Type::int())
+            ->withScalar('LabelCode', Type::string(), Type::object(LabelCode::class))
             ->enableUseNodeNameForEdgeNodes()
             ->enableUseConnectionNameForConnections()
             ->enableUseEdgeNameForEdges();
@@ -179,5 +183,43 @@ final class IndexByDirectiveTest extends GraphQLTestCase
         self::assertArrayHasKey(200, $result->customers->edges);
         self::assertArrayHasKey('Customer Beta', $result->customers->edges[200]);
         self::assertSame('Customer Beta', $result->customers->edges[200]['Customer Beta']->node->name);
+    }
+
+    public function testIndexByEnumAndCustomScalar(): void
+    {
+        $result = new TestKeyTypesQuery($this->getClient([
+            'data' => [
+                'labelsByStatus' => [
+                    [
+                        'status' => 'OPEN',
+                        'name' => 'Open label',
+                    ],
+                    [
+                        'status' => 'CLOSED',
+                        'name' => 'Closed label',
+                    ],
+                ],
+                'labelsByCode' => [
+                    [
+                        'code' => 'bug',
+                        'name' => 'Bug',
+                    ],
+                    [
+                        'code' => 'feature',
+                        'name' => 'Feature',
+                    ],
+                ],
+            ],
+        ], new GraphQLRequestMatcher(operationName: 'TestKeyTypes')))->execute();
+
+        // Enum fields are keyed by their raw string value, the value itself is still the enum
+        self::assertSame(['OPEN', 'CLOSED'], array_keys($result->labelsByStatus));
+        self::assertSame(LabelStatus::Closed, $result->labelsByStatus['CLOSED']->status);
+        self::assertSame('Closed label', $result->labelsByStatus['CLOSED']->name);
+
+        // Custom scalars are keyed by their raw JSON value, the value itself is still the PHP type
+        self::assertSame(['bug', 'feature'], array_keys($result->labelsByCode));
+        self::assertEquals(new LabelCode('feature'), $result->labelsByCode['feature']->code);
+        self::assertSame('Feature', $result->labelsByCode['feature']->name);
     }
 }

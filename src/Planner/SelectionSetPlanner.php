@@ -905,10 +905,12 @@ final class SelectionSetPlanner
             return null;
         }
 
-        $types = array_map(fn($fieldPath) => $this->typeMapper->mapGraphQLTypeToPHPType(RecursiveTypeFinder::find(
-            $nakedFieldType,
-            $fieldPath,
-        )), $validFields);
+        // The keys are read from the raw payload, so they have the payload type (an enum is its string
+        // value, a custom scalar its JSON value), not the PHP type the value is turned into.
+        $types = array_map(fn($fieldPath) => $this->typeMapper->mapGraphQLTypeToPHPType(
+            RecursiveTypeFinder::find($nakedFieldType, $fieldPath),
+            builtInOnly: true,
+        ), $validFields);
 
         return [
             'types' => array_values($types),
