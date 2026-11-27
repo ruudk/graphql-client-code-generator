@@ -13,6 +13,14 @@ type Issue {
     title: String!
     state: IssueState!
     project: Project!
+    assignee: Account!
+}
+
+scalar AccountId
+
+type Account {
+    id: AccountId!
+    name: String!
 }
 
 type Project {
@@ -32,4 +40,10 @@ type Customer {
     id: Int!
     name: String!
     country: String!
+    tier: CustomerTier!
+}
+
+enum CustomerTier {
+    GOLD
+    SILVER
 }

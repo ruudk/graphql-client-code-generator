@@ -435,6 +435,19 @@ final class DataClassGenerator extends AbstractGenerator
     }
 
     /**
+     * Maps grouped edges to grouped nodes, keeping every level: one `array_map` per level, around the
+     * one that turns a group of edges into a group of nodes.
+     */
+    private function dumpGroupedNodes(int $levels, string $groups): string
+    {
+        if ($levels === 1) {
+            return sprintf('array_map(fn($edges) => array_map(fn($edge) => $edge->node, $edges), %s)', $groups);
+        }
+
+        return sprintf('array_map(fn($group) => %s, %s)', $this->dumpGroupedNodes($levels - 1, '$group'), $groups);
+    }
+
+    /**
      * The hooks of a deprecated property read the property itself, which Mago reports as a use
      * of a deprecated property. Expect that issue in the hook's doc comment, so it only shows up
      * where the caller reads it.
@@ -1222,7 +1235,7 @@ final class DataClassGenerator extends AbstractGenerator
 
                     // Check if edges field has multi-field indexing
                     $isMultiFieldIndexedEdges = false;
-                    $isGroupedEdges = false;
+                    $groupedEdges = null;
 
                     if ($fields instanceof ArrayShapeType) {
                         $edgesFieldType = $fields->getShape()['edges']['type'] ?? null;
@@ -1231,14 +1244,17 @@ final class DataClassGenerator extends AbstractGenerator
                             $isMultiFieldIndexedEdges = $edgesFieldType->value instanceof IndexByCollectionType;
                         }
 
-                        $isGroupedEdges = $edgesFieldType instanceof GroupByCollectionType;
+                        if ($edgesFieldType instanceof GroupByCollectionType) {
+                            $groupedEdges = $edgesFieldType;
+                        }
                     }
 
-                    if ($isGroupedEdges) {
+                    if ($groupedEdges !== null) {
                         // Grouped edges keep their groups: every group of edges becomes a group of nodes
-                        yield $generator->indent(
-                            'get => array_map(fn($edges) => array_map(fn($edge) => $edge->node, $edges), $this->edges);',
-                        );
+                        yield $generator->indent(sprintf('get => %s;', $this->dumpGroupedNodes(
+                            count($groupedEdges->keys),
+                            '$this->edges',
+                        )));
                     } elseif ($isMultiFieldIndexedEdges) {
                         // For multi-field indexed edges, we need nested loops
                         yield $generator->indent(static function () use ($generator) {

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Ruudk\GraphQLCodeGenerator;
 
 use GraphQL\Language\AST\DirectiveNode;
+use GraphQL\Language\AST\ListValueNode;
 use GraphQL\Language\AST\NodeList;
 use GraphQL\Language\AST\StringValueNode;
 use InvalidArgumentException;
@@ -46,26 +47,36 @@ final class DirectiveProcessor
     }
 
     /**
-     * Extract the @groupBy directive field path
+     * Extract the @groupBy directive field paths, one per nesting level. The `field` argument
+     * is a list of fields, or a single field.
      *
      * @param NodeList<DirectiveNode> $directives
-     * @return null|non-empty-list<string>
+     * @return list<non-empty-list<string>>
      */
-    public function getGroupByDirective(NodeList $directives): ?array
+    public function getGroupByDirective(NodeList $directives): array
     {
         foreach ($directives as $directive) {
             if ($directive->name->value !== 'groupBy') {
                 continue;
             }
 
-            if (!$directive->arguments[0]->value instanceof StringValueNode) {
-                continue;
+            $value = $directive->arguments[0]->value;
+            $fields = [];
+
+            if ($value instanceof StringValueNode) {
+                $fields[] = $value->value;
+            } elseif ($value instanceof ListValueNode) {
+                foreach ($value->values as $item) {
+                    if ($item instanceof StringValueNode) {
+                        $fields[] = $item->value;
+                    }
+                }
             }
 
-            return explode('.', trim($directive->arguments[0]->value->value));
+            return array_map(static fn($field) => explode('.', trim($field)), $fields);
         }
 
-        return null;
+        return [];
     }
 
     /**

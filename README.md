@@ -417,7 +417,7 @@ enum SearchType: string
 - **Lazy-loading** for nested objects (only instantiated when accessed)
 - **Connection pattern awareness** (edges, nodes, pageInfo) for Relay-style APIs
 - **Custom `@indexBy` directive** for O(1) lookups instead of O(n) searching
-- **Custom `@groupBy` directive** - group a list by a field, e.g. issues per state
+- **Custom `@groupBy` directive** - group a list by one or more fields, e.g. issues per assignee and state
 - **Custom `@throwWhenNull` directive** - drop nullability per-field and throw a typed exception when the server returns null
 - **Custom `@flatten` directive** - lift the fields of a nested object onto its parent class instead of generating a class for it
 - **Custom `@hook` directive** - enrich responses with local data resolved lazily at access time
@@ -1021,9 +1021,54 @@ foreach ($result->issuesByState['OPEN'] ?? [] as $issue) {
   (`'OPEN'`), a custom scalar by its JSON value.
 - Groups keep the order in which their key first appears, and items keep their order within a group.
 - The field must be a selected, non-null `String`, `Int`, `ID` or enum, like with `@indexBy`.
-  Nested paths such as `project.id` work, several comma-separated fields don't.
+  Nested paths such as `project.id` work.
 - On grouped connection edges, `nodes` has the same groups.
 - `@groupBy` and `@indexBy` can't be combined on one field.
+
+#### Group by several fields
+
+Give a list of fields to nest the groups, one level per field in the order given. A single field
+can be written as `field: "state"` or `field: ["state"]`, both mean the same:
+
+<!-- source: tests/GroupByDirective/TestMultiField.graphql -->
+```graphql
+query TestMultiField {
+    issuesByAssigneeAndState: issues @groupBy(field: ["assignee.id", "state"]) {
+        id
+        title
+        state
+        assignee {
+            id
+        }
+    }
+    customers {
+        edges @groupBy(field: ["node.tier", "node.country"]) {
+            node {
+                id
+                name
+                tier
+                country
+            }
+        }
+    }
+}
+```
+
+With `AccountId` as a custom scalar whose JSON value is an `int`, `issuesByAssigneeAndState` becomes
+`array<int, array<string, list<IssuesByAssigneeAndState>>>`: first by assignee, then by the string
+value of the state. On the grouped edges, `nodes` gets the same nested shape as `edges`:
+
+```php
+foreach ($result->issuesByAssigneeAndState as $assigneeId => $issuesByState) {
+    foreach ($issuesByState['OPEN'] ?? [] as $issue) {
+        echo $issue->title;
+    }
+}
+```
+
+Every level follows the rules above: each field must pass the same checks, every key is the raw
+value from the response, and each level keeps the order in which its keys first appear. Only the
+innermost level is a list.
 
 The directive is local to your query: it is stripped from the operation sent to the server.
 

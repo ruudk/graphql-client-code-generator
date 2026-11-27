@@ -8,11 +8,13 @@ use GraphQL\Error\Error;
 use GraphQL\Language\AST\FieldNode;
 use GraphQL\Language\AST\FragmentSpreadNode;
 use GraphQL\Language\AST\InlineFragmentNode;
+use GraphQL\Language\AST\ListValueNode;
 use GraphQL\Language\AST\NamedTypeNode;
 use GraphQL\Language\AST\Node;
 use GraphQL\Language\AST\NodeKind;
 use GraphQL\Language\AST\SelectionSetNode;
 use GraphQL\Language\AST\StringValueNode;
+use GraphQL\Language\AST\ValueNode;
 use GraphQL\Type\Definition\AbstractType;
 use GraphQL\Type\Definition\EnumType;
 use GraphQL\Type\Definition\InterfaceType;
@@ -29,13 +31,14 @@ use Symfony\Component\TypeInfo\TypeIdentifier;
 use Throwable;
 
 /**
- * Validates directives that turn a list into an array keyed by a field of its items, like `@indexBy`.
+ * Validates directives that turn a list into an array keyed by fields of its items, like `@indexBy` and `@groupBy`.
  */
 final class ListKeyValidator extends ValidationRule
 {
     /**
      * @param array<string, SymfonyType|array{SymfonyType, SymfonyType}> $scalars
-     * @param array<string, bool> $directives The directive names, mapped to whether they accept several comma-separated fields
+     * @param array<string, bool> $directives The directive names, mapped to whether a string `field` holds
+     *                                         several comma-separated fields (`@indexBy`) or a single one (`@groupBy`)
      */
     public function __construct(
         private array $scalars,
@@ -90,12 +93,13 @@ final class ListKeyValidator extends ValidationRule
                         continue;
                     }
 
-                    if (!$directive->arguments[0]->value instanceof StringValueNode) {
+                    $fields = $this->getFieldPaths($directive->name->value, $directive->arguments[0]->value);
+
+                    if ($fields === null) {
                         continue;
                     }
 
                     $directiveName = $directive->name->value;
-                    $fields = $directive->arguments[0]->value->value;
 
                     break;
                 }
@@ -123,22 +127,32 @@ final class ListKeyValidator extends ValidationRule
                     return;
                 }
 
-                $fieldPaths = explode(',', $fields);
-
-                if (!$this->directives[$directiveName] && count($fieldPaths) > 1) {
-                    $context->reportError(
-                        new Error(sprintf('@%s only accepts a single field', $directiveName), [$node]),
-                    );
+                if ($fields === []) {
+                    $context->reportError(new Error(sprintf('@%s needs at least one field', $directiveName), [$node]));
 
                     return;
                 }
 
-                foreach ($fieldPaths as $fieldPath) {
+                foreach ($fields as $fieldPath) {
                     $fieldPath = trim($fieldPath);
 
                     if ($fieldPath === '') {
                         $context->reportError(
                             new Error(sprintf('Empty field in @%s directive', $directiveName), [$node]),
+                        );
+
+                        continue;
+                    }
+
+                    if (!$this->directives[$directiveName] && str_contains($fieldPath, ',')) {
+                        $context->reportError(
+                            new Error(
+                                sprintf(
+                                    '@%s takes a list of fields, like @%1$s(field: ["a", "b"]), not a comma-separated string',
+                                    $directiveName,
+                                ),
+                                [$node],
+                            ),
                         );
 
                         continue;
@@ -273,6 +287,33 @@ final class ListKeyValidator extends ValidationRule
                 }
             },
         ];
+    }
+
+    /**
+     * The field paths of the `field` argument: a single string, a list of strings, or for directives
+     * that take them, comma-separated fields in one string.
+     *
+     * @return null|list<string>
+     */
+    private function getFieldPaths(string $directiveName, ValueNode $value): ?array
+    {
+        if ($value instanceof StringValueNode) {
+            return $this->directives[$directiveName] ? explode(',', $value->value) : [$value->value];
+        }
+
+        if (!$value instanceof ListValueNode) {
+            return null;
+        }
+
+        $fieldPaths = [];
+
+        foreach ($value->values as $item) {
+            if ($item instanceof StringValueNode) {
+                $fieldPaths[] = $item->value;
+            }
+        }
+
+        return $fieldPaths;
     }
 
     /**
