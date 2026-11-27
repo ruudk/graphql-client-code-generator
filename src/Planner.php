@@ -874,8 +874,8 @@ final class Planner
         $result->setOperationsToInject($operationsToInject);
         $result->setUnusedFragments($this->findUnusedFragments($operations, $ordered));
 
-        if ($this->schemaConfig->hooks !== []) {
-            $this->propagateUsedHooks($result);
+        if ($this->schemaConfig->hooks !== [] || $this->schemaConfig->scalarDecoders !== []) {
+            $this->propagateUsedHooksAndDecoders($result);
         }
 
         if ($this->anyClassUsesBatchedHook($result)) {
@@ -1031,14 +1031,14 @@ final class Planner
     }
 
     /**
-     * Populate `usedHooks` on every DataClassPlan: each plan's own hook fields union the
-     * `usedHooks` sets of every child DataClassPlan it constructs (transitively).
+     * Populate `usedHooks` and `usedDecoders` on every DataClassPlan: each plan's own hook and decoded fields
+     * union the sets of every child DataClassPlan it constructs (transitively).
      *
      * Iterates to a fixed point instead of topologically sorting — planner-emitted class
      * graphs are small and may contain back-references via fragments, which makes a fixed
      * point simpler than computing a correct order.
      */
-    private function propagateUsedHooks(PlannerResult $result): void
+    private function propagateUsedHooksAndDecoders(PlannerResult $result): void
     {
         /**
          * @var array<string, DataClassPlan> $plansByFqcn
