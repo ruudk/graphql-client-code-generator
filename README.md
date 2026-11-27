@@ -418,6 +418,7 @@ enum SearchType: string
 - **Connection pattern awareness** (edges, nodes, pageInfo) for Relay-style APIs
 - **Custom `@indexBy` directive** for O(1) lookups instead of O(n) searching
 - **Custom `@throwWhenNull` directive** - drop nullability per-field and throw a typed exception when the server returns null
+- **Custom `@flatten` directive** - lift the fields of a nested object onto its parent class instead of generating a class for it
 - **Custom `@hook` directive** - enrich responses with local data resolved lazily at access time
 - **Operation arguments** via `withOperationArgument()` - inject extra typed parameters (e.g. an actor) into `execute()` and forward them to your client, optionally gated by a custom directive
 - **Fragment dependency injection** - automatically includes required fragments
@@ -1020,6 +1021,95 @@ final class Viewer
 
 Applying the directive to a non-nullable schema field raises a planning error — the directive
 exists to express intent that the server may return null but the consumer requires a value.
+
+### 🫓 Flatten Nested Objects with `@flatten` Directive
+
+Some objects only exist in the schema to group a few fields, and walking through them in your
+code adds nothing: `$data->viewer->firstName`, `$user->account->settings->locale`. Tag such a
+field with `@flatten` and its selected fields become properties of the class that selects it.
+No class is generated for the flattened object.
+
+Enable the directive once with `enableFlattenDirective()`. Like `@throwWhenNull`, it is local to
+your query: it is stripped from the operation sent to the server, which still returns the nested
+object. Only the generated properties change.
+
+<!-- source: tests/FlattenDirective/Basic.graphql -->
+```graphql
+query Basic {
+    viewer @flatten {
+        firstName
+        lastName
+    }
+}
+```
+
+**Generated code:**
+
+<!-- source: tests/FlattenDirective/Generated/Query/Basic/Data.php -->
+```php
+<?php
+
+declare(strict_types=1);
+
+namespace Ruudk\GraphQLCodeGenerator\FlattenDirective\Generated\Query\Basic;
+
+// This file was automatically generated and should not be edited.
+
+final class Data
+{
+    public string $firstName {
+        get => $this->firstName ??= $this->data['viewer']['firstName'];
+    }
+
+    public string $lastName {
+        get => $this->lastName ??= $this->data['viewer']['lastName'];
+    }
+
+    /**
+     * @var list<Error>
+     */
+    public readonly array $errors;
+
+    /**
+     * @param array{
+     *     'viewer': array{
+     *         'firstName': string,
+     *         'lastName': string,
+     *         ...,
+     *     },
+     *     ...,
+     * } $data
+     * @param list<array{
+     *     'code': string,
+     *     'debugMessage'?: string,
+     *     'message': string,
+     *     ...,
+     * }> $errors
+     */
+    public function __construct(
+        private readonly array $data,
+        array $errors,
+    ) {
+        $this->errors = array_map(fn(array $error) => new Error($error), $errors);
+    }
+}
+```
+
+How it behaves:
+
+- **Nesting:** `@flatten` can be chained (`viewer @flatten { account @flatten { email } }` gives
+  `$data->email`). A nested object that is not flattened keeps its own class, which moves up to
+  the class that now exposes it.
+- **Nullability:** when a flattened object is nullable, every lifted property becomes nullable.
+  Combine it with `@throwWhenNull` (`viewer @flatten @throwWhenNull { ... }`) to keep the
+  properties non-null and throw `NodeNotFoundException` when the object is null.
+- **Name clashes:** a lifted field may not share its name with another property of the class.
+  Rename one of them with an alias (`viewerName: name`).
+- **Fragment spreads** inside a flattened object become fragment accessors on the parent class.
+
+`@flatten` only works on a single object. Lists, interfaces and unions, object types mapped with
+`withObjectType()`, and `@include`, `@skip`, `@hook` or inline fragments inside the flattened
+object are rejected while generating.
 
 ### 🪝 Local Resolution with `@hook` Directive
 
