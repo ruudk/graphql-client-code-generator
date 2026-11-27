@@ -30,7 +30,9 @@ final class FlattenDirectiveTest extends GraphQLTestCase
     {
         $result = new BasicQuery($this->getClient([
             'data' => [
+                '__typename' => 'Query',
                 'viewer' => [
+                    '__typename' => 'User',
                     'firstName' => 'Ruud',
                     'lastName' => 'Kamphuis',
                 ],
@@ -39,6 +41,8 @@ final class FlattenDirectiveTest extends GraphQLTestCase
 
         self::assertSame('Ruud', $result->firstName);
         self::assertSame('Kamphuis', $result->lastName);
+        self::assertSame('Query', $result->__typename);
+        self::assertStringContainsString('__typename', $this->getLastOperation());
         self::assertStringNotContainsString('@flatten', $this->getLastOperation());
     }
 

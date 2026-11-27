@@ -63,6 +63,7 @@ final class FlattenValidatorTest extends TestCase
         yield 'same field selected twice' => ['{ viewer @flatten { id } viewer @flatten { name } }'];
         yield 'fragment spread' => ['{ viewer @flatten { ...UserName } } fragment UserName on User { name }'];
         yield 'flatten inside list items' => ['{ users { account @flatten { name } } }'];
+        yield '__typename inside flattened field' => ['{ __typename viewer @flatten { __typename id } }'];
     }
 
     #[DataProvider('provideValidCases')]
