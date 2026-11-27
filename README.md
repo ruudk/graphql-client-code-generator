@@ -438,6 +438,7 @@ enum SearchType: string
 - **PHPStan Level 9** - strictest static analysis, zero compromises
 - **Full GraphQL validation** against your schema
 - **Unused fragment detection** - keeps your codebase clean
+- **Schema deprecations carry over** - deprecated fields and enum values become `@deprecated` in the generated code
 - **Query optimization passes** - automatic performance improvements
 - **`--ensure-sync` flag** - verify generated code matches expectations in CI/CD
 
@@ -786,6 +787,35 @@ parameters:
 ```
 
 **Mago:** enable the analyzer plugin of the [Mago extension](#-mago-extension) by passing your configs to `GraphQLExtension::create()`. It reports `graphql/restricted-class`, `graphql/restricted-instantiation`, `graphql/restricted-method` and `graphql/restricted-property`.
+
+### 🪦 Deprecated Fields and Enum Values
+
+When the schema marks a field or enum value with `@deprecated`, the generated property or enum case
+gets a `@deprecated` tag with the reason. Mago, PHPStan and your IDE then point at every place in
+your code that still reads it, so you find what to migrate before the server removes it.
+
+```graphql
+type User {
+    login: String! @deprecated(reason: "Use `name` instead.")
+}
+```
+
+```php
+/**
+ * @deprecated Use `name` instead.
+ */
+public string $login {
+    /**
+     * @mago-expect analysis:deprecated-property
+     */
+    get => $this->login ??= $this->data['login'];
+}
+```
+
+This also works for aliased fields, `@throwWhenNull` fields, their `...OrThrow` properties and
+fields lifted by `@flatten` (a deprecated flattened field marks every property it lifts). The
+`@mago-expect` on the getter covers the generated getter itself, which reads its own deprecated property;
+only reads in your own code get reported.
 
 ### 🪄 Mago Extension
 

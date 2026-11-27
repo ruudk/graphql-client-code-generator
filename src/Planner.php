@@ -12,6 +12,7 @@ use GraphQL\Language\AST\FragmentDefinitionNode;
 use GraphQL\Language\AST\NodeList;
 use GraphQL\Language\AST\OperationDefinitionNode;
 use GraphQL\Language\Parser;
+use GraphQL\Type\Definition\Directive;
 use GraphQL\Type\Definition\EnumType;
 use GraphQL\Type\Definition\InputObjectType;
 use GraphQL\Type\Definition\InterfaceType;
@@ -600,6 +601,9 @@ final class Planner
                         $values[$value->name] = [
                             'value' => $value->value,
                             'description' => $value->description,
+                            'deprecationReason' => $value->isDeprecated()
+                                ? $value->deprecationReason ?? Directive::DEFAULT_DEPRECATION_REASON
+                                : null,
                         ];
                     }
 

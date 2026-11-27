@@ -435,6 +435,20 @@ final class DataClassGenerator extends AbstractGenerator
     }
 
     /**
+     * The hooks of a deprecated property read the property itself, which Mago reports as a use
+     * of a deprecated property. Expect that issue in the hook's doc comment, so it only shows up
+     * where the caller reads it.
+     *
+     * @return iterable<string>
+     */
+    private function dumpDeprecatedPropertyRead(?string $reason): iterable
+    {
+        if ($reason !== null) {
+            yield '@mago-expect analysis:deprecated-property';
+        }
+    }
+
+    /**
      * Emit a property lifted onto this class by `@flatten`. It reads its value
      * from a path through the flattened objects, guarding every nullable object
      * on the way: a plain nullable object yields null, one tagged
@@ -449,10 +463,16 @@ final class DataClassGenerator extends AbstractGenerator
         string $parentTypeName,
         bool $isMutationData,
         CodeGenerator $generator,
+        ?string $deprecationReason,
     ): iterable {
         $propertyType = $type->getWrappedType();
 
-        yield from $generator->docComment(function () use ($propertyType, $isMutationData, $generator) {
+        yield from $generator->docComment(function () use (
+            $propertyType,
+            $isMutationData,
+            $generator,
+            $deprecationReason,
+        ) {
             if ($isMutationData) {
                 yield '@api';
             }
@@ -460,15 +480,18 @@ final class DataClassGenerator extends AbstractGenerator
             if ($this->getNakedType($propertyType) instanceof SymfonyType\CollectionType) {
                 yield sprintf('@var %s', TypeDumper::dump($propertyType, $generator->import(...)));
             }
+
+            yield from $this->dumpDeprecation($deprecationReason);
         });
         yield sprintf('public %s $%s {', $this->dumpPHPType($propertyType, $generator->import(...)), $fieldName);
-        yield $generator->indent(function () use ($fieldName, $type, $generator) {
-            if ($type->throwsWhenNull()) {
-                yield from $generator->docComment(function () use ($generator) {
+        yield $generator->indent(function () use ($fieldName, $type, $generator, $deprecationReason) {
+            yield from $generator->docComment(function () use ($generator, $type, $deprecationReason) {
+                if ($type->throwsWhenNull()) {
                     yield sprintf('@throws %s', $generator->import($this->fullyQualified('NodeNotFoundException')));
-                });
-            }
+                }
 
+                yield from $this->dumpDeprecatedPropertyRead($deprecationReason);
+            });
             yield from $generator->wrap(
                 sprintf('get => $this->%s ??= ', $fieldName),
                 $this->flattenedValue($type, $generator),
@@ -481,25 +504,29 @@ final class DataClassGenerator extends AbstractGenerator
             $unwrappedType = $propertyType->getWrappedType();
 
             yield '';
-            yield from $generator->docComment(function () use ($unwrappedType, $generator) {
+            yield from $generator->docComment(function () use ($unwrappedType, $generator, $deprecationReason) {
                 if ($this->getNakedType($unwrappedType) instanceof SymfonyType\CollectionType) {
                     yield sprintf('@var %s', TypeDumper::dump($unwrappedType, $generator->import(...)));
                 }
 
                 yield sprintf('@throws %s', $generator->import($this->fullyQualified('NodeNotFoundException')));
+                yield from $this->dumpDeprecation($deprecationReason);
             });
             yield sprintf(
                 'public %s $%sOrThrow {',
                 $this->dumpPHPType($unwrappedType, $generator->import(...)),
                 $fieldName,
             );
-            yield $generator->indent(sprintf(
-                'get => $this->%s ?? throw %s::create(%s, %s);',
-                $fieldName,
-                $generator->import($this->fullyQualified('NodeNotFoundException')),
-                var_export($parentTypeName, true),
-                var_export($fieldName, true),
-            ));
+            yield $generator->indent(function () use ($generator, $fieldName, $parentTypeName, $deprecationReason) {
+                yield from $generator->docComment($this->dumpDeprecatedPropertyRead($deprecationReason));
+                yield sprintf(
+                    'get => $this->%s ?? throw %s::create(%s, %s);',
+                    $fieldName,
+                    $generator->import($this->fullyQualified('NodeNotFoundException')),
+                    var_export($parentTypeName, true),
+                    var_export($fieldName, true),
+                );
+            });
             yield '}';
         }
     }
@@ -591,8 +618,9 @@ final class DataClassGenerator extends AbstractGenerator
 
     /**
      * @param array<string, DataClassPlan> $plansByFqcn
+     * @param array<string, string> $deprecatedFields Deprecation reason by property name
      */
-    public function generate(DataClassPlan $plan, array $plansByFqcn = []): string
+    public function generate(DataClassPlan $plan, array $plansByFqcn = [], array $deprecatedFields = []): string
     {
         $parentType = $plan->parentType;
         $fields = $plan->fields;
@@ -651,6 +679,7 @@ final class DataClassGenerator extends AbstractGenerator
             $generator,
             $inlineFragmentRequiredFields,
             $plansByFqcn,
+            $deprecatedFields,
         ) {
             yield $this->dumpHeader();
             yield '';
@@ -709,6 +738,7 @@ final class DataClassGenerator extends AbstractGenerator
                 $generator,
                 $requiredFieldsMap,
                 $plansByFqcn,
+                $deprecatedFields,
             ) {
                 // Get optional flags and actual types from payloadShape
                 $optionalFields = [];
@@ -802,6 +832,7 @@ final class DataClassGenerator extends AbstractGenerator
                                 $parentType->name(),
                                 $isMutationData,
                                 $generator,
+                                $deprecatedFields[$fieldName] ?? null,
                             );
 
                             continue;
@@ -814,6 +845,8 @@ final class DataClassGenerator extends AbstractGenerator
                                 $wrappedType,
                                 $isMutationData,
                                 $generator,
+                                $deprecatedFields,
+                                $fieldName,
                             ) {
                                 if ($isMutationData) {
                                     yield '@api';
@@ -822,6 +855,8 @@ final class DataClassGenerator extends AbstractGenerator
                                 if ($this->getNakedType($wrappedType) instanceof SymfonyType\CollectionType) {
                                     yield sprintf('@var %s', TypeDumper::dump($wrappedType, $generator->import(...)));
                                 }
+
+                                yield from $this->dumpDeprecation($deprecatedFields[$fieldName] ?? null);
                             });
                             yield sprintf(
                                 'public %s $%s {',
@@ -833,12 +868,18 @@ final class DataClassGenerator extends AbstractGenerator
                                 $fieldName,
                                 $generator,
                                 $parentType,
+                                $deprecatedFields,
                             ) {
-                                yield from $generator->docComment(function () use ($generator) {
+                                yield from $generator->docComment(function () use (
+                                    $generator,
+                                    $deprecatedFields,
+                                    $fieldName,
+                                ) {
                                     yield sprintf(
                                         '@throws %s',
                                         $generator->import($this->fullyQualified('NodeNotFoundException')),
                                     );
+                                    yield from $this->dumpDeprecatedPropertyRead($deprecatedFields[$fieldName] ?? null);
                                 });
                                 yield from $generator->wrap(
                                     sprintf(
@@ -889,6 +930,7 @@ final class DataClassGenerator extends AbstractGenerator
                             $propertyType,
                             $isMutationData,
                             $generator,
+                            $deprecatedFields,
                         ) {
                             if ($isMutationData || $fieldName === '__typename' && $plan->markTypenameAsApi) {
                                 yield '@api';
@@ -897,12 +939,19 @@ final class DataClassGenerator extends AbstractGenerator
                             if ($this->getNakedType($propertyType) instanceof SymfonyType\CollectionType) {
                                 yield sprintf('@var %s', TypeDumper::dump($propertyType, $generator->import(...)));
                             }
+
+                            yield from $this->dumpDeprecation($deprecatedFields[$fieldName] ?? null);
                         });
                         yield sprintf(
                             'public %s $%s {',
                             $this->dumpPHPType($propertyType, $generator->import(...)),
                             $fieldName,
                         );
+
+                        yield $generator->indent($generator->docComment($this->dumpDeprecatedPropertyRead(
+                            $deprecatedFields[$fieldName] ?? null,
+                        )));
+
                         yield $generator->indent(function () use (
                             $parentType,
                             $nakedFieldType,
@@ -1120,7 +1169,12 @@ final class DataClassGenerator extends AbstractGenerator
                             $unwrappedType = $propertyType->getWrappedType();
 
                             yield '';
-                            yield from $generator->docComment(function () use ($unwrappedType, $generator) {
+                            yield from $generator->docComment(function () use (
+                                $unwrappedType,
+                                $generator,
+                                $deprecatedFields,
+                                $fieldName,
+                            ) {
                                 if ($this->getNakedType($unwrappedType) instanceof SymfonyType\CollectionType) {
                                     yield sprintf('@var %s', TypeDumper::dump($unwrappedType, $generator->import(...)));
                                 }
@@ -1129,13 +1183,22 @@ final class DataClassGenerator extends AbstractGenerator
                                     '@throws %s',
                                     $generator->import($this->fullyQualified('NodeNotFoundException')),
                                 );
+                                yield from $this->dumpDeprecation($deprecatedFields[$fieldName] ?? null);
                             });
                             yield sprintf(
                                 'public %s $%sOrThrow {',
                                 $this->dumpPHPType($unwrappedType, $generator->import(...)),
                                 $fieldName,
                             );
-                            yield $generator->indent(function () use ($parentType, $generator, $fieldName) {
+                            yield $generator->indent(function () use (
+                                $parentType,
+                                $generator,
+                                $fieldName,
+                                $deprecatedFields,
+                            ) {
+                                yield from $generator->docComment($this->dumpDeprecatedPropertyRead(
+                                    $deprecatedFields[$fieldName] ?? null,
+                                ));
                                 yield sprintf(
                                     'get => $this->%s ?? throw %s::create(%s, %s);',
                                     $fieldName,

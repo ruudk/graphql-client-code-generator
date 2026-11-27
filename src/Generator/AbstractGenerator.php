@@ -101,4 +101,22 @@ abstract class AbstractGenerator
 
         return Type::arrayShape($shape, sealed: false);
     }
+
+    /**
+     * The `@deprecated` tag for something whose schema counterpart is deprecated, so static
+     * analysis reports every place that still uses it.
+     *
+     * @return iterable<string>
+     */
+    protected function dumpDeprecation(?string $reason): iterable
+    {
+        if ($reason === null) {
+            return;
+        }
+
+        // Keep the reason on one line and make sure it can't close the doc comment
+        $reason = trim(str_replace('*/', '*\\/', (string) preg_replace('/\s+/', ' ', $reason)));
+
+        yield $reason === '' ? '@deprecated' : '@deprecated ' . $reason;
+    }
 }

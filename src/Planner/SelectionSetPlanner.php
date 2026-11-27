@@ -13,6 +13,7 @@ use GraphQL\Language\AST\NameNode;
 use GraphQL\Language\AST\NodeList;
 use GraphQL\Language\AST\SelectionNode;
 use GraphQL\Language\AST\SelectionSetNode;
+use GraphQL\Type\Definition\Directive;
 use GraphQL\Type\Definition\HasFieldsType;
 use GraphQL\Type\Definition\InterfaceType;
 use GraphQL\Type\Definition\ListOfType;
@@ -336,8 +337,12 @@ final class SelectionSetPlanner
 
         Assert::isInstanceOf($parent, HasFieldsType::class, 'Parent type must have fields');
 
-        $fieldType = $parent->getField($selection->name->value)->getType();
+        $fieldDefinition = $parent->getField($selection->name->value);
+        $fieldType = $fieldDefinition->getType();
         $nakedFieldType = $fieldType instanceof WrappingType ? $fieldType->getInnermostType() : $fieldType;
+        $deprecationReason = $fieldDefinition->isDeprecated()
+            ? $fieldDefinition->deprecationReason ?? Directive::DEFAULT_DEPRECATION_REASON
+            : null;
 
         $throwWhenNull = $this->directiveProcessor->hasThrowWhenNullDirective($selection->directives);
 
@@ -368,9 +373,14 @@ final class SelectionSetPlanner
                 $fields,
                 $pathFields,
                 $throwWhenNull,
+                $deprecationReason,
             );
 
             return;
+        }
+
+        if ($deprecationReason !== null) {
+            $this->result->deprecateField($context->fqcn, $fieldName, $deprecationReason);
         }
 
         // Handle predefined object types
@@ -450,6 +460,7 @@ final class SelectionSetPlanner
         FieldCollection $fields,
         PathFieldMap $pathFields,
         bool $throwWhenNull,
+        ?string $deprecationReason,
     ): void {
         Assert::isInstanceOf($parent, NamedType::class);
         $selectionSet = $selection->selectionSet;
@@ -501,6 +512,11 @@ final class SelectionSetPlanner
             $leafKey = $naked instanceof FragmentObjectType ? null : $liftedName;
 
             $fields->add($liftedName, FlattenedPropertyType::lift($segment, $liftedType, $leafKey));
+
+            // Every lifted field is read through the flattened field, so it shares its deprecation
+            if ($deprecationReason !== null) {
+                $this->result->deprecateField($context->fqcn, $liftedName, $deprecationReason);
+            }
         }
 
         $pathFields->merge($flattenedResult->pathFields);
