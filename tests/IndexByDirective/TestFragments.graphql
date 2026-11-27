@@ -1,0 +1,16 @@
+query TestFragments {
+    projects @indexBy(field: "id") {
+        ...ProjectFields
+    }
+    issues @indexBy(field: "id") {
+        ... on Issue {
+            id
+        }
+        name
+    }
+}
+
+fragment ProjectFields on Project {
+    id
+    name
+}

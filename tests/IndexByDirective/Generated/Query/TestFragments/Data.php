@@ -1,0 +1,66 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Ruudk\GraphQLCodeGenerator\IndexByDirective\Generated\Query\TestFragments;
+
+use Ruudk\GraphQLCodeGenerator\IndexByDirective\Generated\Query\TestFragments\Data\Issue;
+use Ruudk\GraphQLCodeGenerator\IndexByDirective\Generated\Query\TestFragments\Data\Project;
+
+// This file was automatically generated and should not be edited.
+
+final class Data
+{
+    /**
+     * @var array<int, Issue>
+     */
+    public array $issues {
+        get => $this->issues ??= array_combine(
+            array_column($this->data['issues'], 'id'),
+            array_map(fn($item) => new Issue($item), $this->data['issues']),
+        );
+    }
+
+    /**
+     * @var array<string, Project>
+     */
+    public array $projects {
+        get => $this->projects ??= array_combine(
+            array_column($this->data['projects'], 'id'),
+            array_map(fn($item) => new Project($item), $this->data['projects']),
+        );
+    }
+
+    /**
+     * @var list<Error>
+     */
+    public readonly array $errors;
+
+    /**
+     * @param array{
+     *     'issues': list<array{
+     *         'id': int,
+     *         'name': string,
+     *         ...,
+     *     }>,
+     *     'projects': list<array{
+     *         'id': string,
+     *         'name': string,
+     *         ...,
+     *     }>,
+     *     ...,
+     * } $data
+     * @param list<array{
+     *     'code': string,
+     *     'debugMessage'?: string,
+     *     'message': string,
+     *     ...,
+     * }> $errors
+     */
+    public function __construct(
+        private readonly array $data,
+        array $errors,
+    ) {
+        $this->errors = array_map(fn(array $error) => new Error($error), $errors);
+    }
+}

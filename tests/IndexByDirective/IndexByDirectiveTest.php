@@ -10,6 +10,7 @@ use Ruudk\GraphQLCodeGenerator\GraphQLRequestMatcher;
 use Ruudk\GraphQLCodeGenerator\GraphQLTestCase;
 use Ruudk\GraphQLCodeGenerator\IndexByDirective\Generated\Enum\LabelStatus;
 use Ruudk\GraphQLCodeGenerator\IndexByDirective\Generated\Query\Test\TestQuery;
+use Ruudk\GraphQLCodeGenerator\IndexByDirective\Generated\Query\TestFragments\TestFragmentsQuery;
 use Ruudk\GraphQLCodeGenerator\IndexByDirective\Generated\Query\TestKeyTypes\TestKeyTypesQuery;
 use Ruudk\GraphQLCodeGenerator\IndexByDirective\Generated\Query\TestMultiField\TestMultiFieldQuery;
 use Ruudk\GraphQLCodeGenerator\IndexByDirective\ValueObjects\LabelCode;
@@ -221,5 +222,29 @@ final class IndexByDirectiveTest extends GraphQLTestCase
         self::assertSame(['bug', 'feature'], array_keys($result->labelsByCode));
         self::assertEquals(new LabelCode('feature'), $result->labelsByCode['feature']->code);
         self::assertSame('Feature', $result->labelsByCode['feature']->name);
+    }
+
+    public function testIndexByFieldSelectedThroughFragments(): void
+    {
+        $result = new TestFragmentsQuery($this->getClient([
+            'data' => [
+                'projects' => [
+                    [
+                        'id' => 'project-1',
+                        'name' => 'Project 1',
+                    ],
+                ],
+                'issues' => [
+                    [
+                        'id' => 222,
+                        'name' => 'Issue 222',
+                    ],
+                ],
+            ],
+        ], new GraphQLRequestMatcher(operationName: 'TestFragments')))->execute();
+
+        self::assertSame(['project-1'], array_keys($result->projects));
+        self::assertSame([222], array_keys($result->issues));
+        self::assertSame('Issue 222', $result->issues[222]->name);
     }
 }

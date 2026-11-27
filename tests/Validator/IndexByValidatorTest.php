@@ -7,6 +7,7 @@ namespace Ruudk\GraphQLCodeGenerator\Validator;
 use GraphQL\Error\Error;
 use GraphQL\Language\Parser;
 use GraphQL\Type\Definition\EnumType;
+use GraphQL\Type\Definition\InterfaceType;
 use GraphQL\Type\Definition\ObjectType;
 use GraphQL\Type\Definition\Type;
 use GraphQL\Type\Schema;
@@ -39,8 +40,24 @@ final class IndexByValidatorTest extends TestCase
             ],
         ]);
 
+        $nodeInterface = new InterfaceType([
+            'name' => 'Node',
+            'fields' => [
+                'id' => Type::nonNull(Type::int()),
+            ],
+        ]);
+
+        $groupType = new ObjectType([
+            'name' => 'Group',
+            'interfaces' => [$nodeInterface],
+            'fields' => [
+                'id' => Type::nonNull(Type::int()),
+            ],
+        ]);
+
         $userType = new ObjectType([
             'name' => 'User',
+            'interfaces' => [$nodeInterface],
             'fields' => [
                 'id' => Type::nonNull(Type::int()),
                 'name' => Type::nonNull(Type::string()),
@@ -81,11 +98,16 @@ final class IndexByValidatorTest extends TestCase
                     'type' => $connectionType,
                     'resolve' => static fn() => [],
                 ],
+                'nodes' => [
+                    'type' => Type::listOf(Type::nonNull($nodeInterface)),
+                    'resolve' => static fn() => [],
+                ],
             ],
         ]);
 
         $this->schema = new Schema([
             'query' => $queryType,
+            'types' => [$groupType],
         ]);
 
         // Set up the validator with scalar mappings
@@ -657,6 +679,123 @@ final class IndexByValidatorTest extends TestCase
         self::assertCount(1, $errors);
         self::assertStringContainsString(
             'Field "optionalAddress" is nullable and cannot be used for @indexBy',
+            $errors[0]->getMessage(),
+        );
+    }
+
+    public function testValidIndexByFieldSelectedInFragmentSpread(): void
+    {
+        $query = <<<'GRAPHQL'
+            {
+              users @indexBy(field: "id") {
+                ...UserFields
+              }
+            }
+
+            fragment UserFields on User {
+              id
+              name
+            }
+            GRAPHQL;
+
+        $errors = $this->validate($query);
+        self::assertCount(0, $errors);
+    }
+
+    public function testValidIndexByFieldSelectedInInlineFragment(): void
+    {
+        $query = <<<'GRAPHQL'
+            {
+              users @indexBy(field: "id") {
+                ... on User {
+                  id
+                }
+                ... {
+                  name
+                }
+              }
+            }
+            GRAPHQL;
+
+        $errors = $this->validate($query);
+        self::assertCount(0, $errors);
+    }
+
+    public function testValidNestedIndexByFieldSelectedInFragments(): void
+    {
+        $query = <<<'GRAPHQL'
+            {
+              userConnection {
+                edges @indexBy(field: "node.id") {
+                  node {
+                    ...UserId
+                  }
+                }
+              }
+            }
+
+            fragment UserId on User {
+              ... on Node {
+                id
+              }
+            }
+            GRAPHQL;
+
+        $errors = $this->validate($query);
+        self::assertCount(0, $errors);
+    }
+
+    public function testInvalidIndexByFieldOnlySelectedForSomeTypes(): void
+    {
+        $query = <<<'GRAPHQL'
+            {
+              nodes @indexBy(field: "id") {
+                ... on User {
+                  id
+                }
+              }
+            }
+            GRAPHQL;
+
+        $errors = $this->validate($query);
+        self::assertCount(1, $errors);
+        self::assertStringContainsString(
+            'Field "id" is not selected in the indexBy directive',
+            $errors[0]->getMessage(),
+        );
+    }
+
+    public function testValidIndexByFieldSelectedOnInterface(): void
+    {
+        $query = <<<'GRAPHQL'
+            {
+              nodes @indexBy(field: "id") {
+                ... on Node {
+                  id
+                }
+              }
+            }
+            GRAPHQL;
+
+        $errors = $this->validate($query);
+        self::assertCount(0, $errors);
+    }
+
+    public function testInvalidIndexByFieldOnlySelectedWithAlias(): void
+    {
+        $query = <<<'GRAPHQL'
+            {
+              users @indexBy(field: "id") {
+                userId: id
+                name
+              }
+            }
+            GRAPHQL;
+
+        $errors = $this->validate($query);
+        self::assertCount(1, $errors);
+        self::assertStringContainsString(
+            'Field "id" is not selected in the indexBy directive',
             $errors[0]->getMessage(),
         );
     }
