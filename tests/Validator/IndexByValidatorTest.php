@@ -800,6 +800,24 @@ final class IndexByValidatorTest extends TestCase
         );
     }
 
+    public function testInvalidIndexByEnumFieldNotSelected(): void
+    {
+        $query = <<<'GRAPHQL'
+            {
+              users @indexBy(field: "status") {
+                id
+              }
+            }
+            GRAPHQL;
+
+        $errors = $this->validate($query);
+        self::assertCount(1, $errors);
+        self::assertStringContainsString(
+            'Field "status" is not selected in the indexBy directive',
+            $errors[0]->getMessage(),
+        );
+    }
+
     /**
      * @return array<Error>
      */

@@ -189,11 +189,10 @@ final class IndexByValidator extends ValidationRule
                             $possibleArrayKeyTypes[] = $name;
                         }
 
-                        if ($namedType instanceof EnumType) {
-                            continue;
-                        }
-
-                        if (!in_array($namedType->name(), $possibleArrayKeyTypes, true)) {
+                        if (
+                            !$namedType instanceof EnumType
+                            && !in_array($namedType->name(), $possibleArrayKeyTypes, true)
+                        ) {
                             $context->reportError(
                                 new Error(
                                     sprintf(
