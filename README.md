@@ -1211,6 +1211,11 @@ final class Viewer
 Applying the directive to a non-nullable schema field raises a planning error — the directive
 exists to express intent that the server may return null but the consumer requires a value.
 
+It also works on a [`@hook`](#-local-resolution-with-hook-directive) field whose hook returns a
+nullable type: the property drops the `null`, and reading it throws `NodeNotFoundException` when
+the hook (batched or not) returns `null`. A hook whose return type is already non-nullable raises
+a planning error, just like a non-nullable schema field.
+
 ### 🫓 Flatten Nested Objects with `@flatten` Directive
 
 Some objects only exist in the schema to group a few fields, and walking through them in your
@@ -1519,6 +1524,32 @@ $project = new ProjectQuery($client, [
 ])->execute()->project;
 
 $project->user; // ?User, resolved lazily by the hook on first access
+```
+
+**Require a value with `@throwWhenNull`.** When the hook returns a nullable type but you need a
+value, add [`@throwWhenNull`](#-throw-on-null-with-throwwhennull-directive) (enabled with
+`enableThrowWhenNullDirective()`) to the hook field. The property becomes non-nullable, and
+reading it throws `NodeNotFoundException` when the hook returns `null`. This works for batched
+hooks too. On a hook whose return type is already non-nullable the directive raises a planning
+error.
+
+<!-- source: tests/HooksThrowWhenNull/Test.graphql -->
+```graphql
+query Test {
+    customers {
+        id
+
+        # Hook invoked once per customer; returns ?User.
+        user @hook(name: "findUserById") @throwWhenNull
+
+        # Batched hook; resolves ?Account for every customer in one call.
+        account @hook(name: "findAccountById") @throwWhenNull
+    }
+}
+```
+
+```php
+$customer->user; // User, or NodeNotFoundException when the hook returns null
 ```
 
 **Symfony autowire shortcut.** Call `enableSymfonyAutowireHooks()` on the config and the

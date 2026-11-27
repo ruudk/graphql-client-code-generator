@@ -854,26 +854,38 @@ final class DataClassGenerator extends AbstractGenerator
                                 $this->dumpPHPType($fieldType, $generator->import(...)),
                                 $fieldName,
                             );
-                            yield $generator->indent(function () use ($fieldType, $fieldName) {
+                            yield $generator->indent(function () use ($fieldType, $fieldName, $generator, $parentType) {
                                 // Batched hook: delegate to the per-operation HookLoader,
                                 // which resolves the whole batch once and looks this
                                 // instance up by object identity.
-                                if ($fieldType->batched) {
-                                    yield sprintf(
-                                        'get => $this->%s ??= $this->loaders[%s]->resolve($this);',
-                                        $fieldName,
+                                $value = $fieldType->batched
+                                    ? sprintf('$this->loaders[%s]->resolve($this)', var_export(
+                                        $fieldType->hookName,
+                                        true,
+                                    ))
+                                    : sprintf(
+                                        '$this->hooks[%s]->__invoke($this->%s())',
                                         var_export($fieldType->hookName, true),
+                                        $this->buildMethodName($fieldType),
+                                    );
+
+                                if ($fieldType->throwWhenNull) {
+                                    $exception = $generator->import($this->fullyQualified('NodeNotFoundException'));
+
+                                    yield from $generator->docComment(sprintf('@throws %s', $exception));
+                                    yield sprintf(
+                                        'get => $this->%s ??= %s ?? throw %s::create(%s, %s);',
+                                        $fieldName,
+                                        $value,
+                                        $exception,
+                                        var_export($parentType->name(), true),
+                                        var_export($fieldName, true),
                                     );
 
                                     return;
                                 }
 
-                                yield sprintf(
-                                    'get => $this->%s ??= $this->hooks[%s]->__invoke($this->%s());',
-                                    $fieldName,
-                                    var_export($fieldType->hookName, true),
-                                    $this->buildMethodName($fieldType),
-                                );
+                                yield sprintf('get => $this->%s ??= %s;', $fieldName, $value);
                             });
                             yield '}';
 

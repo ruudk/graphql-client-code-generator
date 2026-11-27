@@ -1014,6 +1014,10 @@ final class Planner
                     return true;
                 }
 
+                if ($fieldType instanceof HookPropertyType && $fieldType->throwWhenNull) {
+                    return true;
+                }
+
                 if ($fieldType instanceof FlattenedPropertyType && $fieldType->throwsWhenNull()) {
                     return true;
                 }

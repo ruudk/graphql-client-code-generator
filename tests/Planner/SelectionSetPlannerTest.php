@@ -4,10 +4,14 @@ declare(strict_types=1);
 
 namespace Ruudk\GraphQLCodeGenerator\Planner;
 
+use GraphQL\Language\AST\FieldNode;
+use GraphQL\Language\AST\FragmentDefinitionNode;
+use GraphQL\Language\AST\OperationDefinitionNode;
 use GraphQL\Language\Parser;
 use GraphQL\Utils\BuildSchema;
 use PHPUnit\Framework\TestCase;
 use ReflectionClass;
+use Ruudk\GraphQLCodeGenerator\Config\HookDefinition;
 use Ruudk\GraphQLCodeGenerator\Config\SchemaConfig;
 use Ruudk\GraphQLCodeGenerator\DirectiveProcessor;
 use Ruudk\GraphQLCodeGenerator\GraphQL\DocumentNodeWithSource;
@@ -17,6 +21,7 @@ use Ruudk\GraphQLCodeGenerator\Planner\Source\GraphQLFileSource;
 use Ruudk\GraphQLCodeGenerator\TypeMapper;
 use Symfony\Component\String\Inflector\EnglishInflector;
 use Symfony\Component\TypeInfo\Type as SymfonyType;
+use Webmozart\Assert\InvalidArgumentException;
 
 final class SelectionSetPlannerTest extends TestCase
 {
@@ -255,6 +260,76 @@ final class SelectionSetPlannerTest extends TestCase
             "'reason'",
             $payloadShapeString,
             'Payload shape should include reason from direct selection. Got: ' . $payloadShapeString,
+        );
+    }
+
+    public function testThrowWhenNullOnHookWithNonNullableReturnTypeFails(): void
+    {
+        $schema = BuildSchema::build('
+            type Query { customer: Customer }
+            type Customer { id: ID! userId: ID! }
+        ');
+        $requires = Parser::parse('fragment CustomerUserId on Customer { userId }')->definitions[0];
+        self::assertInstanceOf(FragmentDefinitionNode::class, $requires);
+
+        // Create minimal config using reflection to bypass constructor
+        $configClass = new ReflectionClass(SchemaConfig::class);
+        $config = $configClass->newInstanceWithoutConstructor();
+        $configClass->getProperty('namespace')->setValue($config, 'Test\\Generated');
+        $configClass->getProperty('outputDir')->setValue($config, '/tmp/generated');
+        $configClass->getProperty('hooks')->setValue($config, [
+            'findUserById' => new HookDefinition(
+                'findUserById',
+                self::class,
+                SymfonyType::object(self::class),
+                false,
+                $requires,
+                'CustomerUserId',
+                'Test\\Generated\\Hook\\CustomerUserId',
+                'Customer',
+            ),
+        ]);
+
+        $planner = new SelectionSetPlanner(
+            $config,
+            $schema,
+            new TypeMapper($schema, [], [], [], []),
+            new DirectiveProcessor(),
+            new EnglishInflector(),
+            new PlannerResult(),
+        );
+
+        $operation = Parser::parse('
+            query Test {
+                customer {
+                    id
+                    user @hook(name: "findUserById") @throwWhenNull
+                }
+            }
+        ')->definitions[0];
+        self::assertInstanceOf(OperationDefinitionNode::class, $operation);
+
+        $customer = $operation->selectionSet->selections[0];
+        self::assertInstanceOf(FieldNode::class, $customer);
+        $selectionSet = $customer->selectionSet;
+        self::assertNotNull($selectionSet);
+
+        $customerType = $schema->getType('Customer');
+        self::assertNotNull($customerType);
+
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessageIsOrContains(sprintf(
+            '@throwWhenNull on "Customer.user" requires hook "findUserById" to return a nullable type, got %s.',
+            self::class,
+        ));
+
+        $planner->plan(
+            new GraphQLFileSource(''),
+            $selectionSet,
+            $customerType,
+            '/tmp/generated/Query/Test/Data/Customer',
+            'Test\\Generated\\Query\\Test\\Data\\Customer',
+            'Data.customer',
         );
     }
 }

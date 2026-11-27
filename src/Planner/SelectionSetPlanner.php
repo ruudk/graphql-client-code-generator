@@ -304,14 +304,36 @@ final class SelectionSetPlanner
             // caller's typed API is not polluted by the hook's internals.)
             $this->assertHookSiteType($parent, $hook);
 
+            // `@throwWhenNull` makes the property non-nullable; the getter throws when
+            // the hook returns null, like it does for a null schema field.
+            $throwWhenNull = $this->directiveProcessor->hasThrowWhenNullDirective($selection->directives);
+            $returnType = $hook->returnType;
+
+            if ($throwWhenNull) {
+                Assert::isInstanceOf(
+                    $returnType,
+                    SymfonyType\NullableType::class,
+                    sprintf(
+                        '@throwWhenNull on "%s.%s" requires hook "%s" to return a nullable type, got %s.',
+                        $parent instanceof NamedType ? $parent->name() : (string) $parent,
+                        $fieldName,
+                        $hook->name,
+                        (string) $returnType,
+                    ),
+                );
+
+                $returnType = $returnType->getWrappedType();
+            }
+
             $fields->add(
                 $fieldName,
                 new HookPropertyType(
                     $hook->name,
                     $hook->requiresFqcn,
                     $hook->requiresClassName,
-                    $hook->returnType,
+                    $returnType,
                     $hook->batched,
+                    $throwWhenNull,
                 ),
             );
 

@@ -1,0 +1,9 @@
+type Query {
+    customers: [Customer!]!
+}
+
+type Customer {
+    id: ID!
+    userId: ID!
+    accountId: ID!
+}
