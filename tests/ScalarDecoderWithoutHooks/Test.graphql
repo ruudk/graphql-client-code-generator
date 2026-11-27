@@ -1,0 +1,9 @@
+query Test {
+    viewer {
+        id
+        name
+        manager {
+            id
+        }
+    }
+}
