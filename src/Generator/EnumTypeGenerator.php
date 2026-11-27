@@ -26,8 +26,22 @@ final class EnumTypeGenerator extends AbstractGenerator
             yield sprintf('enum %s: string', $plan->typeName);
             yield '{';
             yield $generator->indent(function () use ($generator, $plan) {
+                $previousEndedWithBlankLine = true;
                 foreach ($plan->values as $value) {
-                    if ($value['description'] !== null) {
+                    if ($value['deprecationReason'] !== null) {
+                        if (!$previousEndedWithBlankLine) {
+                            yield '';
+                        }
+
+                        yield from $generator->docComment(function () use ($value) {
+                            if ($value['description'] !== null) {
+                                yield $value['description'];
+                                yield '';
+                            }
+
+                            yield from $this->dumpDeprecation($value['deprecationReason']);
+                        });
+                    } elseif ($value['description'] !== null) {
                         yield from $generator->comment($value['description']);
                     }
 
@@ -37,7 +51,10 @@ final class EnumTypeGenerator extends AbstractGenerator
                         $value['value'],
                     );
 
-                    if ($value['description'] !== null) {
+                    $previousEndedWithBlankLine =
+                        $value['description'] !== null || $value['deprecationReason'] !== null;
+
+                    if ($previousEndedWithBlankLine) {
                         yield '';
                     }
                 }

@@ -126,7 +126,7 @@ final class PlanExecutor
         $files = [];
 
         foreach ($plan->classes as $path => $class) {
-            $files[$path] = $this->generateClass($class, $plansByFqcn);
+            $files[$path] = $this->generateClass($class, $plansByFqcn, $plan->deprecatedFields);
         }
 
         foreach ($plan->operations as $operation) {
@@ -198,12 +198,17 @@ final class PlanExecutor
 
     /**
      * @param array<string, DataClassPlan> $plansByFqcn
+     * @param array<string, array<string, string>> $deprecatedFields
      * @throws LogicException
      */
-    private function generateClass(object $class, array $plansByFqcn): string
+    private function generateClass(object $class, array $plansByFqcn, array $deprecatedFields): string
     {
         return match ($class::class) {
-            DataClassPlan::class => $this->dataClassGenerator->generate($class, $plansByFqcn),
+            DataClassPlan::class => $this->dataClassGenerator->generate(
+                $class,
+                $plansByFqcn,
+                $deprecatedFields[$class->fqcn] ?? [],
+            ),
             EnumClassPlan::class => $this->enumTypeGenerator->generate($class),
             InputClassPlan::class => $this->inputTypeGenerator->generate($class),
             NodeNotFoundExceptionPlan::class => $this->nodeNotFoundExceptionGenerator->generate(),

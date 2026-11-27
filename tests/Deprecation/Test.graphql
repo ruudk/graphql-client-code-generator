@@ -1,0 +1,16 @@
+query Test {
+    viewer {
+        name
+        login
+        username: login
+        nickname
+        knownNickname: nickname @throwWhenNull
+        role
+        profile @flatten {
+            bio
+        }
+    }
+    legacyViewer {
+        name
+    }
+}

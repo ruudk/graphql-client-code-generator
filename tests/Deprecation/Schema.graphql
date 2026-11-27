@@ -1,0 +1,24 @@
+type Query {
+    viewer: User!
+    legacyViewer: User @deprecated(reason: "Use `viewer` instead.")
+}
+
+type User {
+    name: String!
+    login: String! @deprecated
+    nickname: String
+        @deprecated(reason: "Use `name`.\nNicknames are no longer shown, see */nicknames for details.")
+    profile: Profile! @deprecated(reason: "Read the fields on `User`.")
+    role: Role!
+}
+
+type Profile {
+    bio: String!
+}
+
+enum Role {
+    ADMIN
+    "Can edit everything except settings"
+    EDITOR @deprecated(reason: "Use `ADMIN`.")
+    VIEWER @deprecated
+}

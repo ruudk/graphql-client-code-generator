@@ -16,3 +16,9 @@ services:
             - phpstan.restrictedClassNameUsageExtension
             - phpstan.restrictedMethodUsageExtension
             - phpstan.restrictedPropertyUsageExtension
+    -
+        class: Ruudk\GraphQLCodeGenerator\PHPStan\DeprecatedPropertyReadIgnoreExtension
+        arguments:
+            configs: %graphQLClientCodeGenerator.configs%
+        tags:
+            - phpstan.ignoreErrorExtension

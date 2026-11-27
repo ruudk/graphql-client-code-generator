@@ -7,7 +7,7 @@ namespace Ruudk\GraphQLCodeGenerator\Planner\Plan;
 final readonly class EnumClassPlan
 {
     /**
-     * @param array<string, array{value: string, description: ?string}> $values
+     * @param array<string, array{value: string, description: ?string, deprecationReason: ?string}> $values
      */
     public function __construct(
         public string $path,

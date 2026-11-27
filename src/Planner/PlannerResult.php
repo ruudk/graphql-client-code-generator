@@ -46,6 +46,14 @@ final class PlannerResult
     public private(set) array $unusedFragments = [];
 
     /**
+     * Deprecation reason of each selected field whose schema field is deprecated.
+     * Map of class FQCN to property name to reason.
+     *
+     * @var array<string, array<string, string>>
+     */
+    public private(set) array $deprecatedFields = [];
+
+    /**
      * @param object $class A plan object with a path property
      */
     public function addClass(object $class): void
@@ -54,6 +62,11 @@ final class PlannerResult
          * @var object{path: string} $class
          */
         $this->classes[$class->path] = $class;
+    }
+
+    public function deprecateField(string $fqcn, string $fieldName, string $reason): void
+    {
+        $this->deprecatedFields[$fqcn][$fieldName] = $reason;
     }
 
     public function addOperation(OperationPlan $operation): void

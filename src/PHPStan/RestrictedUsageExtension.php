@@ -16,17 +16,13 @@ use PHPStan\Rules\RestrictedUsage\RestrictedPropertyUsageExtension;
 use PHPStan\Rules\RestrictedUsage\RestrictedUsage;
 use Ruudk\GraphQLCodeGenerator\Attribute\Generated;
 use Ruudk\GraphQLCodeGenerator\Config\ConfigException;
-use Ruudk\GraphQLCodeGenerator\Config\ConfigLoader;
 
 final readonly class RestrictedUsageExtension implements
     RestrictedClassNameUsageExtension,
     RestrictedPropertyUsageExtension,
     RestrictedMethodUsageExtension
 {
-    /**
-     * @var list<string>
-     */
-    private array $namespaces;
+    private GeneratedNamespaces $namespaces;
 
     /**
      * @param list<string> $configs
@@ -34,14 +30,7 @@ final readonly class RestrictedUsageExtension implements
      */
     public function __construct(array $configs)
     {
-        $namespaces = [];
-        foreach (ConfigLoader::load(...$configs) as $config) {
-            foreach ($config->schemas as $schemaConfig) {
-                $namespaces[] = $schemaConfig->namespace;
-            }
-        }
-
-        $this->namespaces = $namespaces;
+        $this->namespaces = GeneratedNamespaces::fromConfigs($configs);
     }
 
     #[Override]
@@ -125,18 +114,12 @@ final readonly class RestrictedUsageExtension implements
         }
 
         // Check if target is generated
-        if (!array_any($this->namespaces, static fn($namespace) => str_starts_with(
-            $reflection->getName(),
-            $namespace,
-        ))) {
+        if (!$this->namespaces->contains($reflection->getName())) {
             return null;
         }
 
         // Generated code can always access other generated code.
-        if (array_any($this->namespaces, static fn($namespace) => str_starts_with(
-            $sourceReflection->getName(),
-            $namespace,
-        ))) {
+        if ($this->namespaces->contains($sourceReflection->getName())) {
             return null;
         }
 
