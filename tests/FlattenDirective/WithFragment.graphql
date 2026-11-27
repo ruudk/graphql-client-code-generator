@@ -1,0 +1,8 @@
+query WithFragment {
+    viewer @flatten {
+        ...UserName
+    }
+    organization @flatten {
+        organizationName: name
+    }
+}

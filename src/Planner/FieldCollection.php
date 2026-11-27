@@ -28,6 +28,19 @@ final class FieldCollection
         return $this->fields[$name];
     }
 
+    public function has(string $name): bool
+    {
+        return isset($this->fields[$name]);
+    }
+
+    /**
+     * @return array<string, SymfonyType>
+     */
+    public function all(): array
+    {
+        return $this->fields;
+    }
+
     public function toArrayShape(): SymfonyType
     {
         return SymfonyType::arrayShape($this->fields, sealed: false);

@@ -38,6 +38,8 @@ use Ruudk\GraphQLCodeGenerator\Planner\Source\InlineFragmentSource;
 use Ruudk\GraphQLCodeGenerator\Planner\Source\InlineSource;
 use Ruudk\GraphQLCodeGenerator\Planner\Source\TwigFileSource;
 use Ruudk\GraphQLCodeGenerator\RecursiveTypeFinder;
+use Ruudk\GraphQLCodeGenerator\Type\FlattenedPropertyType;
+use Ruudk\GraphQLCodeGenerator\Type\FlattenSegment;
 use Ruudk\GraphQLCodeGenerator\Type\FragmentObjectType;
 use Ruudk\GraphQLCodeGenerator\Type\GeneratedClassName;
 use Ruudk\GraphQLCodeGenerator\Type\HookPropertyType;
@@ -352,6 +354,24 @@ final class SelectionSetPlanner
             );
         }
 
+        // Without enableFlattenDirective() the schema has no @flatten, so validation rejects it earlier.
+        if ($this->directiveProcessor->hasDirective($selection->directives, 'flatten')) {
+            $this->processFlattenedSelection(
+                $source,
+                $selection,
+                $fieldName,
+                $fieldType,
+                $nakedFieldType,
+                $parent,
+                $context,
+                $fields,
+                $pathFields,
+                $throwWhenNull,
+            );
+
+            return;
+        }
+
         // Handle predefined object types
         if ($nakedFieldType instanceof ObjectType && isset($this->config->objectTypes[$nakedFieldType->name()])) {
             [$objectPayloadShape, $objectType] = $this->config->objectTypes[$nakedFieldType->name()];
@@ -404,6 +424,85 @@ final class SelectionSetPlanner
         $fields->add($fieldName, $mappedType);
         $pathFields->addWithPrefix($context->path, $fieldName, $mappedType);
         $payloadShape->addRequired($fieldName, $mappedPayloadType);
+    }
+
+    /**
+     * `@flatten` lifts the fields selected inside an object onto the class that
+     * selects the object. No class is generated for the flattened object: its
+     * fields are planned in the parent's context (so nested classes land one
+     * level up) and each one is wrapped in a `FlattenedPropertyType` that knows
+     * the path through the response to read it from. The payload shape is left
+     * alone, because the server still returns the nested object.
+     *
+     * @throws InvalidArgumentException
+     * @throws InvariantViolation
+     * @throws LogicException
+     */
+    private function processFlattenedSelection(
+        GraphQLFileSource|HookInputSource|InlineFragmentSource|InlineSource|TwigFileSource $source,
+        FieldNode $selection,
+        string $fieldName,
+        Type $fieldType,
+        Type $nakedFieldType,
+        Type $parent,
+        PlanningContext $context,
+        FieldCollection $fields,
+        PathFieldMap $pathFields,
+        bool $throwWhenNull,
+    ): void {
+        Assert::isInstanceOf($parent, NamedType::class);
+        $selectionSet = $selection->selectionSet;
+        Assert::notNull($selectionSet, sprintf(
+            '@flatten on "%s.%s" requires a selection set.',
+            $parent->name(),
+            $selection->name->value,
+        ));
+        Assert::isInstanceOf(
+            $nakedFieldType,
+            ObjectType::class,
+            sprintf(
+                '@flatten on "%s.%s" requires an object type, got %s.',
+                $parent->name(),
+                $selection->name->value,
+                $fieldType->toString(),
+            ),
+        );
+        Assert::false(
+            $this->isList($fieldType),
+            sprintf('@flatten on "%s.%s" cannot be used on a list.', $parent->name(), $selection->name->value),
+        );
+
+        $segment = new FlattenSegment(
+            key: $fieldName,
+            ownerTypeName: $parent->name(),
+            objectTypeName: $nakedFieldType->name(),
+            nullable: $fieldType instanceof NullableType,
+            throwWhenNull: $throwWhenNull,
+        );
+
+        // Same class, deeper path: nested objects become siblings of this class.
+        $flattenedContext = $context->withPath($context->path . '.' . $fieldName)->withIndexBy(null, []);
+        $flattenedResult = $this->planNamedTypeSelectionSet($source, $selectionSet, $nakedFieldType, $flattenedContext);
+
+        foreach ($flattenedResult->fields->all() as $liftedName => $liftedType) {
+            Assert::false(
+                $fields->has($liftedName),
+                sprintf(
+                    '@flatten on "%s.%s" lifts field "%s", but "%s" already has a field with that name. Use an alias to rename one of them.',
+                    $parent->name(),
+                    $selection->name->value,
+                    $liftedName,
+                    $parent->name(),
+                ),
+            );
+
+            $naked = $liftedType instanceof SymfonyType\NullableType ? $liftedType->getWrappedType() : $liftedType;
+            $leafKey = $naked instanceof FragmentObjectType ? null : $liftedName;
+
+            $fields->add($liftedName, FlattenedPropertyType::lift($segment, $liftedType, $leafKey));
+        }
+
+        $pathFields->merge($flattenedResult->pathFields);
     }
 
     /**

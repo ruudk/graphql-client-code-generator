@@ -1,0 +1,6 @@
+query Basic {
+    viewer @flatten {
+        firstName
+        lastName
+    }
+}

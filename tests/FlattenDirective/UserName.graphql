@@ -1,0 +1,4 @@
+fragment UserName on User {
+    firstName
+    lastName
+}
