@@ -117,10 +117,7 @@ final class ListKeyValidatorTest extends TestCase
             'Int' => SymfonyType::int(),
             'Float' => SymfonyType::float(),
             'Boolean' => SymfonyType::bool(),
-        ], [
-            'indexBy' => true,
-            'groupBy' => false,
-        ]);
+        ], ['indexBy', 'groupBy']);
     }
 
     public function testValidSingleFieldIndexBy(): void
@@ -176,7 +173,7 @@ final class ListKeyValidatorTest extends TestCase
     {
         $query = <<<'GRAPHQL'
             {
-              users @indexBy(field: "id,name") {
+              users @indexBy(field: ["id", "name"]) {
                 id
                 name
                 email
@@ -188,20 +185,23 @@ final class ListKeyValidatorTest extends TestCase
         self::assertCount(0, $errors);
     }
 
-    public function testValidMultiFieldIndexByWithSpaces(): void
+    public function testInvalidIndexByWithCommaSeparatedFields(): void
     {
         $query = <<<'GRAPHQL'
             {
-              users @indexBy(field: "id, name") {
+              users @indexBy(field: "id,name") {
                 id
                 name
-                email
               }
             }
             GRAPHQL;
 
         $errors = $this->validate($query);
-        self::assertCount(0, $errors);
+        self::assertCount(1, $errors);
+        self::assertStringContainsString(
+            '@indexBy takes a list of fields, like @indexBy(field: ["a", "b"]), not a comma-separated string',
+            $errors[0]->getMessage(),
+        );
     }
 
     public function testValidMultiFieldNestedIndexBy(): void
@@ -209,7 +209,7 @@ final class ListKeyValidatorTest extends TestCase
         $query = <<<'GRAPHQL'
             {
               userConnection {
-                edges @indexBy(field: "node.id,node.name") {
+                edges @indexBy(field: ["node.id", "node.name"]) {
                   node {
                     id
                     name
@@ -357,7 +357,7 @@ final class ListKeyValidatorTest extends TestCase
     {
         $query = <<<'GRAPHQL'
             {
-              users @indexBy(field: "id,score") {
+              users @indexBy(field: ["id", "score"]) {
                 id
                 score
               }
@@ -376,7 +376,7 @@ final class ListKeyValidatorTest extends TestCase
     {
         $query = <<<'GRAPHQL'
             {
-              users @indexBy(field: "id,name") {
+              users @indexBy(field: ["id", "name"]) {
                 id
               }
             }
@@ -466,7 +466,7 @@ final class ListKeyValidatorTest extends TestCase
     {
         $query = <<<'GRAPHQL'
             {
-              users @indexBy(field: "id,email") {
+              users @indexBy(field: ["id", "email"]) {
                 id
                 email
               }
@@ -485,7 +485,7 @@ final class ListKeyValidatorTest extends TestCase
     {
         $query = <<<'GRAPHQL'
             {
-              users @indexBy(field: "id,name,status") {
+              users @indexBy(field: ["id", "name", "status"]) {
                 id
                 name
                 status
@@ -517,7 +517,7 @@ final class ListKeyValidatorTest extends TestCase
     {
         $query = <<<'GRAPHQL'
             {
-              users @indexBy(field: "id,,name") {
+              users @indexBy(field: ["id", "", "name"]) {
                 id
                 name
               }
@@ -819,6 +819,40 @@ final class ListKeyValidatorTest extends TestCase
             'Field "status" is not selected in the indexBy directive',
             $errors[0]->getMessage(),
         );
+    }
+
+    public function testInvalidIndexByWithCommaSeparatedFieldsInList(): void
+    {
+        $query = <<<'GRAPHQL'
+            {
+              users @indexBy(field: ["id,name"]) {
+                id
+                name
+              }
+            }
+            GRAPHQL;
+
+        $errors = $this->validate($query);
+        self::assertCount(1, $errors);
+        self::assertStringContainsString(
+            '@indexBy takes a list of fields, like @indexBy(field: ["a", "b"]), not a comma-separated string',
+            $errors[0]->getMessage(),
+        );
+    }
+
+    public function testInvalidIndexByWithEmptyList(): void
+    {
+        $query = <<<'GRAPHQL'
+            {
+              users @indexBy(field: []) {
+                id
+              }
+            }
+            GRAPHQL;
+
+        $errors = $this->validate($query);
+        self::assertCount(1, $errors);
+        self::assertStringContainsString('@indexBy needs at least one field', $errors[0]->getMessage());
     }
 
     public function testValidGroupBy(): void

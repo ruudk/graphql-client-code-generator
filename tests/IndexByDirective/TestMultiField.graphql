@@ -1,5 +1,5 @@
 query TestMultiField {
-    projects @indexBy(field: "id,name") {
+    projects @indexBy(field: ["id", "name"]) {
         id
         name
     }
@@ -8,7 +8,7 @@ query TestMultiField {
         name
     }
     customers {
-        edges @indexBy(field: "node.id,node.name") {
+        edges @indexBy(field: ["node.id", "node.name"]) {
             node {
                 id
                 name
