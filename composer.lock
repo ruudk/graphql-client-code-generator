@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "30973b7ac527d0f005afa86cbd26ca19",
+    "content-hash": "628f111eee4fc09ece8d35f928f56286",
     "packages": [
         {
             "name": "nikic/php-parser",
@@ -231,16 +231,16 @@
         },
         {
             "name": "ruudk/code-generator",
-            "version": "1.0.0",
+            "version": "1.0.1",
             "source": {
                 "type": "git",
                 "url": "https://github.com/ruudk/code-generator.git",
-                "reference": "bff6dd4c4228ce016d419176ca20b0301c7eaadc"
+                "reference": "d6927714545e4e948e4d6cc3749bf9130caab2d8"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/ruudk/code-generator/zipball/bff6dd4c4228ce016d419176ca20b0301c7eaadc",
-                "reference": "bff6dd4c4228ce016d419176ca20b0301c7eaadc",
+                "url": "https://api.github.com/repos/ruudk/code-generator/zipball/d6927714545e4e948e4d6cc3749bf9130caab2d8",
+                "reference": "d6927714545e4e948e4d6cc3749bf9130caab2d8",
                 "shasum": ""
             },
             "require": {
@@ -276,7 +276,7 @@
             ],
             "support": {
                 "issues": "https://github.com/ruudk/code-generator/issues",
-                "source": "https://github.com/ruudk/code-generator/tree/1.0.0"
+                "source": "https://github.com/ruudk/code-generator/tree/1.0.1"
             },
             "funding": [
                 {
@@ -284,8 +284,8 @@
                     "type": "github"
                 }
             ],
-            "time": "2026-11-26T09:26:59+00:00",
-            "published-time": "2026-11-26T09:27:49+00:00"
+            "time": "2026-11-27T07:58:54+00:00",
+            "published-time": "2026-11-27T07:59:14+00:00"
         },
         {
             "name": "sebastian/diff",

@@ -16,7 +16,7 @@ use WeakMap;
  * Inputs are de-duplicated by value, the hook is invoked once with the
  * distinct set, and results are distributed back by owning object
  * instance.
- * 
+ *
  * @internal
  * @template-covariant TInput
  * @template-covariant TResult
