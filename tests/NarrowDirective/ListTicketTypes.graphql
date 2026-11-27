@@ -1,0 +1,18 @@
+query ListTicketTypes($id: ID!, $first: Int!, $after: String) {
+    event: node(id: $id) @throwWhenNull {
+        __typename
+        id
+        ... on Event @narrow {
+            name
+            types(first: $first, after: $after) {
+                edges {
+                    cursor
+                    node {
+                        id
+                        title
+                    }
+                }
+            }
+        }
+    }
+}

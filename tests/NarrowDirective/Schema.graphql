@@ -1,0 +1,37 @@
+type Query {
+    node(id: ID!): Node
+    nodes(ids: [ID!]!): [Node]!
+    search: [SearchResult!]!
+}
+
+interface Node {
+    id: ID!
+}
+
+type Event implements Node {
+    id: ID!
+    name: String!
+    description: String
+    types(first: Int!, after: String): EventTypeConnection!
+}
+
+type EventTypeConnection {
+    edges: [EventTypeEdge!]!
+}
+
+type EventTypeEdge {
+    cursor: String!
+    node: EventType!
+}
+
+type EventType implements Node {
+    id: ID!
+    title: String!
+}
+
+type User implements Node {
+    id: ID!
+    login: String!
+}
+
+union SearchResult = Event | User

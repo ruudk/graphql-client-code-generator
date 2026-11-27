@@ -97,11 +97,13 @@ use Ruudk\GraphQLCodeGenerator\Type\ThrowWhenNullPropertyType;
 use Ruudk\GraphQLCodeGenerator\Type\TypeHelper;
 use Ruudk\GraphQLCodeGenerator\Validator\FlattenValidator;
 use Ruudk\GraphQLCodeGenerator\Validator\ListKeyValidator;
+use Ruudk\GraphQLCodeGenerator\Validator\NarrowValidator;
 use Ruudk\GraphQLCodeGenerator\Visitor\DefinedFragmentsVisitor;
 use Ruudk\GraphQLCodeGenerator\Visitor\FlattenRemover;
 use Ruudk\GraphQLCodeGenerator\Visitor\GroupByRemover;
 use Ruudk\GraphQLCodeGenerator\Visitor\HookFieldInjector;
 use Ruudk\GraphQLCodeGenerator\Visitor\IndexByRemover;
+use Ruudk\GraphQLCodeGenerator\Visitor\NarrowRemover;
 use Ruudk\GraphQLCodeGenerator\Visitor\OperationArgumentDirectiveRemover;
 use Ruudk\GraphQLCodeGenerator\Visitor\ThrowWhenNullRemover;
 use Ruudk\GraphQLCodeGenerator\Visitor\UsedFragmentsVisitor;
@@ -187,6 +189,7 @@ final class Planner
             $schemaConfig->throwWhenNullDirective,
             $schemaConfig->groupByDirective,
             $schemaConfig->flattenDirective,
+            $schemaConfig->narrowDirective,
         );
 
         // Auto-inject the marker directives (e.g. @requiresActor) into the schema so operations
@@ -254,6 +257,10 @@ final class Planner
         if ($schemaConfig->flattenDirective) {
             $this->validatorRules[FlattenValidator::class] =
                 new FlattenValidator(array_keys($schemaConfig->objectTypes));
+        }
+
+        if ($schemaConfig->narrowDirective) {
+            $this->validatorRules[NarrowValidator::class] = new NarrowValidator();
         }
 
         $this->phpParser = new ParserFactory()->createForNewestSupportedVersion();
@@ -881,7 +888,7 @@ final class Planner
             $result->addClass(new HookLoaderPlan(path: $this->schemaConfig->outputDir . '/HookLoader.php'));
         }
 
-        if ($this->schemaConfig->dumpOrThrowProperties || $this->anyClassUsesThrowWhenNull($result)) {
+        if ($this->schemaConfig->dumpOrThrowProperties || $this->anyClassThrowsNodeNotFound($result)) {
             $result->addClass(
                 new NodeNotFoundExceptionPlan(path: $this->schemaConfig->outputDir . '/NodeNotFoundException.php'),
             );
@@ -1000,11 +1007,15 @@ final class Planner
         return false;
     }
 
-    private function anyClassUsesThrowWhenNull(PlannerResult $result): bool
+    private function anyClassThrowsNodeNotFound(PlannerResult $result): bool
     {
         foreach ($result->classes as $plan) {
             if (!$plan instanceof DataClassPlan) {
                 continue;
+            }
+
+            if ($plan->narrowing !== null) {
+                return true;
             }
 
             foreach ($this->fieldTypesIn($plan->fields) as $fieldType) {
@@ -1250,6 +1261,10 @@ final class Planner
 
         if ($this->schemaConfig->flattenDirective) {
             $document = new FlattenRemover()->__invoke($document);
+        }
+
+        if ($this->schemaConfig->narrowDirective) {
+            $document = new NarrowRemover()->__invoke($document);
         }
 
         $directiveNames = array_values(array_unique(array_filter(

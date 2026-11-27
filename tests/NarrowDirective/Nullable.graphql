@@ -1,0 +1,7 @@
+query Nullable($id: ID!) {
+    node(id: $id) {
+        ... on User @narrow {
+            login
+        }
+    }
+}

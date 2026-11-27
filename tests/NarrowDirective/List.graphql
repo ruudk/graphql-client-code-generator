@@ -1,0 +1,17 @@
+query List($ids: [ID!]!) {
+    nodes(ids: $ids) {
+        ... on Event @narrow {
+            name
+            description
+        }
+    }
+    search {
+        ... on User @narrow {
+            ...UserLogin
+        }
+    }
+}
+
+fragment UserLogin on User {
+    login
+}

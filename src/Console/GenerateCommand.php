@@ -16,6 +16,7 @@ use Ruudk\GraphQLCodeGenerator\GraphQL\FlattenDirectiveSchemaExtender;
 use Ruudk\GraphQLCodeGenerator\GraphQL\GroupByDirectiveSchemaExtender;
 use Ruudk\GraphQLCodeGenerator\GraphQL\HookDirectiveSchemaExtender;
 use Ruudk\GraphQLCodeGenerator\GraphQL\IndexByDirectiveSchemaExtender;
+use Ruudk\GraphQLCodeGenerator\GraphQL\NarrowDirectiveSchemaExtender;
 use Ruudk\GraphQLCodeGenerator\GraphQL\OperationArgumentDirectiveSchemaExtender;
 use Ruudk\GraphQLCodeGenerator\GraphQL\ThrowWhenNullDirectiveSchemaExtender;
 use Ruudk\GraphQLCodeGenerator\Planner;
@@ -145,6 +146,10 @@ final class GenerateCommand
 
                     if ($schemaConfig->flattenDirective) {
                         $schema = FlattenDirectiveSchemaExtender::extend($schema);
+                    }
+
+                    if ($schemaConfig->narrowDirective) {
+                        $schema = NarrowDirectiveSchemaExtender::extend($schema);
                     }
 
                     if ($schemaConfig->operationArguments !== []) {

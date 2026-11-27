@@ -420,6 +420,7 @@ enum SearchType: string
 - **Custom `@groupBy` directive** - group a list by one or more fields, e.g. issues per assignee and state
 - **Custom `@throwWhenNull` directive** - drop nullability per-field and throw a typed exception when the server returns null
 - **Custom `@flatten` directive** - lift the fields of a nested object onto its parent class instead of generating a class for it
+- **Custom `@narrow` directive** - type a field that returns an interface or union as one object type, and throw when the server returns another one
 - **Custom `@hook` directive** - enrich responses with local data resolved lazily at access time
 - **Operation arguments** via `withOperationArgument()` - inject extra typed parameters (e.g. an actor) into `execute()` and forward them to your client, optionally gated by a custom directive
 - **Fragment dependency injection** - automatically includes required fragments
@@ -1273,6 +1274,142 @@ How it behaves:
 `@flatten` only works on a single object. Lists, interfaces and unions, object types mapped with
 `withObjectType()`, and `@include`, `@skip`, `@hook` or inline fragments inside the flattened
 object are rejected while generating.
+
+### 🎯 Narrow Interfaces and Unions with `@narrow` Directive
+
+A field that returns an interface or union, like Relay's `node(id:)`, gives you a class with a
+nullable `as<Type>` accessor per inline fragment. When you know which type you asked for, that
+is two null checks too many: `$data->event?->asEvent?->types`.
+
+Enable the directive once with `enableNarrowDirective()`, then tag the inline fragment with
+`@narrow`. The field is typed as the fragment's object type and the fields selected inside the
+fragment become properties of the field's class: `$data->event->types`. Reading the field throws
+`NodeNotFoundException` when the server returns another type. Like the other directives, it is
+local to your query and stripped from the operation sent to the server.
+
+<!-- source: tests/NarrowDirective/ListTicketTypes.graphql -->
+```graphql
+query ListTicketTypes($id: ID!, $first: Int!, $after: String) {
+    event: node(id: $id) @throwWhenNull {
+        __typename
+        id
+        ... on Event @narrow {
+            name
+            types(first: $first, after: $after) {
+                edges {
+                    cursor
+                    node {
+                        id
+                        title
+                    }
+                }
+            }
+        }
+    }
+}
+```
+
+**Generated code:**
+
+<!-- source: tests/NarrowDirective/Generated/Query/ListTicketTypes/Data/Event.php -->
+```php
+<?php
+
+declare(strict_types=1);
+
+namespace Ruudk\GraphQLCodeGenerator\NarrowDirective\Generated\Query\ListTicketTypes\Data;
+
+use Ruudk\GraphQLCodeGenerator\NarrowDirective\Generated\NodeNotFoundException;
+use Ruudk\GraphQLCodeGenerator\NarrowDirective\Generated\Query\ListTicketTypes\Data\Event\Types;
+
+// This file was automatically generated and should not be edited.
+
+final class Event
+{
+    public string $__typename {
+        get => $this->__typename ??= $this->data['__typename'];
+    }
+
+    public string $id {
+        get => $this->id ??= $this->data['id'];
+    }
+
+    public string $name {
+        get => $this->name ??= $this->data['name'];
+    }
+
+    public Types $types {
+        get => $this->types ??= new Types($this->data['types']);
+    }
+
+    /**
+     * @var array{
+     *     '__typename': string,
+     *     'id': string,
+     *     'name': string,
+     *     'types': array{
+     *         'edges': list<array{
+     *             'cursor': string,
+     *             'node': array{
+     *                 'id': string,
+     *                 'title': string,
+     *                 ...,
+     *             },
+     *             ...,
+     *         }>,
+     *         ...,
+     *     },
+     *     ...,
+     * }
+     */
+    private readonly array $data;
+
+    /**
+     * @param array{
+     *     '__typename': string,
+     *     'id': string,
+     *     'name'?: string,
+     *     'types'?: array{
+     *         'edges': list<array{
+     *             'cursor': string,
+     *             'node': array{
+     *                 'id': string,
+     *                 'title': string,
+     *                 ...,
+     *             },
+     *             ...,
+     *         }>,
+     *         ...,
+     *     },
+     *     ...,
+     * } $data
+     * @throws NodeNotFoundException
+     */
+    public function __construct(
+        array $data,
+    ) {
+        if ($data['__typename'] !== 'Event' || ! array_key_exists('name', $data) || ! array_key_exists('types', $data)) {
+            throw NodeNotFoundException::unexpectedType('Query', 'event', 'Event', $data['__typename']);
+        }
+
+        $this->data = $data;
+    }
+}
+```
+
+How it behaves:
+
+- **Nullability:** `@narrow` only decides the type. A nullable field stays nullable; combine it
+  with `@throwWhenNull` on the field to drop that too, as in the example above.
+- **Lists:** on a list (`nodes(ids: $ids) { ... on Event @narrow { name } }`) every item is
+  narrowed, and reading the list throws when one of them is another type.
+- **Other selections:** fields and fragment spreads next to the inline fragment end up on the
+  same class.
+
+`@narrow` must sit on an inline fragment directly inside a field that returns an interface or
+union, name an object type, and be the only inline fragment of that field. Fragment spreads on
+another object type, and `@include` or `@skip` on the narrowed fragment, are rejected while
+generating.
 
 ### 🪝 Local Resolution with `@hook` Directive
 

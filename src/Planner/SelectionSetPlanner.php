@@ -33,6 +33,7 @@ use Ruudk\GraphQLCodeGenerator\GraphQL\AST\InjectedTypenameFieldNode;
 use Ruudk\GraphQLCodeGenerator\GraphQL\FragmentDefinitionNodeWithSource;
 use Ruudk\GraphQLCodeGenerator\GraphQL\PossibleTypesFinder;
 use Ruudk\GraphQLCodeGenerator\Planner\Plan\DataClassPlan;
+use Ruudk\GraphQLCodeGenerator\Planner\Plan\Narrowing;
 use Ruudk\GraphQLCodeGenerator\Planner\Source\GraphQLFileSource;
 use Ruudk\GraphQLCodeGenerator\Planner\Source\HookInputSource;
 use Ruudk\GraphQLCodeGenerator\Planner\Source\InlineFragmentSource;
@@ -571,6 +572,23 @@ final class SelectionSetPlanner
         PayloadShape $payloadShape,
     ): void {
         Assert::isInstanceOf($nakedFieldType, NamedType::class, 'Field type must be a named type');
+        Assert::notNull($selection->selectionSet, 'Selection set must not be null');
+
+        $wideSelectionSet = $selection->selectionSet;
+        $wideNakedFieldType = $nakedFieldType;
+        $narrowedFragment = $this->findNarrowedFragment($selection->selectionSet);
+
+        if ($narrowedFragment !== null) {
+            // `... on Event @narrow` turns the interface or union into the fragment's object type:
+            // the class is planned as if the field returned that type and selected the fragment's fields.
+            Assert::notNull($narrowedFragment->typeCondition, '@narrow requires a type condition');
+            $narrowedType = $this->schema->getType($narrowedFragment->typeCondition->name->value);
+            Assert::isInstanceOf($narrowedType, ObjectType::class, '@narrow requires an object type');
+
+            $selection = $this->mergeNarrowedFragment($selection, $narrowedFragment);
+            $fieldType = $this->replaceNamedType($fieldType, $narrowedType);
+            $nakedFieldType = $narrowedType;
+        }
 
         // Determine class name
         $className = $this->determineClassName($fieldName, $nakedFieldType, $parent, $fieldType);
@@ -595,6 +613,17 @@ final class SelectionSetPlanner
         Assert::notNull($selection->selectionSet, 'Selection set must not be null');
         $nestedResult = $this->planSelectionSet($source, $selection->selectionSet, $fieldType, $nestedContext);
 
+        $narrowing = $narrowedFragment !== null
+            ? $this->createNarrowing(
+                $nakedFieldType,
+                $parent,
+                $fieldName,
+                $wideSelectionSet,
+                $wideNakedFieldType,
+                $nestedResult->payloadShape,
+            )
+            : null;
+
         // Handle special nodes for connections
         $nodesType = $this->extractNodesType($nakedFieldType, $nestedResult, $context->path . '.' . $fieldName);
 
@@ -607,6 +636,7 @@ final class SelectionSetPlanner
             $selection,
             $nodesType,
             $fieldType,
+            $narrowing,
         );
 
         // Handle include/skip directives
@@ -771,6 +801,124 @@ final class SelectionSetPlanner
 
         // Note: PayloadShapeBuilder already handles merging fields from fragment spreads
         // The payload shape should already be correct at this point
+    }
+
+    /**
+     * The inline fragment tagged `@narrow` in a selection set, if any. `NarrowValidator`
+     * makes sure it is the only inline fragment and names an object type.
+     */
+    private function findNarrowedFragment(SelectionSetNode $selectionSet): ?InlineFragmentNode
+    {
+        foreach ($selectionSet->selections as $selection) {
+            if (
+                $selection instanceof InlineFragmentNode
+                && $this->directiveProcessor->hasDirective($selection->directives, 'narrow')
+            ) {
+                return $selection;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Replace the narrowed inline fragment by the fields it selects, so they end up
+     * next to the other fields of the selection.
+     */
+    private function mergeNarrowedFragment(FieldNode $selection, InlineFragmentNode $fragment): FieldNode
+    {
+        Assert::notNull($selection->selectionSet, 'Selection set must not be null');
+
+        $selections = [];
+
+        foreach ($selection->selectionSet->selections as $other) {
+            if ($other !== $fragment) {
+                $selections[] = $other;
+            }
+        }
+
+        foreach ($fragment->selectionSet->selections as $fragmentSelection) {
+            $selections[] = $fragmentSelection;
+        }
+
+        return new FieldNode([
+            'name' => $selection->name,
+            'alias' => $selection->alias,
+            'arguments' => $selection->arguments,
+            'directives' => $selection->directives,
+            'selectionSet' => new SelectionSetNode([
+                'selections' => new NodeList($selections),
+            ]),
+        ]);
+    }
+
+    /**
+     * Swap the named type inside the list and non-null wrappers of a field type.
+     *
+     * @throws InvariantViolation
+     */
+    private function replaceNamedType(Type $type, ObjectType $namedType): Type
+    {
+        if ($type instanceof NonNull) {
+            $inner = $this->replaceNamedType($type->getWrappedType(), $namedType);
+            Assert::isInstanceOf($inner, NullableType::class);
+
+            return Type::nonNull($inner);
+        }
+
+        if ($type instanceof ListOfType) {
+            return Type::listOf($this->replaceNamedType($type->getWrappedType(), $namedType));
+        }
+
+        return $namedType;
+    }
+
+    /**
+     * The narrowed class receives the payload of the interface or union. Every key the
+     * payload of the narrowed type always has, but the wider payload may not, is checked by
+     * the constructor before it accepts the payload.
+     *
+     * @throws InvalidArgumentException
+     * @throws InvariantViolation
+     */
+    private function createNarrowing(
+        NamedType $narrowedType,
+        Type $parent,
+        string $fieldName,
+        SelectionSetNode $wideSelectionSet,
+        NamedType&Type $wideType,
+        PayloadShape $narrowedPayloadShape,
+    ): Narrowing {
+        $widePayloadShape = new PayloadShapeBuilder(
+            $this->schema,
+            $this->typeMapper,
+            $this->fragmentDefinitions,
+            $this->fragmentTypes,
+            $this->config->hooks,
+        )->buildPayloadShape($wideSelectionSet, $wideType)->toArrayShape();
+
+        $narrowedShape = $narrowedPayloadShape->toArrayShape();
+        Assert::isInstanceOf($widePayloadShape, SymfonyType\ArrayShapeType::class);
+        Assert::isInstanceOf($narrowedShape, SymfonyType\ArrayShapeType::class);
+
+        $wideShape = $widePayloadShape->getShape();
+        $requiredFields = [];
+
+        foreach ($narrowedShape->getShape() as $key => $value) {
+            if ($value['optional'] || !isset($wideShape[$key]) || !$wideShape[$key]['optional']) {
+                continue;
+            }
+
+            $requiredFields[] = (string) $key;
+        }
+
+        return new Narrowing(
+            typeName: $narrowedType->name(),
+            ownerTypeName: $parent instanceof NamedType ? $parent->name() : $parent->toString(),
+            fieldName: $fieldName,
+            payloadShape: $widePayloadShape,
+            requiredFields: $requiredFields,
+        );
     }
 
     /**
@@ -1112,6 +1260,7 @@ final class SelectionSetPlanner
         FieldNode $selection,
         ?SymfonyType $nodesType,
         Type $fieldType,
+        ?Narrowing $narrowing = null,
     ): void {
         $fields = $result->getFieldsType();
         $payloadShape = $result->getPayloadShapeType();
@@ -1148,6 +1297,7 @@ final class SelectionSetPlanner
             isData: false,
             isFragment: false,
             markTypenameAsApi: $this->shouldMarkTypenameAsApi($selection),
+            narrowing: $narrowing,
         );
 
         $this->result->addClass($dataClass);
