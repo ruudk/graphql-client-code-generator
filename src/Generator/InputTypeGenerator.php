@@ -49,7 +49,11 @@ final class InputTypeGenerator extends AbstractGenerator
             yield $generator->indent(function () use ($plan, $generator) {
                 yield from $generator->docComment(static function () use ($plan, $generator) {
                     foreach ($plan->fields as $fieldName => $fieldType) {
-                        if ($fieldType instanceof SymfonyType\CollectionType) {
+                        $listType = $fieldType instanceof SymfonyType\NullableType
+                            ? $fieldType->getWrappedType()
+                            : $fieldType;
+
+                        if ($listType instanceof SymfonyType\CollectionType) {
                             yield sprintf(
                                 '@param %s $%s',
                                 TypeDumper::dump($fieldType, $generator->import(...)),

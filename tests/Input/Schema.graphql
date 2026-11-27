@@ -10,4 +10,6 @@ input CreateUserInput {
 
     "The age of the user"
     age: Int!
+
+    tags: [String!]
 }
