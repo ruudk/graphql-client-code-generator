@@ -1,5 +1,7 @@
 query Basic {
+    __typename
     viewer @flatten {
+        __typename
         firstName
         lastName
     }

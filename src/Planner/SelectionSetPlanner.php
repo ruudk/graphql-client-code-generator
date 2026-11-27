@@ -524,6 +524,12 @@ final class SelectionSetPlanner
         $flattenedResult = $this->planNamedTypeSelectionSet($source, $selectionSet, $nakedFieldType, $flattenedContext);
 
         foreach ($flattenedResult->fields->all() as $liftedName => $liftedType) {
+            // The flattened object gets no class, so its __typename has nothing to describe.
+            // It stays in the operation for servers that require it, but is not lifted.
+            if ($liftedName === '__typename') {
+                continue;
+            }
+
             Assert::false(
                 $fields->has($liftedName),
                 sprintf(

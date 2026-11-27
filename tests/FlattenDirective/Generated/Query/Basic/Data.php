@@ -8,6 +8,10 @@ namespace Ruudk\GraphQLCodeGenerator\FlattenDirective\Generated\Query\Basic;
 
 final class Data
 {
+    public string $__typename {
+        get => $this->__typename ??= $this->data['__typename'];
+    }
+
     public string $firstName {
         get => $this->firstName ??= $this->data['viewer']['firstName'];
     }
@@ -23,7 +27,9 @@ final class Data
 
     /**
      * @param array{
+     *     '__typename': string,
      *     'viewer': array{
+     *         '__typename': string,
      *         'firstName': string,
      *         'lastName': string,
      *         ...,

@@ -248,6 +248,11 @@ final class FlattenValidator extends ValidationRule
             if ($selection instanceof FieldNode) {
                 $key = $selection->alias->value ?? $selection->name->value;
 
+                // A __typename inside a flattened object is not lifted onto the parent class
+                if ($prefix !== '' && $key === '__typename') {
+                    continue;
+                }
+
                 if ($selection->selectionSet !== null && self::hasDirective($selection->directives, 'flatten')) {
                     yield from self::exposedNames($selection->selectionSet, $prefix . $key . '.');
 

@@ -12,7 +12,9 @@ final readonly class BasicQuery {
     public const string OPERATION_NAME = 'Basic';
     public const string OPERATION_DEFINITION = <<<'GRAPHQL'
         query Basic {
+          __typename
           viewer {
+            __typename
             firstName
             lastName
           }
