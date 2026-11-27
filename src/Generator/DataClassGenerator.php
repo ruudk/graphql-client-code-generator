@@ -400,9 +400,10 @@ final class DataClassGenerator extends AbstractGenerator
      * It constructs the hook's typed data object from `$this->data`. Public because
      * the `Data` class's collect walk calls it on nested instances.
      *
+     * @param array<string, DataClassPlan> $plansByFqcn
      * @return iterable<string|Group>
      */
-    private function dumpHookBuildMethods(DataClassPlan $plan, CodeGenerator $generator): iterable
+    private function dumpHookBuildMethods(DataClassPlan $plan, array $plansByFqcn, CodeGenerator $generator): iterable
     {
         $fields = $plan->fields;
 
@@ -426,11 +427,14 @@ final class DataClassGenerator extends AbstractGenerator
             $emitted[$fieldType->requiresClassName] = true;
             $dataClass = $generator->import($fieldType->requiresFqcn);
 
+            // The data class takes `$decoders` when it decodes a scalar
+            $decoders = ($plansByFqcn[$fieldType->requiresFqcn]->usedDecoders ?? []) !== [] ? ', $this->decoders' : '';
+
             yield '';
             yield from $generator->docComment('@internal');
             yield sprintf('public function %s() : %s', $this->buildMethodName($fieldType), $dataClass);
             yield '{';
-            yield $generator->indent(sprintf('return new %s($this->data);', $dataClass));
+            yield $generator->indent(sprintf('return new %s($this->data%s);', $dataClass, $decoders));
             yield '}';
         }
     }
@@ -1381,6 +1385,7 @@ final class DataClassGenerator extends AbstractGenerator
                 $needsHooksParam = $hooksParam !== [];
                 $needsLoadersParam = !$isData && $usesBatched;
                 $buildsLoaders = $isData && $usesBatched;
+                $decodersParam = $plan->usedDecoders;
 
                 if ($buildsLoaders) {
                     yield '';
@@ -1414,6 +1419,7 @@ final class DataClassGenerator extends AbstractGenerator
                     $needsHooksParam,
                     $needsLoadersParam,
                     $batchedHooks,
+                    $decodersParam,
                 ) {
                     yield sprintf('@param %s $data', TypeDumper::dump(
                         $narrowing->payloadShape ?? $payloadShape,
@@ -1445,6 +1451,13 @@ final class DataClassGenerator extends AbstractGenerator
                         yield sprintf('@param %s $loaders', $this->dumpLoadersShape($batchedHooks, $generator));
                     }
 
+                    if ($decodersParam !== []) {
+                        yield sprintf('@param %s $decoders', TypeDumper::dump(
+                            $this->buildDecodersShape($decodersParam),
+                            $generator->import(...),
+                        ));
+                    }
+
                     if ($narrowing !== null) {
                         yield sprintf('@throws %s', $generator->import($this->fullyQualified('NodeNotFoundException')));
                     }
@@ -1457,6 +1470,7 @@ final class DataClassGenerator extends AbstractGenerator
                     $isData,
                     $needsHooksParam,
                     $needsLoadersParam,
+                    $decodersParam,
                 ) {
                     yield sprintf(
                         $narrowing !== null ? '%s $data,' : 'private readonly %s $data,',
@@ -1473,6 +1487,10 @@ final class DataClassGenerator extends AbstractGenerator
 
                     if ($needsLoadersParam) {
                         yield 'private readonly array $loaders,';
+                    }
+
+                    if ($decodersParam !== []) {
+                        yield 'private readonly array $decoders,';
                     }
                 });
 
@@ -1510,7 +1528,7 @@ final class DataClassGenerator extends AbstractGenerator
                     yield ') {}';
                 }
 
-                yield from $this->dumpHookBuildMethods($plan, $generator);
+                yield from $this->dumpHookBuildMethods($plan, $plansByFqcn, $generator);
                 yield from $this->dumpCollectMethods($plan, $plansByFqcn, $generator);
             });
             yield '}';

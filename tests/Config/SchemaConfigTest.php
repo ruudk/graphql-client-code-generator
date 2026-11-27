@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace Ruudk\GraphQLCodeGenerator\Config;
 
+use InvalidArgumentException;
 use PHPUnit\Framework\TestCase;
+use Ruudk\GraphQLCodeGenerator\ScalarDecoder\Fixture\NodeIdDecoder;
 use Ruudk\GraphQLCodeGenerator\TestClient;
 use Stringable;
 use Symfony\Component\TypeInfo\Type;
@@ -31,6 +33,16 @@ final class SchemaConfigTest extends TestCase
             ->withScalar('ID', Type::string());
 
         self::assertSame([], $config->scalarInputTypes);
+    }
+
+    public function testScalarDecoderMustHaveTheMethod(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessageIsOrContains(
+            'Decoder class "' . NodeIdDecoder::class . '" of scalar "ID" has no method "nope".',
+        );
+
+        $this->createSchemaConfig()->withScalarDecoder('ID', NodeIdDecoder::class, 'nope');
     }
 
     private function createSchemaConfig(): SchemaConfig

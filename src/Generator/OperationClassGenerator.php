@@ -6,6 +6,7 @@ namespace Ruudk\GraphQLCodeGenerator\Generator;
 
 use JsonException;
 use Ruudk\CodeGenerator\CodeGenerator;
+use Ruudk\CodeGenerator\Group;
 use Ruudk\GraphQLCodeGenerator\Attribute\Generated;
 use Ruudk\GraphQLCodeGenerator\Config\SchemaConfig;
 use Ruudk\GraphQLCodeGenerator\Planner\Plan\OperationClassPlan;
@@ -38,10 +39,18 @@ final class OperationClassGenerator extends AbstractGenerator
 
         $dataFqcn = $namespace . '\\Data';
         $usedHooks = $this->hookUsageRegistry->getHooksForClass($dataFqcn);
+        $usedDecoders = $this->hookUsageRegistry->getDecodersForClass($dataFqcn);
 
         $generator = new CodeGenerator($namespace);
 
-        return $generator->dumpFile(function () use ($generator, $plan, $namespace, $failedException, $usedHooks) {
+        return $generator->dumpFile(function () use (
+            $generator,
+            $plan,
+            $namespace,
+            $failedException,
+            $usedHooks,
+            $usedDecoders,
+        ) {
             yield $this->dumpHeader();
 
             yield '';
@@ -60,7 +69,14 @@ final class OperationClassGenerator extends AbstractGenerator
             }
 
             yield sprintf('final readonly class %s {', $plan->className);
-            yield $generator->indent(function () use ($plan, $failedException, $namespace, $generator, $usedHooks) {
+            yield $generator->indent(function () use (
+                $plan,
+                $failedException,
+                $namespace,
+                $generator,
+                $usedHooks,
+                $usedDecoders,
+            ) {
                 yield sprintf('public const string OPERATION_NAME = %s;', var_export($plan->operationName, true));
                 yield sprintf('public const string OPERATION_DEFINITION = %s;', $generator->maybeNowDoc(
                     $plan->operationDefinition,
@@ -69,43 +85,56 @@ final class OperationClassGenerator extends AbstractGenerator
 
                 yield '';
 
-                if ($usedHooks !== []) {
-                    yield from $generator->docComment(function () use ($usedHooks, $generator) {
-                        yield sprintf('@param %s $hooks', TypeDumper::dump(
-                            $this->buildHooksShape($usedHooks),
-                            $generator->import(...),
-                        ));
+                if ($usedHooks !== [] || $usedDecoders !== []) {
+                    yield from $generator->docComment(function () use ($usedHooks, $usedDecoders, $generator) {
+                        if ($usedHooks !== []) {
+                            yield sprintf('@param %s $hooks', TypeDumper::dump(
+                                $this->buildHooksShape($usedHooks),
+                                $generator->import(...),
+                            ));
+                        }
+
+                        if ($usedDecoders !== []) {
+                            yield sprintf('@param %s $decoders', TypeDumper::dump(
+                                $this->buildDecodersShape($usedDecoders),
+                                $generator->import(...),
+                            ));
+                        }
                     });
                 }
 
                 yield 'public function __construct(';
-                yield $generator->indent(function () use ($generator, $usedHooks) {
+                yield $generator->indent(function () use ($generator, $usedHooks, $usedDecoders) {
                     yield sprintf('private %s $client,', $generator->import($this->config->client));
 
-                    if ($usedHooks === []) {
-                        return;
+                    if ($usedHooks !== []) {
+                        $services = [];
+                        foreach (array_keys($usedHooks) as $name) {
+                            $services[$name] = $generator->import($this->config->hooks[$name]->class) . '::class';
+                        }
+
+                        if ($this->config->symfonyAutowireHooks) {
+                            yield from $this->dumpAutowire($services, $generator);
+                        }
+
+                        yield 'private array $hooks,';
                     }
 
-                    if ($this->config->symfonyAutowireHooks) {
-                        $autowire = $generator->import('Symfony\Component\DependencyInjection\Attribute\Autowire');
-                        yield sprintf('#[%s([', $autowire);
-                        yield $generator->indent(function () use ($usedHooks, $autowire, $generator) {
-                            $lines = [];
-                            foreach (array_keys($usedHooks) as $name) {
-                                $lines[] = sprintf(
-                                    '%s => new %s(service: %s::class)',
-                                    var_export($name, true),
-                                    $autowire,
-                                    $generator->import($this->config->hooks[$name]->class),
-                                );
-                            }
+                    if ($usedDecoders !== []) {
+                        $services = [];
+                        foreach (array_keys($usedDecoders) as $scalar) {
+                            $decoder = $this->config->scalarDecoders[$scalar];
+                            $services[$scalar] = $decoder->service !== null
+                                ? var_export($decoder->service, true)
+                                : $generator->import($decoder->class) . '::class';
+                        }
 
-                            yield implode(",\n", $lines);
-                        });
-                        yield '])]';
+                        if ($this->config->symfonyAutowireDecoders) {
+                            yield from $this->dumpAutowire($services, $generator);
+                        }
+
+                        yield 'private array $decoders,';
                     }
-
-                    yield 'private array $hooks,';
                 });
                 yield ') {}';
 
@@ -150,7 +179,7 @@ final class OperationClassGenerator extends AbstractGenerator
                     yield '{';
                 }
 
-                yield $generator->indent(static function () use ($plan, $generator, $usedHooks) {
+                yield $generator->indent(static function () use ($plan, $generator, $usedHooks, $usedDecoders) {
                     yield '$data = $this->client->graphql(';
                     yield $generator->indent(static function () use ($plan, $generator) {
                         yield 'self::OPERATION_DEFINITION,';
@@ -188,13 +217,17 @@ final class OperationClassGenerator extends AbstractGenerator
                     yield '';
                     yield '// @mago-expect analysis:mixed-argument(2)';
                     yield 'return new Data(';
-                    $trailingComma = $usedHooks !== [] ? ',' : '';
-                    yield $generator->indent(static function () use ($trailingComma, $usedHooks) {
+                    $trailingComma = $usedHooks !== [] || $usedDecoders !== [] ? ',' : '';
+                    yield $generator->indent(static function () use ($trailingComma, $usedHooks, $usedDecoders) {
                         yield "\$data['data'] ?? [], // @phpstan-ignore argument.type";
                         yield sprintf("\$data['errors'] ?? []%s // @phpstan-ignore argument.type", $trailingComma);
 
                         if ($usedHooks !== []) {
                             yield '$this->hooks,';
+                        }
+
+                        if ($usedDecoders !== []) {
+                            yield '$this->decoders,';
                         }
                     });
                     yield ');';
@@ -257,5 +290,25 @@ final class OperationClassGenerator extends AbstractGenerator
             });
             yield '}';
         });
+    }
+
+    /**
+     * The Symfony `#[Autowire([...])]` attribute for a map of services.
+     *
+     * @param array<string, string> $services Names and the PHP expressions of their service ids.
+     * @return iterable<string|Group>
+     */
+    private function dumpAutowire(array $services, CodeGenerator $generator): iterable
+    {
+        $autowire = $generator->import('Symfony\Component\DependencyInjection\Attribute\Autowire');
+        $lines = [];
+
+        foreach ($services as $name => $service) {
+            $lines[] = sprintf('%s => new %s(service: %s)', var_export($name, true), $autowire, $service);
+        }
+
+        yield sprintf('#[%s([', $autowire);
+        yield $generator->indent(implode(",\n", $lines));
+        yield '])]';
     }
 }

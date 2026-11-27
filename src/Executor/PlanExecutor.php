@@ -38,6 +38,7 @@ use Ruudk\GraphQLCodeGenerator\Planner\PlannerResult;
 use Ruudk\GraphQLCodeGenerator\TypeInitializer\BackedEnumTypeInitializer;
 use Ruudk\GraphQLCodeGenerator\TypeInitializer\ClassHookUsageRegistry;
 use Ruudk\GraphQLCodeGenerator\TypeInitializer\CollectionTypeInitializer;
+use Ruudk\GraphQLCodeGenerator\TypeInitializer\DecodedScalarTypeInitializer;
 use Ruudk\GraphQLCodeGenerator\TypeInitializer\DelegatingTypeInitializer;
 use Ruudk\GraphQLCodeGenerator\TypeInitializer\GroupByCollectionTypeInitializer;
 use Ruudk\GraphQLCodeGenerator\TypeInitializer\IndexByCollectionTypeInitializer;
@@ -76,6 +77,7 @@ final class PlanExecutor
             new GroupByCollectionTypeInitializer(new ListKeyAccess($config->namespace)),
             new CollectionTypeInitializer(),
             new BackedEnumTypeInitializer($config->addUnknownCaseToEnums, $config->namespace),
+            new DecodedScalarTypeInitializer(),
             ...$config->typeInitializers,
             new ObjectTypeInitializer($this->hookUsageRegistry),
         ];
@@ -106,6 +108,7 @@ final class PlanExecutor
     public function execute(PlannerResult $plan): array
     {
         $this->hookUsageRegistry->classHooks = [];
+        $this->hookUsageRegistry->classDecoders = [];
 
         /**
          * @var array<string, DataClassPlan> $plansByFqcn
@@ -121,6 +124,10 @@ final class PlanExecutor
 
             if ($class->usedHooks !== []) {
                 $this->hookUsageRegistry->classHooks[$class->fqcn] = $class->usedHooks;
+            }
+
+            if ($class->usedDecoders !== []) {
+                $this->hookUsageRegistry->classDecoders[$class->fqcn] = $class->usedDecoders;
             }
         }
 

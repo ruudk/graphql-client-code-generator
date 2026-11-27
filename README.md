@@ -1796,6 +1796,159 @@ A scalar without an input type works as before: when its PHP type is `string`, t
 `Stringable` and casts it with `(string)`. A scalar with an input type is never cast, so a value object whose
 `__toString()` is not its JSON value cannot end up in the request by accident.
 
+### 🔓 Decode Custom Scalars with a Service
+
+A `TypeInitializer` turns a scalar into an object with static code, like `new DateTimeImmutable($value)`.
+Some values need a service: an id that is encrypted, or that names the class it belongs to. Give the
+scalar a decoder, and every value of it that the server answers is decoded, without a word about it
+in your queries:
+
+```php
+SchemaConfig::create(/* ... */)
+    ->withScalar('ID', Type::string(), Type::object(NodeId::class))
+    ->withScalarDecoder('ID', NodeIdDecoder::class, 'decode')
+    ->withScalarFieldType('ID', static fn(string $type, string $field): ?Type => match ([$type, $field]) {
+        ['User', 'id'] => Type::object(UserId::class),
+        ['Project', 'id'] => Type::object(ProjectId::class),
+        default => null,
+    });
+```
+
+`withScalarFieldType()` is optional. It gives a field a narrower type than the scalar's, from the
+name of the GraphQL type the field is selected on and the name of the field. The decoder then gets
+that class as its second argument:
+
+<!-- source: tests/ScalarDecoder/Generated/Query/Test/Data/Viewer.php -->
+```php
+<?php
+
+declare(strict_types=1);
+
+namespace Ruudk\GraphQLCodeGenerator\ScalarDecoder\Generated\Query\Test\Data;
+
+use Ruudk\GraphQLCodeGenerator\ScalarDecoder\Fixture\NodeId;
+use Ruudk\GraphQLCodeGenerator\ScalarDecoder\Fixture\NodeIdDecoder;
+use Ruudk\GraphQLCodeGenerator\ScalarDecoder\Fixture\UserId;
+use Ruudk\GraphQLCodeGenerator\ScalarDecoder\Generated\Query\Test\Data\Viewer\Manager;
+
+// This file was automatically generated and should not be edited.
+
+final class Viewer
+{
+    public ?NodeId $bestFriendId {
+        get => $this->bestFriendId ??= $this->data['bestFriendId'] !== null ? $this->decoders['ID']->decode($this->data['bestFriendId']) : null;
+    }
+
+    /**
+     * @var list<NodeId>
+     */
+    public array $friendIds {
+        get => $this->friendIds ??= array_map(fn($item) => $this->decoders['ID']->decode($item), $this->data['friendIds']);
+    }
+
+    public UserId $id {
+        get => $this->id ??= $this->decoders['ID']->decode($this->data['id'], UserId::class);
+    }
+
+    public ?Manager $manager {
+        get => $this->manager ??= $this->data['manager'] !== null ? new Manager($this->data['manager'], $this->decoders) : null;
+    }
+
+    public string $name {
+        get => $this->name ??= $this->data['name'];
+    }
+
+    /**
+     * @param array{
+     *     'bestFriendId': null|string,
+     *     'friendIds': list<string>,
+     *     'id': string,
+     *     'manager': null|array{
+     *         'id': string,
+     *         ...,
+     *     },
+     *     'name': string,
+     *     ...,
+     * } $data
+     * @param array{
+     *     'ID': NodeIdDecoder,
+     *     ...,
+     * } $decoders
+     */
+    public function __construct(
+        private readonly array $data,
+        private readonly array $decoders,
+    ) {}
+}
+```
+
+`User.id` is a `UserId`, while `friendIds` and `bestFriendId` have no narrower type and are a `NodeId`,
+whose class the decoder reads from the id. Decoding is lazy: an id you never read is never decoded.
+With `@narrow`, a field selected on the interface takes the type the field is narrowed to: in
+`node(id: $id) { id ... on Project @narrow { name } }`, `id` is a `ProjectId`.
+
+The decoder is any service with that method, so the generated code still has no runtime dependencies:
+
+<!-- source: tests/ScalarDecoder/Fixture/NodeIdDecoder.php -->
+```php
+<?php
+
+declare(strict_types=1);
+
+namespace Ruudk\GraphQLCodeGenerator\ScalarDecoder\Fixture;
+
+use InvalidArgumentException;
+
+/**
+ * Turns an id like base64("User:1") into a UserId, and checks that it is of the class the field asks for.
+ */
+final readonly class NodeIdDecoder
+{
+    /**
+     * @template T of NodeId
+     * @param null|class-string<T> $class
+     * @throws InvalidArgumentException
+     * @return ($class is null ? NodeId : T)
+     */
+    public function decode(string $value, ?string $class = null): NodeId
+    {
+        $decoded = base64_decode($value, true);
+        [$type, $id] = explode(':', $decoded === false ? '' : $decoded, 2) + [1 => '0'];
+
+        $nodeId = match ($type) {
+            'User' => new UserId((int) $id),
+            'Project' => new ProjectId((int) $id),
+            default => throw new InvalidArgumentException(sprintf('"%s" is no id of a known type.', $value)),
+        };
+
+        if ($class !== null && !$nodeId instanceof $class) {
+            throw new InvalidArgumentException(sprintf('"%s" is no id of a %s.', $value, $class));
+        }
+
+        return $nodeId;
+    }
+}
+```
+
+The generated code receives the decoder in its `$decoders` map, under the name of the scalar, and
+passes it on to every class that decodes. Pass it when you create the operation:
+
+```php
+$result = new TestQuery($client, decoders: [
+    'ID' => new NodeIdDecoder(),
+])->execute(new UserId(1));
+```
+
+With `enableSymfonyAutowireDecoders()`, the container wires it, apart from the hooks, which
+`enableSymfonyAutowireHooks()` wires. Pass `service:` when the id of the service is not its class:
+
+```php
+->withScalarDecoder('ID', GlobalIdFactory::class, 'fromGlobalId', service: 'app.global_id_factory')
+```
+
+The keys of `@indexBy` and `@groupBy` stay the JSON value, because an object cannot be an array key.
+What you send is not decoded: see the input types above for that side.
+
 ## Requirements
 
 - **PHP 8.5+** (uses property hooks, readonly classes, and other modern features)

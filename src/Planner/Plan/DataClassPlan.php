@@ -27,6 +27,14 @@ final class DataClassPlan
     public array $usedHooks = [];
 
     /**
+     * Set of scalars whose decoder this class transitively needs. Populated by the planner.
+     * Empty means this class does not accept a `$decoders` constructor argument.
+     *
+     * @var array<string, true>
+     */
+    public array $usedDecoders = [];
+
+    /**
      * @param list<string> $possibleTypes
      * @param array<string, list<string>> $inlineFragmentRequiredFields
      */

@@ -46,6 +46,10 @@ final readonly class ObjectTypeInitializer implements TypeInitializer
             $arguments .= ', $this->loaders';
         }
 
+        if ($this->hookUsageRegistry->usesDecoders($className)) {
+            $arguments .= ', $this->decoders';
+        }
+
         return sprintf('new %s(%s)', $generator->import($className), $arguments);
     }
 }

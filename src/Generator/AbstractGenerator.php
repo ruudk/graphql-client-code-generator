@@ -103,6 +103,29 @@ abstract class AbstractGenerator
     }
 
     /**
+     * Build the PHPDoc `array{Scalar: DecoderClass, ...}` shape used to annotate
+     * the `$decoders` constructor argument threaded through generated classes.
+     *
+     * @param array<string, true> $usedDecoders
+     * @throws \Webmozart\Assert\InvalidArgumentException
+     */
+    protected function buildDecodersShape(array $usedDecoders): Type
+    {
+        $shape = [];
+
+        foreach (array_keys($usedDecoders) as $scalar) {
+            Assert::keyExists(
+                $this->config->scalarDecoders,
+                $scalar,
+                sprintf('Scalar "%s" has no decoder in config.', $scalar),
+            );
+            $shape[$scalar] = Type::object($this->config->scalarDecoders[$scalar]->class);
+        }
+
+        return Type::arrayShape($shape, sealed: false);
+    }
+
+    /**
      * The `@deprecated` tag for something whose schema counterpart is deprecated, so static
      * analysis reports every place that still uses it.
      *

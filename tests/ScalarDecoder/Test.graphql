@@ -1,0 +1,33 @@
+query Test($id: ID!) {
+    node(id: $id) {
+        id
+        ... on User {
+            id
+            name
+        }
+    }
+    narrowed: node(id: $id) {
+        id
+        ... on Project @narrow {
+            name
+        }
+    }
+    viewer {
+        id
+        name
+        friendIds
+        bestFriendId
+        manager {
+            id
+        }
+    }
+    projects @indexBy(field: "id") {
+        ...ProjectFields
+        owner @hook(name: "findOwner")
+    }
+}
+
+fragment ProjectFields on Project {
+    id
+    name
+}

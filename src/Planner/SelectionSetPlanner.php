@@ -446,7 +446,12 @@ final class SelectionSetPlanner
         }
 
         // Handle scalar fields
-        $mappedType = $this->typeMapper->mapGraphQLTypeToPHPType($fieldType);
+        Assert::isInstanceOf($parent, NamedType::class);
+        $mappedType = $this->typeMapper->mapGraphQLFieldTypeToPHPType(
+            $fieldType,
+            $parent->name(),
+            $selection->name->value,
+        );
         $mappedPayloadType = $this->typeMapper->mapGraphQLTypeToPHPType($fieldType, builtInOnly: true);
 
         if ($throwWhenNull) {
