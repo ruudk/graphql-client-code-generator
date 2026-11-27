@@ -1,0 +1,9 @@
+query Strict {
+    maybeViewer @flatten @throwWhenNull {
+        firstName
+        bio @throwWhenNull
+        account @flatten {
+            email
+        }
+    }
+}

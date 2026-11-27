@@ -12,6 +12,7 @@ use GraphQL\Utils\SchemaPrinter;
 use Ruudk\GraphQLCodeGenerator\Config\ConfigException;
 use Ruudk\GraphQLCodeGenerator\Config\ConfigLoader;
 use Ruudk\GraphQLCodeGenerator\Executor\PlanExecutor;
+use Ruudk\GraphQLCodeGenerator\GraphQL\FlattenDirectiveSchemaExtender;
 use Ruudk\GraphQLCodeGenerator\GraphQL\GroupByDirectiveSchemaExtender;
 use Ruudk\GraphQLCodeGenerator\GraphQL\HookDirectiveSchemaExtender;
 use Ruudk\GraphQLCodeGenerator\GraphQL\IndexByDirectiveSchemaExtender;
@@ -140,6 +141,10 @@ final class GenerateCommand
 
                     if ($schemaConfig->throwWhenNullDirective) {
                         $schema = ThrowWhenNullDirectiveSchemaExtender::extend($schema);
+                    }
+
+                    if ($schemaConfig->flattenDirective) {
+                        $schema = FlattenDirectiveSchemaExtender::extend($schema);
                     }
 
                     if ($schemaConfig->operationArguments !== []) {

@@ -89,12 +89,15 @@ use Ruudk\GraphQLCodeGenerator\Planner\Source\InlineSource;
 use Ruudk\GraphQLCodeGenerator\Planner\Source\TwigFileSource;
 use Ruudk\GraphQLCodeGenerator\Twig\GraphQLExtension;
 use Ruudk\GraphQLCodeGenerator\Twig\GraphQLNodeFinder;
+use Ruudk\GraphQLCodeGenerator\Type\FlattenedPropertyType;
 use Ruudk\GraphQLCodeGenerator\Type\GeneratedClassName;
 use Ruudk\GraphQLCodeGenerator\Type\HookPropertyType;
 use Ruudk\GraphQLCodeGenerator\Type\ThrowWhenNullPropertyType;
 use Ruudk\GraphQLCodeGenerator\Type\TypeHelper;
+use Ruudk\GraphQLCodeGenerator\Validator\FlattenValidator;
 use Ruudk\GraphQLCodeGenerator\Validator\ListKeyValidator;
 use Ruudk\GraphQLCodeGenerator\Visitor\DefinedFragmentsVisitor;
+use Ruudk\GraphQLCodeGenerator\Visitor\FlattenRemover;
 use Ruudk\GraphQLCodeGenerator\Visitor\GroupByRemover;
 use Ruudk\GraphQLCodeGenerator\Visitor\HookFieldInjector;
 use Ruudk\GraphQLCodeGenerator\Visitor\IndexByRemover;
@@ -182,6 +185,7 @@ final class Planner
             $schemaConfig->hooks !== [],
             $schemaConfig->throwWhenNullDirective,
             $schemaConfig->groupByDirective,
+            $schemaConfig->flattenDirective,
         );
 
         // Auto-inject the marker directives (e.g. @requiresActor) into the schema so operations
@@ -245,6 +249,11 @@ final class Planner
 
         if ($listKeyDirectives !== []) {
             $this->validatorRules[ListKeyValidator::class] = new ListKeyValidator($this->scalars, $listKeyDirectives);
+        }
+
+        if ($schemaConfig->flattenDirective) {
+            $this->validatorRules[FlattenValidator::class] =
+                new FlattenValidator(array_keys($schemaConfig->objectTypes));
         }
 
         $this->phpParser = new ParserFactory()->createForNewestSupportedVersion();
@@ -999,6 +1008,10 @@ final class Planner
                 if ($fieldType instanceof ThrowWhenNullPropertyType) {
                     return true;
                 }
+
+                if ($fieldType instanceof FlattenedPropertyType && $fieldType->throwsWhenNull()) {
+                    return true;
+                }
             }
         }
 
@@ -1034,6 +1047,10 @@ final class Planner
             $childFqcnsByPlan[$plan->fqcn] = [];
 
             foreach ($this->fieldTypesIn($plan->fields) as $fieldType) {
+                if ($fieldType instanceof FlattenedPropertyType) {
+                    $fieldType = $fieldType->innerType;
+                }
+
                 if ($fieldType instanceof ThrowWhenNullPropertyType) {
                     $fieldType = $fieldType->getWrappedType();
                 }
@@ -1106,7 +1123,7 @@ final class Planner
     private function unwrapToObjectType(SymfonyType $type): ?string
     {
         while (true) {
-            if ($type instanceof ThrowWhenNullPropertyType) {
+            if ($type instanceof ThrowWhenNullPropertyType || $type instanceof FlattenedPropertyType) {
                 $type = $type->getWrappedType();
 
                 continue;
@@ -1226,6 +1243,10 @@ final class Planner
 
         if ($this->schemaConfig->throwWhenNullDirective) {
             $document = new ThrowWhenNullRemover()->__invoke($document);
+        }
+
+        if ($this->schemaConfig->flattenDirective) {
+            $document = new FlattenRemover()->__invoke($document);
         }
 
         $directiveNames = array_values(array_unique(array_filter(

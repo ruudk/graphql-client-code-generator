@@ -1,0 +1,37 @@
+type Query {
+    viewer: User!
+    maybeViewer: User
+    organization: Organization
+}
+
+type User {
+    firstName: String!
+    lastName: String!
+    bio: String
+    account: Account
+    project: Project
+    repositories: [Repository!]!
+}
+
+type Account {
+    email: String!
+    settings: Settings
+}
+
+type Settings {
+    locale: String!
+}
+
+type Project {
+    id: ID!
+    name: String!
+}
+
+type Repository {
+    name: String!
+    owner: User!
+}
+
+type Organization {
+    name: String!
+}

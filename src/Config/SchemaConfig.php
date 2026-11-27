@@ -62,6 +62,7 @@ final readonly class SchemaConfig
         public bool $indexByDirective = false,
         public bool $groupByDirective = false,
         public bool $throwWhenNullDirective = false,
+        public bool $flattenDirective = false,
         public bool $addUnknownCaseToEnums = false,
         public bool $dumpEnumIsMethods = false,
         public ?object $introspectionClient = null,
@@ -165,6 +166,17 @@ final readonly class SchemaConfig
     {
         return clone($this, [
             'throwWhenNullDirective' => true,
+        ]);
+    }
+
+    /**
+     * Allow `@flatten` on object fields: the fields selected inside are lifted onto the
+     * parent class and no class is generated for the flattened object itself.
+     */
+    public function enableFlattenDirective(): self
+    {
+        return clone($this, [
+            'flattenDirective' => true,
         ]);
     }
 

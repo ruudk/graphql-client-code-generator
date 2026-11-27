@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Ruudk\GraphQLCodeGenerator\Generator;
 
+use Generator;
 use GraphQL\Language\AST\OperationDefinitionNode;
 use GraphQL\Type\Definition\InterfaceType;
 use GraphQL\Type\Definition\ObjectType;
@@ -17,6 +18,7 @@ use Ruudk\GraphQLCodeGenerator\Planner\Plan\DataClassPlan;
 use Ruudk\GraphQLCodeGenerator\Planner\Source\GraphQLFileSource;
 use Ruudk\GraphQLCodeGenerator\Planner\Source\HookInputSource;
 use Ruudk\GraphQLCodeGenerator\Planner\Source\TwigFileSource;
+use Ruudk\GraphQLCodeGenerator\Type\FlattenedPropertyType;
 use Ruudk\GraphQLCodeGenerator\Type\FragmentObjectType;
 use Ruudk\GraphQLCodeGenerator\Type\GroupByCollectionType;
 use Ruudk\GraphQLCodeGenerator\Type\HookPropertyType;
@@ -150,7 +152,7 @@ final class DataClassGenerator extends AbstractGenerator
     private function unwrapToObjectClassName(SymfonyType $type): ?string
     {
         while (true) {
-            if ($type instanceof ThrowWhenNullPropertyType) {
+            if ($type instanceof ThrowWhenNullPropertyType || $type instanceof FlattenedPropertyType) {
                 $type = $type->getWrappedType();
 
                 continue;
@@ -192,7 +194,7 @@ final class DataClassGenerator extends AbstractGenerator
         CodeGenerator $generator,
         int $depth,
     ): iterable {
-        if ($type instanceof ThrowWhenNullPropertyType) {
+        if ($type instanceof ThrowWhenNullPropertyType || $type instanceof FlattenedPropertyType) {
             yield from $this->emitCollectDescent(
                 $accessor,
                 $type->getWrappedType(),
@@ -323,7 +325,7 @@ final class DataClassGenerator extends AbstractGenerator
                 continue;
             }
 
-            if ($fieldType instanceof ThrowWhenNullPropertyType) {
+            if ($fieldType instanceof ThrowWhenNullPropertyType || $fieldType instanceof FlattenedPropertyType) {
                 $propertyType = $fieldType->getWrappedType();
             } else {
                 $optional = $fieldValue['optional'] || isset($optionalFields[$fieldName]);
@@ -430,6 +432,161 @@ final class DataClassGenerator extends AbstractGenerator
             yield $generator->indent(sprintf('return new %s($this->data);', $dataClass));
             yield '}';
         }
+    }
+
+    /**
+     * Emit a property lifted onto this class by `@flatten`. It reads its value
+     * from a path through the flattened objects, guarding every nullable object
+     * on the way: a plain nullable object yields null, one tagged
+     * `@throwWhenNull` throws `NodeNotFoundException`.
+     *
+     * @throws InvalidArgumentException
+     * @return iterable<string|Group>
+     */
+    private function dumpFlattenedProperty(
+        string $fieldName,
+        FlattenedPropertyType $type,
+        string $parentTypeName,
+        bool $isMutationData,
+        CodeGenerator $generator,
+    ): iterable {
+        $propertyType = $type->getWrappedType();
+
+        yield from $generator->docComment(function () use ($propertyType, $isMutationData, $generator) {
+            if ($isMutationData) {
+                yield '@api';
+            }
+
+            if ($this->getNakedType($propertyType) instanceof SymfonyType\CollectionType) {
+                yield sprintf('@var %s', TypeDumper::dump($propertyType, $generator->import(...)));
+            }
+        });
+        yield sprintf('public %s $%s {', $this->dumpPHPType($propertyType, $generator->import(...)), $fieldName);
+        yield $generator->indent(function () use ($fieldName, $type, $generator) {
+            if ($type->throwsWhenNull()) {
+                yield from $generator->docComment(function () use ($generator) {
+                    yield sprintf('@throws %s', $generator->import($this->fullyQualified('NodeNotFoundException')));
+                });
+            }
+
+            yield from $generator->wrap(
+                sprintf('get => $this->%s ??= ', $fieldName),
+                $this->flattenedValue($type, $generator),
+                ';',
+            );
+        });
+        yield '}';
+
+        if ($this->config->dumpOrThrowProperties && $propertyType instanceof SymfonyType\NullableType) {
+            $unwrappedType = $propertyType->getWrappedType();
+
+            yield '';
+            yield from $generator->docComment(function () use ($unwrappedType, $generator) {
+                if ($this->getNakedType($unwrappedType) instanceof SymfonyType\CollectionType) {
+                    yield sprintf('@var %s', TypeDumper::dump($unwrappedType, $generator->import(...)));
+                }
+
+                yield sprintf('@throws %s', $generator->import($this->fullyQualified('NodeNotFoundException')));
+            });
+            yield sprintf(
+                'public %s $%sOrThrow {',
+                $this->dumpPHPType($unwrappedType, $generator->import(...)),
+                $fieldName,
+            );
+            yield $generator->indent(sprintf(
+                'get => $this->%s ?? throw %s::create(%s, %s);',
+                $fieldName,
+                $generator->import($this->fullyQualified('NodeNotFoundException')),
+                var_export($parentTypeName, true),
+                var_export($fieldName, true),
+            ));
+            yield '}';
+        }
+    }
+
+    /**
+     * Build the expression that reads a flattened property, e.g.
+     * `$this->data['viewer'] !== null ? $this->data['viewer']['login'] : null`.
+     * Consecutive nullable objects that fall back to the same value share one
+     * condition; the innermost value is initialized like any other field.
+     *
+     * @throws InvalidArgumentException
+     * @return Generator<string|Group>|string
+     */
+    private function flattenedValue(FlattenedPropertyType $type, CodeGenerator $generator): Generator|string
+    {
+        $paths = [];
+        $path = '$this->data';
+
+        foreach ($type->segments as $segment) {
+            $path .= sprintf('[%s]', var_export($segment->key, true));
+            $paths[] = $path;
+        }
+
+        $valuePath = $type->leafKey === null ? $path : sprintf('%s[%s]', $path, var_export($type->leafKey, true));
+        $innerType = $type->innerType;
+
+        // Whether $value is a ternary already, so wrapping it in another one gets parentheses.
+        $conditional = $innerType instanceof SymfonyType\NullableType;
+
+        if ($innerType instanceof ThrowWhenNullPropertyType) {
+            $conditional = true;
+            $innermost = $type->segments[count($type->segments) - 1];
+
+            $value = $generator->wrap(
+                sprintf('%s !== null ? ', $valuePath),
+                $this->typeInitializer->__invoke($innerType->getWrappedType(), $generator, $valuePath),
+                sprintf(
+                    ' : throw %s::create(%s, %s)',
+                    $generator->import($this->fullyQualified('NodeNotFoundException')),
+                    var_export($innermost->objectTypeName, true),
+                    var_export($type->leafKey, true),
+                ),
+            );
+        } else {
+            $value = $this->typeInitializer->__invoke($innerType, $generator, $valuePath);
+        }
+
+        // Group consecutive nullable objects that share the same fallback, outermost first.
+        /** @var list<array{non-empty-list<string>, string}> $groups */
+        $groups = [];
+
+        foreach ($type->segments as $index => $segment) {
+            if (!$segment->nullable) {
+                continue;
+            }
+
+            $fallback = $segment->throwWhenNull
+                ? sprintf(
+                    'throw %s::create(%s, %s)',
+                    $generator->import($this->fullyQualified('NodeNotFoundException')),
+                    var_export($segment->ownerTypeName, true),
+                    var_export($segment->key, true),
+                )
+                : 'null';
+
+            $condition = sprintf('%s !== null', $paths[$index]);
+            $last = count($groups) - 1;
+
+            if ($last >= 0 && $groups[$last][1] === $fallback) {
+                $groups[$last] = [[...$groups[$last][0], $condition], $fallback];
+
+                continue;
+            }
+
+            $groups[] = [[$condition], $fallback];
+        }
+
+        foreach (array_reverse($groups) as [$conditions, $fallback]) {
+            $value = $generator->wrap(
+                implode(' && ', $conditions) . ($conditional ? ' ? (' : ' ? '),
+                $value,
+                ($conditional ? ') : ' : ' : ') . $fallback,
+            );
+            $conditional = true;
+        }
+
+        return $value;
     }
 
     /**
@@ -634,6 +791,18 @@ final class DataClassGenerator extends AbstractGenerator
                                 );
                             });
                             yield '}';
+
+                            continue;
+                        }
+
+                        if ($fieldType instanceof FlattenedPropertyType) {
+                            yield from $this->dumpFlattenedProperty(
+                                $fieldName,
+                                $fieldType,
+                                $parentType->name(),
+                                $isMutationData,
+                                $generator,
+                            );
 
                             continue;
                         }

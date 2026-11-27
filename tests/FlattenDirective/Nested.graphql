@@ -1,0 +1,21 @@
+query Nested {
+    maybeViewer @flatten {
+        bio
+        account @flatten {
+            email
+            settings @flatten {
+                locale
+            }
+        }
+        project {
+            id
+            name
+        }
+        repositories {
+            name
+            owner @flatten {
+                ownerName: firstName
+            }
+        }
+    }
+}
