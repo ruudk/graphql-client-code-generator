@@ -237,7 +237,7 @@ final class Planner
             ProvidedRequiredArgumentsOnDirectives::class => new ProvidedRequiredArgumentsOnDirectives(),
         ];
 
-        // Directive name => whether it accepts several comma-separated fields
+        // Directive name => whether a string `field` holds several comma-separated fields
         $listKeyDirectives = [];
 
         if ($schemaConfig->indexByDirective) {

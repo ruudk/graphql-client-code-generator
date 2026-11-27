@@ -907,7 +907,128 @@ final class ListKeyValidatorTest extends TestCase
         );
     }
 
-    public function testInvalidGroupByWithSeveralFields(): void
+    public function testValidMultiFieldGroupBy(): void
+    {
+        $query = <<<'GRAPHQL'
+            {
+              users @groupBy(field: ["status", "name"]) {
+                status
+                name
+              }
+            }
+            GRAPHQL;
+
+        $errors = $this->validate($query);
+        self::assertCount(0, $errors);
+    }
+
+    public function testValidMultiFieldNestedGroupBy(): void
+    {
+        $query = <<<'GRAPHQL'
+            {
+              userConnection {
+                edges @groupBy(field: ["node.id", "node.status"]) {
+                  node {
+                    id
+                    status
+                  }
+                }
+              }
+            }
+            GRAPHQL;
+
+        $errors = $this->validate($query);
+        self::assertCount(0, $errors);
+    }
+
+    public function testMultiFieldGroupByWithOneFieldNotSelected(): void
+    {
+        $query = <<<'GRAPHQL'
+            {
+              users @groupBy(field: ["status", "name"]) {
+                status
+              }
+            }
+            GRAPHQL;
+
+        $errors = $this->validate($query);
+        self::assertCount(1, $errors);
+        self::assertStringContainsString(
+            'Field "name" is not selected in the groupBy directive',
+            $errors[0]->getMessage(),
+        );
+    }
+
+    public function testMultiFieldGroupByWithOneNullableField(): void
+    {
+        $query = <<<'GRAPHQL'
+            {
+              users @groupBy(field: ["status", "email"]) {
+                status
+                email
+              }
+            }
+            GRAPHQL;
+
+        $errors = $this->validate($query);
+        self::assertCount(1, $errors);
+        self::assertStringContainsString(
+            'Field "email" is nullable and cannot be used for @groupBy',
+            $errors[0]->getMessage(),
+        );
+    }
+
+    public function testMultiFieldGroupByWithOneInvalidKeyType(): void
+    {
+        $query = <<<'GRAPHQL'
+            {
+              users @groupBy(field: ["status", "rating"]) {
+                status
+                rating
+              }
+            }
+            GRAPHQL;
+
+        $errors = $this->validate($query);
+        self::assertCount(1, $errors);
+        self::assertStringContainsString(
+            '@groupBy(field: "rating") cannot be used because the field is not a valid array key type',
+            $errors[0]->getMessage(),
+        );
+    }
+
+    public function testInvalidMultiFieldGroupByOnNonList(): void
+    {
+        $query = <<<'GRAPHQL'
+            {
+              userConnection @groupBy(field: ["edges", "edges"]) {
+                edges {
+                  cursor
+                }
+              }
+            }
+            GRAPHQL;
+
+        $errors = $this->validate($query);
+        self::assertCount(1, $errors);
+        self::assertStringContainsString('@groupBy can only be used on lists', $errors[0]->getMessage());
+    }
+
+    public function testValidGroupByWithSingleFieldInList(): void
+    {
+        $query = <<<'GRAPHQL'
+            {
+              users @groupBy(field: ["status"]) {
+                status
+              }
+            }
+            GRAPHQL;
+
+        $errors = $this->validate($query);
+        self::assertCount(0, $errors);
+    }
+
+    public function testInvalidGroupByWithCommaSeparatedFields(): void
     {
         $query = <<<'GRAPHQL'
             {
@@ -920,7 +1041,25 @@ final class ListKeyValidatorTest extends TestCase
 
         $errors = $this->validate($query);
         self::assertCount(1, $errors);
-        self::assertStringContainsString('@groupBy only accepts a single field', $errors[0]->getMessage());
+        self::assertStringContainsString(
+            '@groupBy takes a list of fields, like @groupBy(field: ["a", "b"]), not a comma-separated string',
+            $errors[0]->getMessage(),
+        );
+    }
+
+    public function testInvalidGroupByWithEmptyList(): void
+    {
+        $query = <<<'GRAPHQL'
+            {
+              users @groupBy(field: []) {
+                status
+              }
+            }
+            GRAPHQL;
+
+        $errors = $this->validate($query);
+        self::assertCount(1, $errors);
+        self::assertStringContainsString('@groupBy needs at least one field', $errors[0]->getMessage());
     }
 
     public function testInvalidGroupByCombinedWithIndexBy(): void

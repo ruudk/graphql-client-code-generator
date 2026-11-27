@@ -588,7 +588,7 @@ final class SelectionSetPlanner
         $groupByContext = $this->processGroupByDirective($selection, $nakedFieldType);
 
         if ($groupByContext !== null) {
-            $nestedContext = $nestedContext->withGroupBy($groupByContext['type'], $groupByContext['field']);
+            $nestedContext = $nestedContext->withGroupBy($groupByContext['types'], $groupByContext['fields']);
         }
 
         // Recursively plan the nested selection
@@ -1052,7 +1052,7 @@ final class SelectionSetPlanner
     /**
      * @throws InvariantViolation
      * @throws InvalidArgumentException
-     * @return null|array{type: SymfonyType, field: non-empty-list<string>}
+     * @return null|array{types: non-empty-list<SymfonyType>, fields: non-empty-list<non-empty-list<string>>}
      */
     private function processGroupByDirective(FieldNode $selection, Type $nakedFieldType): ?array
     {
@@ -1060,19 +1060,19 @@ final class SelectionSetPlanner
             return null;
         }
 
-        $fieldPath = $this->directiveProcessor->getGroupByDirective($selection->directives);
+        $fields = $this->directiveProcessor->getGroupByDirective($selection->directives);
 
-        if ($fieldPath === null) {
+        if ($fields === []) {
             return null;
         }
 
         // Like @indexBy, the keys are read from the raw payload, so they have the payload type.
         return [
-            'type' => $this->typeMapper->mapGraphQLTypeToPHPType(
+            'types' => array_map(fn($fieldPath) => $this->typeMapper->mapGraphQLTypeToPHPType(
                 RecursiveTypeFinder::find($nakedFieldType, $fieldPath),
                 builtInOnly: true,
-            ),
-            'field' => $fieldPath,
+            ), $fields),
+            'fields' => $fields,
         ];
     }
 
@@ -1098,8 +1098,8 @@ final class SelectionSetPlanner
         }
 
         if ($edges instanceof GroupByCollectionType) {
-            // Grouped edges give nodes in the same groups
-            return SymfonyType::array(SymfonyType::list($nodeType), $edges->key);
+            // Grouped edges give nodes in the same groups, on every level
+            return GroupByCollectionType::nest($edges->keys, SymfonyType::list($nodeType));
         }
 
         if ($edges instanceof IndexByCollectionType) {

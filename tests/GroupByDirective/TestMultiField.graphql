@@ -1,0 +1,20 @@
+query TestMultiField {
+    issuesByAssigneeAndState: issues @groupBy(field: ["assignee.id", "state"]) {
+        id
+        title
+        state
+        assignee {
+            id
+        }
+    }
+    customers {
+        edges @groupBy(field: ["node.tier", "node.country"]) {
+            node {
+                id
+                name
+                tier
+                country
+            }
+        }
+    }
+}

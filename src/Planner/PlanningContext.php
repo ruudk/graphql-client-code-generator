@@ -14,7 +14,8 @@ final readonly class PlanningContext
     /**
      * @param null|list<SymfonyType> $indexByType
      * @param list<list<string>> $indexBy
-     * @param list<string> $groupBy
+     * @param null|non-empty-list<SymfonyType> $groupByType
+     * @param list<non-empty-list<string>> $groupBy
      */
     public function __construct(
         public string $outputDirectory,
@@ -22,7 +23,7 @@ final readonly class PlanningContext
         public string $path,
         public ?array $indexByType = null,
         public array $indexBy = [],
-        public ?SymfonyType $groupByType = null,
+        public ?array $groupByType = null,
         public array $groupBy = [],
     ) {}
 
@@ -58,9 +59,10 @@ final readonly class PlanningContext
     }
 
     /**
-     * @param list<string> $groupBy
+     * @param non-empty-list<SymfonyType> $groupByType
+     * @param non-empty-list<non-empty-list<string>> $groupBy
      */
-    public function withGroupBy(SymfonyType $groupByType, array $groupBy): self
+    public function withGroupBy(array $groupByType, array $groupBy): self
     {
         return clone($this, [
             'groupByType' => $groupByType,

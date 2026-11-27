@@ -36,16 +36,16 @@ final readonly class GroupByDirectiveSchemaExtender
             [$field] = $existing->args;
             Assert::eq($field->name, 'field', 'Expected @groupBy argument to be named "field"');
             Assert::eq(
-                Type::nonNull(Type::string()),
+                Type::nonNull(Type::listOf(Type::nonNull(Type::string()))),
                 $field->getType(),
-                'Expected @groupBy argument to be a non-null string',
+                'Expected @groupBy argument to be a non-null list of non-null strings',
             );
 
             return $schema;
         }
 
         return SchemaExtender::extend($schema, Parser::parse(<<<'GRAPHQL'
-            directive @groupBy(field: String!) on FIELD
+            directive @groupBy(field: [String!]!) on FIELD
             GRAPHQL));
     }
 }
