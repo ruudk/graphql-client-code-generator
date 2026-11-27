@@ -94,7 +94,6 @@ use Ruudk\GraphQLCodeGenerator\Type\FlattenedPropertyType;
 use Ruudk\GraphQLCodeGenerator\Type\GeneratedClassName;
 use Ruudk\GraphQLCodeGenerator\Type\HookPropertyType;
 use Ruudk\GraphQLCodeGenerator\Type\ThrowWhenNullPropertyType;
-use Ruudk\GraphQLCodeGenerator\Type\TypeHelper;
 use Ruudk\GraphQLCodeGenerator\Validator\FlattenValidator;
 use Ruudk\GraphQLCodeGenerator\Validator\ListKeyValidator;
 use Ruudk\GraphQLCodeGenerator\Validator\NarrowValidator;
@@ -107,14 +106,12 @@ use Ruudk\GraphQLCodeGenerator\Visitor\NarrowRemover;
 use Ruudk\GraphQLCodeGenerator\Visitor\OperationArgumentDirectiveRemover;
 use Ruudk\GraphQLCodeGenerator\Visitor\ThrowWhenNullRemover;
 use Ruudk\GraphQLCodeGenerator\Visitor\UsedFragmentsVisitor;
-use Stringable;
 use Symfony\Component\Filesystem\Filesystem;
 use Symfony\Component\Filesystem\Path;
 use Symfony\Component\Finder\Finder;
 use Symfony\Component\String\Inflector\EnglishInflector;
 use Symfony\Component\TypeInfo\Type as SymfonyType;
 use Symfony\Component\TypeInfo\Type\BackedEnumType;
-use Symfony\Component\TypeInfo\TypeIdentifier;
 use Twig\Environment;
 use Twig\Loader\ArrayLoader;
 use Webmozart\Assert\Assert;
@@ -571,6 +568,7 @@ final class Planner
             $this->enumTypes,
             $this->inputObjectTypes,
             $this->objectTypes,
+            $this->schemaConfig->scalarInputTypes,
         );
 
         // Initialize helper classes
@@ -645,18 +643,11 @@ final class Planner
                 $fields = [];
                 $required = [];
                 foreach ($sortedFields as $fieldName => $field) {
-                    $fieldType = $this->typeMapper->mapGraphQLTypeToPHPType($field->getType());
-
-                    $payloadShape[$fieldName] = $fieldType;
-
-                    if ($fieldType->isIdentifiedBy(TypeIdentifier::STRING)) {
-                        $fieldType = TypeHelper::rewrap($fieldType, static fn() => SymfonyType::union(
-                            SymfonyType::string(),
-                            SymfonyType::object(Stringable::class),
-                        ));
-                    }
-
-                    $fields[$fieldName] = $fieldType;
+                    $payloadShape[$fieldName] = $this->typeMapper->mapGraphQLTypeToPHPType(
+                        $field->getType(),
+                        input: true,
+                    );
+                    $fields[$fieldName] = $this->typeMapper->mapGraphQLTypeToPHPInputType($field->getType());
 
                     if (!$type->isOneOf() && $field->isRequired()) {
                         $required[] = $fieldName;

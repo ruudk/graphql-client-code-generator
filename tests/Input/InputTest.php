@@ -32,12 +32,13 @@ final class InputTest extends GraphQLTestCase
                     'firstName' => 'Ruud',
                     'age' => 99,
                     'lastName' => 'Kamphuis',
+                    'tags' => ['php'],
                 ],
                 'lastName' => 'Kamphuis',
             ]),
         ))->execute(
             new Name('Ruud'),
-            new CreateUserInput(new Name('Ruud'), 99, new Name('Kamphuis')),
+            new CreateUserInput(new Name('Ruud'), 99, new Name('Kamphuis'), ['php']),
             new Name('Kamphuis'),
         );
 

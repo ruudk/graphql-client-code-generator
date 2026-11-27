@@ -11,9 +11,9 @@ use Ruudk\GraphQLCodeGenerator\Config\SchemaConfig;
 use Ruudk\GraphQLCodeGenerator\Planner\Plan\OperationClassPlan;
 use Ruudk\GraphQLCodeGenerator\Planner\Source\GraphQLFileSource;
 use Ruudk\GraphQLCodeGenerator\Type\TypeDumper;
+use Ruudk\GraphQLCodeGenerator\Type\TypeHelper;
 use Ruudk\GraphQLCodeGenerator\TypeInitializer\ClassHookUsageRegistry;
 use Symfony\Component\TypeInfo\Type as SymfonyType;
-use Symfony\Component\TypeInfo\TypeIdentifier;
 
 final class OperationClassGenerator extends AbstractGenerator
 {
@@ -157,7 +157,7 @@ final class OperationClassGenerator extends AbstractGenerator
                         yield '[';
                         yield $generator->indent(static function () use ($plan) {
                             foreach ($plan->variables as $name => $phpType) {
-                                if ($phpType->isIdentifiedBy(TypeIdentifier::STRING)) {
+                                if (TypeHelper::isStringable($phpType)) {
                                     if ($phpType instanceof SymfonyType\NullableType) {
                                         yield sprintf(
                                             "'%s' => \$%s !== null ? (string) \$%s : null,",

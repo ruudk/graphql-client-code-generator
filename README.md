@@ -429,7 +429,7 @@ enum SearchType: string
 ### 🔧 Flexible & Powerful
 - **Multiple GraphQL APIs** in one project with different configs
 - **Schema introspection** with auto-update from live endpoints
-- **Custom scalar mapping** (DateTime, JSON, UUID, etc.)
+- **Custom scalar mapping** (DateTime, JSON, UUID, etc.), with an input type of its own when you need one
 - **Inline operations** - define GraphQL directly in PHP classes
 - **Inline fragments** - services publish their data contract via `#[GeneratedGraphQLFragment]`
 - **Twig template extraction** - extract fragments from Twig files
@@ -1687,6 +1687,58 @@ public function graphql(
     // forward $actor to the transport — e.g. as a header
 }
 ```
+
+### 🪪 Input Types for Custom Scalars
+
+`withScalar()` maps a scalar to one PHP type, for what you send and for what you get back. Sometimes those
+differ: you pass an id as a value object, but the server answers it as a string. Give the scalar an
+`inputType` for the variables and the fields of input objects:
+
+```php
+SchemaConfig::create(/* ... */)
+    ->withScalar('ID', Type::string(), inputType: Type::object(UserId::class));
+```
+
+The generated code then takes a `UserId` for every `ID` it sends, and answers every `ID` it gets back as a `string`:
+
+```php
+public function execute(UserId $id, UserFilter $filter) : Data
+{
+    $data = $this->client->graphql(
+        self::OPERATION_DEFINITION,
+        [
+            'id' => $id,
+            'filter' => $filter,
+        ],
+        self::OPERATION_NAME,
+    );
+```
+
+A value of an input type goes to your client as it is, also inside a list or an input object, so the client
+writes it as JSON. That is the place for an id that only a service can encode:
+
+```php
+public function graphql(string $query, array $variables = [], ?string $operationName = null) : array
+{
+    $variables = array_map($this->serialize(...), $variables);
+
+    // send the request
+}
+
+private function serialize(mixed $value) : mixed
+{
+    return match (true) {
+        $value instanceof UserId => $this->userIdEncoder->encode($value),
+        $value instanceof JsonSerializable => $this->serialize($value->jsonSerialize()),
+        is_array($value) => array_map($this->serialize(...), $value),
+        default => $value,
+    };
+}
+```
+
+A scalar without an input type works as before: when its PHP type is `string`, the generated code also takes a
+`Stringable` and casts it with `(string)`. A scalar with an input type is never cast, so a value object whose
+`__toString()` is not its JSON value cannot end up in the request by accident.
 
 ## Requirements
 

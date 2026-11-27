@@ -1,0 +1,21 @@
+scalar Handle
+
+type Query {
+    user(id: ID!): User
+    userByHandle(handle: Handle!): User
+    users(ids: [ID!]!, after: ID): [User!]!
+    search(filter: UserFilter!, name: String): [User!]!
+}
+
+type User {
+    id: ID!
+    name: String!
+}
+
+input UserFilter {
+    ownerId: ID!
+    managerId: ID
+    memberIds: [ID!]
+    name: String
+    handle: Handle
+}
