@@ -28,13 +28,18 @@ use Symfony\Component\TypeInfo\Type as SymfonyType;
 use Symfony\Component\TypeInfo\TypeIdentifier;
 use Throwable;
 
-final class IndexByValidator extends ValidationRule
+/**
+ * Validates directives that turn a list into an array keyed by a field of its items, like `@indexBy`.
+ */
+final class ListKeyValidator extends ValidationRule
 {
     /**
      * @param array<string, SymfonyType|array{SymfonyType, SymfonyType}> $scalars
+     * @param array<string, bool> $directives The directive names, mapped to whether they accept several comma-separated fields
      */
     public function __construct(
         private array $scalars,
+        private array $directives,
     ) {}
 
     #[Override]
@@ -50,9 +55,10 @@ final class IndexByValidator extends ValidationRule
                     return;
                 }
 
-                $indexBy = null;
+                $directiveName = null;
+                $fields = null;
                 foreach ($node->directives as $directive) {
-                    if ($directive->name->value !== 'indexBy') {
+                    if (!array_key_exists($directive->name->value, $this->directives)) {
                         continue;
                     }
 
@@ -68,12 +74,13 @@ final class IndexByValidator extends ValidationRule
                         continue;
                     }
 
-                    $indexBy = $directive->arguments[0]->value->value;
+                    $directiveName = $directive->name->value;
+                    $fields = $directive->arguments[0]->value->value;
 
                     break;
                 }
 
-                if ($indexBy === null) {
+                if ($directiveName === null || $fields === null) {
                     return;
                 }
 
@@ -84,7 +91,7 @@ final class IndexByValidator extends ValidationRule
                 }
 
                 if (!$type instanceof ListOfType) {
-                    $context->reportError(new Error('@indexBy can only be used on lists', [$node]));
+                    $context->reportError(new Error(sprintf('@%s can only be used on lists', $directiveName), [$node]));
 
                     return;
                 }
@@ -96,13 +103,23 @@ final class IndexByValidator extends ValidationRule
                     return;
                 }
 
-                $indexByFields = explode(',', $indexBy);
+                $fieldPaths = explode(',', $fields);
 
-                foreach ($indexByFields as $fieldPath) {
+                if (!$this->directives[$directiveName] && count($fieldPaths) > 1) {
+                    $context->reportError(
+                        new Error(sprintf('@%s only accepts a single field', $directiveName), [$node]),
+                    );
+
+                    return;
+                }
+
+                foreach ($fieldPaths as $fieldPath) {
                     $fieldPath = trim($fieldPath);
 
                     if ($fieldPath === '') {
-                        $context->reportError(new Error(sprintf('Empty field in @indexBy directive'), [$node]));
+                        $context->reportError(
+                            new Error(sprintf('Empty field in @%s directive', $directiveName), [$node]),
+                        );
 
                         continue;
                     }
@@ -152,8 +169,9 @@ final class IndexByValidator extends ValidationRule
                                 $context->reportError(
                                     new Error(
                                         sprintf(
-                                            'Field "%s" is nullable and cannot be used for @indexBy. All fields in the path must be non-null.',
+                                            'Field "%s" is nullable and cannot be used for @%s. All fields in the path must be non-null.',
                                             $pathSoFar,
+                                            $directiveName,
                                         ),
                                         [$node],
                                     ),
@@ -196,7 +214,8 @@ final class IndexByValidator extends ValidationRule
                             $context->reportError(
                                 new Error(
                                     sprintf(
-                                        '@indexBy(field: "%s") cannot be used because the field is not a valid array key type. Only String, Int, ID, and Enum types are allowed.',
+                                        '@%s(field: "%s") cannot be used because the field is not a valid array key type. Only String, Int, ID, and Enum types are allowed.',
+                                        $directiveName,
                                         $fieldPath,
                                     ),
                                     [$node],
@@ -209,7 +228,11 @@ final class IndexByValidator extends ValidationRule
                         if (!$this->isSelected($context, $node->selectionSet, $listOfType, $fieldParts)) {
                             $context->reportError(
                                 new Error(
-                                    sprintf('Field "%s" is not selected in the indexBy directive', $fieldPath),
+                                    sprintf(
+                                        'Field "%s" is not selected in the %s directive',
+                                        $fieldPath,
+                                        $directiveName,
+                                    ),
                                     [$node],
                                 ),
                             );
@@ -217,7 +240,12 @@ final class IndexByValidator extends ValidationRule
                     } catch (Throwable $error) {
                         $context->reportError(
                             new Error(
-                                sprintf('Error processing @indexBy(field: "%s"): %s', $fieldPath, $error->getMessage()),
+                                sprintf(
+                                    'Error processing @%s(field: "%s"): %s',
+                                    $directiveName,
+                                    $fieldPath,
+                                    $error->getMessage(),
+                                ),
                                 [$node],
                             ),
                         );

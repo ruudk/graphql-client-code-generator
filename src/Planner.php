@@ -93,7 +93,7 @@ use Ruudk\GraphQLCodeGenerator\Type\GeneratedClassName;
 use Ruudk\GraphQLCodeGenerator\Type\HookPropertyType;
 use Ruudk\GraphQLCodeGenerator\Type\ThrowWhenNullPropertyType;
 use Ruudk\GraphQLCodeGenerator\Type\TypeHelper;
-use Ruudk\GraphQLCodeGenerator\Validator\IndexByValidator;
+use Ruudk\GraphQLCodeGenerator\Validator\ListKeyValidator;
 use Ruudk\GraphQLCodeGenerator\Visitor\DefinedFragmentsVisitor;
 use Ruudk\GraphQLCodeGenerator\Visitor\HookFieldInjector;
 use Ruudk\GraphQLCodeGenerator\Visitor\IndexByRemover;
@@ -231,7 +231,9 @@ final class Planner
         ];
 
         if ($schemaConfig->indexByDirective) {
-            $this->validatorRules[IndexByValidator::class] = new IndexByValidator($this->scalars);
+            $this->validatorRules[ListKeyValidator::class] = new ListKeyValidator($this->scalars, [
+                'indexBy' => true,
+            ]);
         }
 
         $this->phpParser = new ParserFactory()->createForNewestSupportedVersion();

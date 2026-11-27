@@ -16,10 +16,10 @@ use Override;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\TypeInfo\Type as SymfonyType;
 
-final class IndexByValidatorTest extends TestCase
+final class ListKeyValidatorTest extends TestCase
 {
     private Schema $schema;
-    private IndexByValidator $validator;
+    private ListKeyValidator $validator;
 
     #[Override]
     protected function setUp(): void
@@ -111,12 +111,14 @@ final class IndexByValidatorTest extends TestCase
         ]);
 
         // Set up the validator with scalar mappings
-        $this->validator = new IndexByValidator([
+        $this->validator = new ListKeyValidator([
             'ID' => SymfonyType::string(),
             'String' => SymfonyType::string(),
             'Int' => SymfonyType::int(),
             'Float' => SymfonyType::float(),
             'Boolean' => SymfonyType::bool(),
+        ], [
+            'indexBy' => true,
         ]);
     }
 
