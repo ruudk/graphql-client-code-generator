@@ -20,11 +20,15 @@ final class GroupByCollectionType extends Type\CollectionType
     /**
      * @param non-empty-list<Type> $keys The key type of every level, outermost first
      * @param non-empty-list<non-empty-list<string>> $groupBy The field path of every level, outermost first
+     * @param list<array<int, string>> $throwWhenNull For every level, the type owning each nullable field of
+     *                                                the path that is selected with `@throwWhenNull`, by its
+     *                                                index in the path
      */
     public function __construct(
         public readonly array $keys,
         public readonly Type $value,
         public readonly array $groupBy,
+        public readonly array $throwWhenNull = [],
     ) {
         parent::__construct(
             new GenericType(

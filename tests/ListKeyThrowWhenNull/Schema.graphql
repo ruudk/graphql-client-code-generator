@@ -1,0 +1,24 @@
+type Query {
+    payouts: [Payout!]!
+}
+
+type Payout {
+    id: ID!
+    orderItem: OrderItem
+}
+
+type OrderItem {
+    id: ID!
+    code: String
+    order: Order
+}
+
+type Order {
+    id: ID!
+    status: OrderStatus!
+}
+
+enum OrderStatus {
+    OPEN
+    PAID
+}

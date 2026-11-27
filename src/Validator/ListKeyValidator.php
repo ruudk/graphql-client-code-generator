@@ -197,13 +197,17 @@ final class ListKeyValidator extends ValidationRule
                                 continue 2; // Skip to next fieldPath
                             }
 
-                            if (!$currentType instanceof NonNull) {
-                                $pathSoFar = implode('.', array_slice($fieldParts, 0, $index + 1));
+                            $pathSoFar = [...array_slice($fieldParts, 0, $index), $fieldName];
+
+                            if (
+                                !$currentType instanceof NonNull
+                                && !$this->throwsWhenNull($context, $node->selectionSet, $listOfType, $pathSoFar)
+                            ) {
                                 $context->reportError(
                                     new Error(
                                         sprintf(
-                                            'Field "%s" is nullable and cannot be used for @%s. All fields in the path must be non-null.',
-                                            $pathSoFar,
+                                            'Field "%s" is nullable and cannot be used for @%s. All fields in the path must be non-null, or selected with @throwWhenNull.',
+                                            implode('.', $pathSoFar),
                                             $directiveName,
                                         ),
                                         [$node],
@@ -213,8 +217,7 @@ final class ListKeyValidator extends ValidationRule
                                 continue 2; // Skip to next fieldPath
                             }
 
-                            // Unwrap NonNull for next iteration
-                            $currentType = $currentType->getWrappedType();
+                            $currentType = Type::getNullableType($currentType);
                         }
 
                         $namedType = Type::getNamedType($currentType);
@@ -258,7 +261,7 @@ final class ListKeyValidator extends ValidationRule
                             continue;
                         }
 
-                        if (!$this->isSelected($context, $node->selectionSet, $listOfType, $fieldParts)) {
+                        if ($this->findSelections($context, $node->selectionSet, $listOfType, $fieldParts) === []) {
                             $context->reportError(
                                 new Error(
                                     sprintf(
@@ -315,28 +318,53 @@ final class ListKeyValidator extends ValidationRule
     }
 
     /**
-     * Whether the field path is selected, either directly or through an inline fragment or
-     * fragment spread that applies to every item. Aliased fields don't count, because the
-     * key is read from the payload by the field name.
+     * Whether the field at the end of the path is selected with `@throwWhenNull`, so the
+     * generated code throws for an item where it is null instead of using null as a key.
+     *
+     * @param non-empty-list<string> $path
+     */
+    private function throwsWhenNull(
+        QueryValidationContext $context,
+        ?SelectionSetNode $selectionSet,
+        Type $parentType,
+        array $path,
+    ): bool {
+        foreach ($this->findSelections($context, $selectionSet, $parentType, $path) as $selection) {
+            foreach ($selection->directives as $directive) {
+                if ($directive->name->value === 'throwWhenNull') {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * The selections of the field at the end of the path, found directly or through an inline
+     * fragment or fragment spread that applies to every item. A field aliased to another name
+     * doesn't count, because the key is read from the payload by the field name.
      *
      * @param non-empty-list<string> $path
      * @param list<string> $visitedFragments
+     * @return list<FieldNode>
      */
-    private function isSelected(
+    private function findSelections(
         QueryValidationContext $context,
         ?SelectionSetNode $selectionSet,
         Type $parentType,
         array $path,
         array $visitedFragments = [],
-    ): bool {
+    ): array {
         $parentType = Type::getNamedType($parentType);
 
         if ($selectionSet === null || !$parentType instanceof ObjectType && !$parentType instanceof InterfaceType) {
-            return false;
+            return [];
         }
 
         [$fieldName] = $path;
         $rest = array_slice($path, 1);
+        $found = [];
 
         foreach ($selectionSet->selections as $selection) {
             if ($selection instanceof FieldNode) {
@@ -349,22 +377,25 @@ final class ListKeyValidator extends ValidationRule
                 }
 
                 if ($rest === []) {
-                    return true;
+                    $found[] = $selection;
+
+                    continue;
                 }
 
                 if (!$parentType->hasField($fieldName)) {
                     continue;
                 }
 
-                if ($this->isSelected(
-                    $context,
-                    $selection->selectionSet,
-                    $parentType->getField($fieldName)->getType(),
-                    $rest,
-                    $visitedFragments,
-                )) {
-                    return true;
-                }
+                $found = [
+                    ...$found,
+                    ...$this->findSelections(
+                        $context,
+                        $selection->selectionSet,
+                        $parentType->getField($fieldName)->getType(),
+                        $rest,
+                        $visitedFragments,
+                    ),
+                ];
 
                 continue;
             }
@@ -374,9 +405,10 @@ final class ListKeyValidator extends ValidationRule
                     continue;
                 }
 
-                if ($this->isSelected($context, $selection->selectionSet, $parentType, $path, $visitedFragments)) {
-                    return true;
-                }
+                $found = [
+                    ...$found,
+                    ...$this->findSelections($context, $selection->selectionSet, $parentType, $path, $visitedFragments),
+                ];
 
                 continue;
             }
@@ -401,21 +433,22 @@ final class ListKeyValidator extends ValidationRule
                 continue;
             }
 
-            if ($this->isSelected(
-                $context,
-                $fragment->selectionSet,
-                $parentType,
-                $path,
-                [
-                    ...$visitedFragments,
-                    $fragmentName,
-                ],
-            )) {
-                return true;
-            }
+            $found = [
+                ...$found,
+                ...$this->findSelections(
+                    $context,
+                    $fragment->selectionSet,
+                    $parentType,
+                    $path,
+                    [
+                        ...$visitedFragments,
+                        $fragmentName,
+                    ],
+                ),
+            ];
         }
 
-        return false;
+        return $found;
     }
 
     /**

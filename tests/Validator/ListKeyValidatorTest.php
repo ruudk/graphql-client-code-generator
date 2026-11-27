@@ -1115,6 +1115,213 @@ final class ListKeyValidatorTest extends TestCase
         );
     }
 
+    public function testValidIndexByThroughThrowWhenNullObject(): void
+    {
+        $errors = $this->validateWithAddresses(<<<'GRAPHQL'
+            {
+              usersWithAddress @indexBy(field: "optionalAddress.id") {
+                id
+                optionalAddress @throwWhenNull {
+                  id
+                }
+              }
+            }
+            GRAPHQL);
+
+        self::assertCount(0, $errors);
+    }
+
+    public function testValidIndexByWithThrowWhenNullKey(): void
+    {
+        $errors = $this->validateWithAddresses(<<<'GRAPHQL'
+            {
+              usersWithAddress @indexBy(field: "address.street") {
+                id
+                address {
+                  street @throwWhenNull
+                }
+              }
+            }
+            GRAPHQL);
+
+        self::assertCount(0, $errors);
+    }
+
+    public function testValidMultiFieldIndexByThroughThrowWhenNullObjects(): void
+    {
+        $errors = $this->validateWithAddresses(<<<'GRAPHQL'
+            {
+              usersWithAddress @indexBy(field: ["optionalAddress.id", "optionalAddress.city.name"]) {
+                id
+                optionalAddress @throwWhenNull {
+                  id
+                  city @throwWhenNull {
+                    name
+                  }
+                }
+              }
+            }
+            GRAPHQL);
+
+        self::assertCount(0, $errors);
+    }
+
+    public function testValidGroupByThroughThrowWhenNullObjects(): void
+    {
+        $errors = $this->validateWithAddresses(<<<'GRAPHQL'
+            {
+              usersWithAddress @groupBy(field: ["optionalAddress.city.name", "address.id"]) {
+                id
+                address {
+                  id
+                }
+                ...OptionalCity
+              }
+            }
+
+            fragment OptionalCity on UserWithAddress {
+              optionalAddress @throwWhenNull {
+                city @throwWhenNull {
+                  name
+                }
+              }
+            }
+            GRAPHQL);
+
+        self::assertCount(0, $errors);
+    }
+
+    public function testValidIndexByThroughThrowWhenNullObjectAliasedToItsOwnName(): void
+    {
+        $errors = $this->validateWithAddresses(<<<'GRAPHQL'
+            {
+              usersWithAddress @indexBy(field: "optionalAddress.id") {
+                id
+                optionalAddress: optionalAddress @throwWhenNull {
+                  id
+                }
+              }
+            }
+            GRAPHQL);
+
+        self::assertCount(0, $errors);
+    }
+
+    public function testInvalidIndexByWhenOnlyAnAliasHasThrowWhenNull(): void
+    {
+        $errors = $this->validateWithAddresses(<<<'GRAPHQL'
+            {
+              usersWithAddress @indexBy(field: "optionalAddress.id") {
+                id
+                optionalAddress {
+                  id
+                }
+                address2: optionalAddress @throwWhenNull {
+                  id
+                }
+              }
+            }
+            GRAPHQL);
+
+        self::assertCount(1, $errors);
+        self::assertStringContainsString(
+            'Field "optionalAddress" is nullable and cannot be used for @indexBy',
+            $errors[0]->getMessage(),
+        );
+    }
+
+    public function testInvalidMultiFieldIndexByWithNullableSegmentWithoutThrowWhenNull(): void
+    {
+        $errors = $this->validateWithAddresses(<<<'GRAPHQL'
+            {
+              usersWithAddress @indexBy(field: ["optionalAddress.id", "optionalAddress.city.name"]) {
+                id
+                optionalAddress @throwWhenNull {
+                  id
+                  city {
+                    name
+                  }
+                }
+              }
+            }
+            GRAPHQL);
+
+        self::assertCount(1, $errors);
+        self::assertStringContainsString(
+            'Field "optionalAddress.city" is nullable and cannot be used for @indexBy',
+            $errors[0]->getMessage(),
+        );
+    }
+
+    public function testInvalidGroupByWithNullableSegmentWithoutThrowWhenNull(): void
+    {
+        $errors = $this->validateWithAddresses(<<<'GRAPHQL'
+            {
+              usersWithAddress @groupBy(field: "optionalAddress.city.name") {
+                id
+                optionalAddress {
+                  city @throwWhenNull {
+                    name
+                  }
+                }
+              }
+            }
+            GRAPHQL);
+
+        self::assertCount(1, $errors);
+        self::assertStringContainsString(
+            'Field "optionalAddress" is nullable and cannot be used for @groupBy',
+            $errors[0]->getMessage(),
+        );
+    }
+
+    /**
+     * Validates against a schema of users with a non-null and a nullable address, and a nullable city.
+     *
+     * @return array<Error>
+     */
+    private function validateWithAddresses(string $query): array
+    {
+        $cityType = new ObjectType([
+            'name' => 'City',
+            'fields' => [
+                'name' => Type::nonNull(Type::string()),
+            ],
+        ]);
+
+        $addressType = new ObjectType([
+            'name' => 'Address',
+            'fields' => [
+                'id' => Type::nonNull(Type::string()),
+                'street' => Type::string(),
+                'city' => $cityType,
+            ],
+        ]);
+
+        $userWithAddressType = new ObjectType([
+            'name' => 'UserWithAddress',
+            'fields' => [
+                'id' => Type::nonNull(Type::int()),
+                'address' => Type::nonNull($addressType),
+                'optionalAddress' => $addressType,
+            ],
+        ]);
+
+        $schema = new Schema([
+            'query' => new ObjectType([
+                'name' => 'Query',
+                'fields' => [
+                    'usersWithAddress' => [
+                        'type' => Type::listOf($userWithAddressType),
+                        'resolve' => static fn() => [],
+                    ],
+                ],
+            ]),
+        ]);
+
+        return DocumentValidator::validate($schema, Parser::parse($query), [$this->validator]);
+    }
+
     /**
      * @return array<Error>
      */

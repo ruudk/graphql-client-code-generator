@@ -41,6 +41,7 @@ use Ruudk\GraphQLCodeGenerator\TypeInitializer\CollectionTypeInitializer;
 use Ruudk\GraphQLCodeGenerator\TypeInitializer\DelegatingTypeInitializer;
 use Ruudk\GraphQLCodeGenerator\TypeInitializer\GroupByCollectionTypeInitializer;
 use Ruudk\GraphQLCodeGenerator\TypeInitializer\IndexByCollectionTypeInitializer;
+use Ruudk\GraphQLCodeGenerator\TypeInitializer\ListKeyAccess;
 use Ruudk\GraphQLCodeGenerator\TypeInitializer\NullableTypeInitializer;
 use Ruudk\GraphQLCodeGenerator\TypeInitializer\ObjectTypeInitializer;
 use Symfony\Component\Filesystem\Exception\IOException;
@@ -71,8 +72,8 @@ final class PlanExecutor
         // so type-specific handlers (e.g. Money) match ahead of the generic fallback.
         $initializers = [
             new NullableTypeInitializer(),
-            new IndexByCollectionTypeInitializer(),
-            new GroupByCollectionTypeInitializer(),
+            new IndexByCollectionTypeInitializer(new ListKeyAccess($config->namespace)),
+            new GroupByCollectionTypeInitializer(new ListKeyAccess($config->namespace)),
             new CollectionTypeInitializer(),
             new BackedEnumTypeInitializer($config->addUnknownCaseToEnums, $config->namespace),
             ...$config->typeInitializers,
