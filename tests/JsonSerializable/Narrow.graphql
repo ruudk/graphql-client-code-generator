@@ -1,0 +1,8 @@
+query Narrow($id: ID!) {
+    event: node(id: $id) @throwWhenNull {
+        ...on Event @narrow {
+            id
+            name
+        }
+    }
+}

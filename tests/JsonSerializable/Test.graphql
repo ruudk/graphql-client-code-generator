@@ -1,0 +1,40 @@
+query Test {
+    viewer {
+        name
+        ...on User {
+            login
+            role
+        }
+        ...on Application {
+            url
+        }
+    }
+    events @indexBy(field: "id") {
+        __typename
+        id
+        name
+        description
+        location @flatten {
+            locationName: name
+            city @flatten {
+                cityName: name
+            }
+        }
+        tags
+        slug
+    }
+    search {
+        ...on Event {
+            id
+            name
+        }
+        ...on Venue {
+            id
+            ...VenueName
+        }
+    }
+}
+
+fragment VenueName on Venue {
+    title: name
+}

@@ -1230,7 +1230,9 @@ object. Only the generated properties change.
 <!-- source: tests/FlattenDirective/Basic.graphql -->
 ```graphql
 query Basic {
+    __typename
     viewer @flatten {
+        __typename
         firstName
         lastName
     }
@@ -1251,6 +1253,10 @@ namespace Ruudk\GraphQLCodeGenerator\FlattenDirective\Generated\Query\Basic;
 
 final class Data
 {
+    public string $__typename {
+        get => $this->__typename ??= $this->data['__typename'];
+    }
+
     public string $firstName {
         get => $this->firstName ??= $this->data['viewer']['firstName'];
     }
@@ -1266,7 +1272,9 @@ final class Data
 
     /**
      * @param array{
+     *     '__typename': string,
      *     'viewer': array{
+     *         '__typename': string,
      *         'firstName': string,
      *         'lastName': string,
      *         ...,
@@ -1440,6 +1448,48 @@ How it behaves:
 union, name an object type, and be the only inline fragment of that field. Fragment spreads on
 another object type, and `@include` or `@skip` on the narrowed fragment, are rejected while
 generating.
+
+### 🧾 Serialize Results with `JsonSerializable`
+
+Do you hand a result to something that writes JSON, like an API response or the answer of an
+MCP tool? Copying every field into an array by hand repeats the selection. Enable
+`enableJsonSerializable()` and every data class implements `JsonSerializable`:
+
+```php
+$config = SchemaConfig::create(/* ... */)->enableJsonSerializable();
+```
+
+`jsonSerialize()` answers the fields the operation selects, under their response keys, so an
+alias renames a key. Its `@return` declares the exact shape:
+
+```graphql
+query Viewer {
+    viewer {
+        name
+        ... on User {
+            login
+        }
+    }
+}
+```
+
+```php
+/**
+ * @return array{'login': string, 'name': string}|array{'name': string}
+ */
+public function jsonSerialize() : array
+```
+
+- **Values** are the values of the properties: a nested object stays its data class, which
+  serializes itself in turn, and an enum or a custom scalar stays the PHP value it maps to.
+- **Fragments** are merged into the object, as GraphQL merges them into the response. A
+  fragment on an interface or union only applies to some types, so `@return` lists one shape
+  per set of fragments that can apply together.
+- **`__typename`** shows up only when the operation selects it. The `__typename` the generator
+  adds itself to tell the types apart stays out.
+- **`@flatten`** lifts its fields onto the parent object here too, and **`@indexBy`** keeps its
+  keys, which makes the list a JSON object.
+- **Fields of a `@hook`** are left out: they are no data of the response.
 
 ### 🪝 Local Resolution with `@hook` Directive
 

@@ -1,0 +1,81 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Ruudk\GraphQLCodeGenerator\JsonSerializable\Generated\Query\Test;
+
+use Ruudk\GraphQLCodeGenerator\TestClient;
+
+// This file was automatically generated and should not be edited.
+
+final readonly class TestQuery {
+    public const string OPERATION_NAME = 'Test';
+    public const string OPERATION_DEFINITION = <<<'GRAPHQL'
+        query Test {
+          viewer {
+            __typename
+            name
+            ... on User {
+              login
+              role
+            }
+            ... on Application {
+              url
+            }
+          }
+          events {
+            __typename
+            id
+            name
+            description
+            location {
+              locationName: name
+              city {
+                cityName: name
+              }
+            }
+            tags
+            slug
+          }
+          search {
+            __typename
+            ... on Event {
+              id
+              name
+            }
+            ... on Venue {
+              id
+              ...VenueName
+            }
+          }
+        }
+        
+        fragment VenueName on Venue {
+          title: name
+        }
+        
+        GRAPHQL;
+
+    public function __construct(
+        private TestClient $client,
+    ) {}
+
+    /**
+     * @api
+     */
+    public function execute() : Data
+    {
+        $data = $this->client->graphql(
+            self::OPERATION_DEFINITION,
+            [
+            ],
+            self::OPERATION_NAME,
+        );
+
+        // @mago-expect analysis:mixed-argument(2)
+        return new Data(
+            $data['data'] ?? [], // @phpstan-ignore argument.type
+            $data['errors'] ?? [] // @phpstan-ignore argument.type
+        );
+    }
+}
