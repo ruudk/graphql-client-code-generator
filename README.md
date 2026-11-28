@@ -1449,6 +1449,48 @@ union, name an object type, and be the only inline fragment of that field. Fragm
 another object type, and `@include` or `@skip` on the narrowed fragment, are rejected while
 generating.
 
+### 🧾 Serialize Results with `JsonSerializable`
+
+Do you hand a result to something that writes JSON, like an API response or the answer of an
+MCP tool? Copying every field into an array by hand repeats the selection. Enable
+`enableJsonSerializable()` and every data class implements `JsonSerializable`:
+
+```php
+$config = SchemaConfig::create(/* ... */)->enableJsonSerializable();
+```
+
+`jsonSerialize()` answers the fields the operation selects, under their response keys, so an
+alias renames a key. Its `@return` declares the exact shape:
+
+```graphql
+query Viewer {
+    viewer {
+        name
+        ... on User {
+            login
+        }
+    }
+}
+```
+
+```php
+/**
+ * @return array{'login': string, 'name': string}|array{'name': string}
+ */
+public function jsonSerialize() : array
+```
+
+- **Values** are the values of the properties: a nested object stays its data class, which
+  serializes itself in turn, and an enum or a custom scalar stays the PHP value it maps to.
+- **Fragments** are merged into the object, as GraphQL merges them into the response. A
+  fragment on an interface or union only applies to some types, so `@return` lists one shape
+  per set of fragments that can apply together.
+- **`__typename`** shows up only when the operation selects it. The `__typename` the generator
+  adds itself to tell the types apart stays out.
+- **`@flatten`** lifts its fields onto the parent object here too, and **`@indexBy`** keeps its
+  keys, which makes the list a JSON object.
+- **Fields of a `@hook`** are left out: they are no data of the response.
+
 ### 🪝 Local Resolution with `@hook` Directive
 
 Enrich query results with data that does not come from the GraphQL server.

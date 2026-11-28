@@ -1,0 +1,57 @@
+type Query {
+    viewer: Viewer!
+    node(id: ID!): Node
+    events: [Event!]!
+    search: [SearchResult!]!
+}
+
+interface Node {
+    id: ID!
+}
+
+interface Viewer {
+    name: String!
+}
+
+type User implements Viewer & Node {
+    id: ID!
+    name: String!
+    login: String!
+    role: Role!
+}
+
+type Application implements Viewer & Node {
+    id: ID!
+    name: String!
+    url: String!
+}
+
+enum Role {
+    ADMIN
+    MEMBER
+}
+
+type Event implements Node {
+    id: ID!
+    name: String!
+    description: String
+    location: Location
+    tags: [String!]!
+    slug: String! @deprecated(reason: "Use id.")
+}
+
+type Location {
+    name: String!
+    city: City!
+}
+
+type City {
+    name: String!
+}
+
+type Venue implements Node {
+    id: ID!
+    name: String!
+}
+
+union SearchResult = Event | Venue | User

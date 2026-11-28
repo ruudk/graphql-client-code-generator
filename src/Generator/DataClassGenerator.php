@@ -9,6 +9,7 @@ use GraphQL\Language\AST\OperationDefinitionNode;
 use GraphQL\Type\Definition\InterfaceType;
 use GraphQL\Type\Definition\ObjectType;
 use GraphQL\Type\Definition\UnionType;
+use JsonSerializable;
 use Ruudk\CodeGenerator\CodeGenerator;
 use Ruudk\CodeGenerator\Group;
 use Ruudk\GraphQLCodeGenerator\Attribute\Generated;
@@ -69,6 +70,250 @@ final class DataClassGenerator extends AbstractGenerator
             $type,
             true,
         ), $plansByFqcn[$fqcn]->possibleTypes));
+    }
+
+    /**
+     * Emit `jsonSerialize()` when the schema enables `JsonSerializable` data classes. It answers the
+     * fields of the selection with the values of their properties and merges in the fields of every
+     * fragment that applies. A fragment on an interface or union applies to some types only, so the
+     * method answers one shape per set of fragments that can apply together, larger sets first. A
+     * fragment the getter answers null for although the type matches falls through to a smaller set.
+     *
+     * @param array<string, DataClassPlan> $plansByFqcn
+     * @param array<string, string> $deprecatedFields Deprecation reason by property name
+     * @throws InvalidArgumentException
+     * @return iterable<string|Group>
+     */
+    private function dumpJsonSerialize(
+        DataClassPlan $plan,
+        array $plansByFqcn,
+        array $deprecatedFields,
+        CodeGenerator $generator,
+    ): iterable {
+        if (!$this->config->jsonSerializable) {
+            return;
+        }
+
+        $serialization = $this->serialization($plan, $plansByFqcn);
+        $shapes = array_map(
+            static fn(array $shape) => TypeDumper::dump(SymfonyType::arrayShape($shape), $generator->import(...)),
+            $this->serializedShapes($plan, $plansByFqcn),
+        );
+        $readsDeprecatedProperty = array_any(
+            array_keys($serialization['own']),
+            static fn(string $name) => isset($deprecatedFields[$name]),
+        );
+
+        yield '';
+        yield from $generator->docComment(static function () use ($shapes, $readsDeprecatedProperty) {
+            yield sprintf('@return %s', implode('|', array_unique($shapes)));
+
+            if ($readsDeprecatedProperty) {
+                yield '@mago-expect analysis:deprecated-property';
+            }
+        });
+        yield sprintf('public function jsonSerialize() : array');
+        yield '{';
+        yield $generator->indent(function () use ($serialization, $generator) {
+            $branches = array_filter($serialization['branches'], static fn(array $fragments) => $fragments !== []);
+            $locals = array_unique(array_merge(...array_values($branches)));
+
+            foreach ($locals as $fragment) {
+                yield sprintf('$%s = $this->%s;', $fragment, $fragment);
+            }
+
+            if ($locals !== []) {
+                yield '';
+            }
+
+            foreach ($branches as $fragments) {
+                yield sprintf('if (%s) {', implode(' && ', array_map(static fn(string $fragment) => sprintf(
+                    '$%s !== null',
+                    $fragment,
+                ), $fragments)));
+                yield $generator->indent($this->dumpSerializedArray(
+                    $serialization['own'],
+                    [
+                        ...array_map(static fn(string $fragment) => '$this->' . $fragment, $serialization['required']),
+                        ...array_map(static fn(string $fragment) => '$' . $fragment, $fragments),
+                    ],
+                    $generator,
+                ));
+                yield '}';
+                yield '';
+            }
+
+            yield from $this->dumpSerializedArray(
+                $serialization['own'],
+                array_map(static fn(string $fragment) => '$this->' . $fragment, $serialization['required']),
+                $generator,
+            );
+        });
+        yield '}';
+    }
+
+    /**
+     * @param array<string, SymfonyType> $own
+     * @param list<string> $fragments The expressions of the fragments to merge in
+     * @return iterable<string|Group>
+     */
+    private function dumpSerializedArray(array $own, array $fragments, CodeGenerator $generator): iterable
+    {
+        if ($own === [] && $fragments === []) {
+            yield 'return [];';
+
+            return;
+        }
+
+        yield 'return [';
+        yield $generator->indent(static function () use ($own, $fragments) {
+            foreach (array_keys($own) as $name) {
+                yield sprintf('%s => $this->%s,', var_export($name, true), $name);
+            }
+
+            foreach ($fragments as $fragment) {
+                yield sprintf('...%s->jsonSerialize(),', $fragment);
+            }
+        });
+        yield '];';
+    }
+
+    /**
+     * The shapes `jsonSerialize()` answers: one per branch, with the shapes of the fragments it
+     * merges in. A fragment that answers several shapes itself multiplies the shapes of the branch.
+     *
+     * @param array<string, DataClassPlan> $plansByFqcn
+     * @throws InvalidArgumentException
+     * @return list<array<string, SymfonyType>>
+     */
+    private function serializedShapes(DataClassPlan $plan, array $plansByFqcn): array
+    {
+        $serialization = $this->serialization($plan, $plansByFqcn);
+        $shapes = [];
+
+        foreach ($serialization['branches'] as $fragments) {
+            $branchShapes = [$serialization['own']];
+
+            foreach ([...$serialization['required'], ...$fragments] as $fragment) {
+                $fragmentShapes = $this->serializedShapes(
+                    $plansByFqcn[$serialization['fragments'][$fragment]],
+                    $plansByFqcn,
+                );
+                $merged = [];
+
+                foreach ($branchShapes as $branchShape) {
+                    foreach ($fragmentShapes as $fragmentShape) {
+                        $merged[] = array_merge($branchShape, $fragmentShape);
+                    }
+                }
+
+                $branchShapes = $merged;
+            }
+
+            array_push($shapes, ...$branchShapes);
+        }
+
+        return $shapes;
+    }
+
+    /**
+     * What `jsonSerialize()` of a class is made of: the properties of its own fields, the fragments
+     * that always apply, and the sets of nullable fragments that apply together to some type, ending
+     * with the empty set.
+     *
+     * @param array<string, DataClassPlan> $plansByFqcn
+     * @throws InvalidArgumentException
+     * @return array{
+     *     own: array<string, SymfonyType>,
+     *     required: list<string>,
+     *     branches: non-empty-list<list<string>>,
+     *     fragments: array<string, string>,
+     * }
+     */
+    private function serialization(DataClassPlan $plan, array $plansByFqcn): array
+    {
+        $fields = $this->getNakedType($plan->fields);
+        $payloadShape = $this->getNakedType($plan->payloadShape);
+
+        $own = [];
+        $required = [];
+        $optional = [];
+        $fragments = [];
+
+        if (!$fields instanceof ArrayShapeType) {
+            return ['own' => [], 'required' => [], 'branches' => [[]], 'fragments' => []];
+        }
+
+        $payloadFields = $payloadShape instanceof ArrayShapeType ? $payloadShape->getShape() : [];
+
+        foreach ($fields->getShape() as $fieldName => $fieldValue) {
+            Assert::string($fieldName);
+            $fieldType = $fieldValue['type'];
+
+            if ($fieldType instanceof HookPropertyType) {
+                continue;
+            }
+
+            if ($fieldType instanceof ThrowWhenNullPropertyType || $fieldType instanceof FlattenedPropertyType) {
+                $own[$fieldName] = $fieldType->getWrappedType();
+
+                continue;
+            }
+
+            $propertyType = $this->effectivePropertyType(
+                $fieldType,
+                $payloadFields[$fieldName]['type'] ?? null,
+                $fieldValue['optional'] || ($payloadFields[$fieldName]['optional'] ?? false),
+            );
+            $nakedFieldType = $this->getNakedType($fieldType);
+
+            if (!$nakedFieldType instanceof FragmentObjectType) {
+                $own[$fieldName] = $propertyType;
+
+                continue;
+            }
+
+            $fragmentFqcn = $nakedFieldType->getClassName();
+            Assert::keyExists($plansByFqcn, $fragmentFqcn);
+            $fragments[$fieldName] = $fragmentFqcn;
+
+            if (!$propertyType instanceof SymfonyType\NullableType) {
+                $required[] = $fieldName;
+
+                continue;
+            }
+
+            $optional[$fieldName] = match (true) {
+                $plan->parentType instanceof ObjectType => [$plan->parentType->name()],
+                $nakedFieldType->fragmentType instanceof ObjectType => [$nakedFieldType->fragmentType->name()],
+                default => $plansByFqcn[$fragmentFqcn]->possibleTypes,
+            };
+        }
+
+        $types = $plan->parentType instanceof ObjectType ? [$plan->parentType->name()] : $plan->possibleTypes;
+
+        foreach ($optional as $fragmentTypes) {
+            $types = [...$types, ...$fragmentTypes];
+        }
+
+        $branches = [];
+
+        foreach (array_unique($types) as $type) {
+            $branch = array_keys(array_filter($optional, static fn(array $fragmentTypes) => in_array(
+                $type,
+                $fragmentTypes,
+                true,
+            )));
+
+            if ($branch !== [] && !in_array($branch, $branches, true)) {
+                $branches[] = $branch;
+            }
+        }
+
+        usort($branches, static fn(array $left, array $right) => count($right) <=> count($left));
+        $branches[] = [];
+
+        return ['own' => $own, 'required' => $required, 'branches' => $branches, 'fragments' => $fragments];
     }
 
     /**
@@ -781,7 +1026,13 @@ final class DataClassGenerator extends AbstractGenerator
                 });
             }
 
-            yield sprintf('final class %s', $generator->import($fqcn));
+            yield $this->config->jsonSerializable
+                ? sprintf(
+                    'final class %s implements %s',
+                    $generator->import($fqcn),
+                    $generator->import(JsonSerializable::class),
+                )
+                : sprintf('final class %s', $generator->import($fqcn));
             yield '{';
 
             $requiredFieldsMap = $inlineFragmentRequiredFields;
@@ -1530,6 +1781,7 @@ final class DataClassGenerator extends AbstractGenerator
 
                 yield from $this->dumpHookBuildMethods($plan, $plansByFqcn, $generator);
                 yield from $this->dumpCollectMethods($plan, $plansByFqcn, $generator);
+                yield from $this->dumpJsonSerialize($plan, $plansByFqcn, $deprecatedFields, $generator);
             });
             yield '}';
         });

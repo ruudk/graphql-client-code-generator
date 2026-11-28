@@ -70,6 +70,7 @@ final readonly class SchemaConfig
         public bool $throwWhenNullDirective = false,
         public bool $flattenDirective = false,
         public bool $narrowDirective = false,
+        public bool $jsonSerializable = false,
         public bool $addUnknownCaseToEnums = false,
         public bool $dumpEnumIsMethods = false,
         public ?object $introspectionClient = null,
@@ -197,6 +198,21 @@ final readonly class SchemaConfig
     {
         return clone($this, [
             'narrowDirective' => true,
+        ]);
+    }
+
+    /**
+     * Let every data class implement `JsonSerializable`. `jsonSerialize()` answers the fields the
+     * operation selects, by their response key, with the values of the properties: a nested object
+     * stays its data class, which serializes itself in turn. The fields of a fragment are merged in,
+     * as GraphQL merges them into the response, and a `__typename` only shows up when the operation
+     * selects it, not when the generator adds it to tell the types apart. A field of a hook is left
+     * out, because it is no data of the response.
+     */
+    public function enableJsonSerializable(): self
+    {
+        return clone($this, [
+            'jsonSerializable' => true,
         ]);
     }
 
